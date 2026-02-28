@@ -1,29 +1,25 @@
-// src/utils/weeklyProgress.ts
-export function getWeek(day: number) {
-    if (day <= 7) return 1;
-    if (day <= 14) return 2;
-    if (day <= 21) return 3;
-    if (day <= 28) return 4;
-    return 5;
-}
+// January 2026 starts on a Thursday — weeks run Thu → Wed
+const DAY_NAMES = ["Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed"];
 
 export function calculateWeeklyProgress(
-    logs: { day: number; completed: number }[],
+    logs: { habitId: number; day: number; completed: boolean }[],
     totalHabits: number,
 ) {
-    const weeks = [1, 2, 3, 4, 5];
+    return [1, 2, 3, 4, 5].map((week) => {
+        const start = (week - 1) * 7 + 1;
+        const end   = Math.min(week * 7, 31);
+        const count = end - start + 1;
 
-    return weeks.map((week) => {
-        const weekLogs = logs.filter((l) => getWeek(l.day) === week);
+        const dayLabels = Array.from({ length: count }, (_, i) => DAY_NAMES[i] ?? "");
 
-        const completed = weekLogs.reduce((sum, l) => sum + l.completed, 0);
+        const completed = logs.filter(
+            (l) => l.day >= start && l.day <= end && l.completed,
+        ).length;
 
-        const possible = weekLogs.length * totalHabits;
+        const goal = count * totalHabits;
+        const left = goal - completed;
+        const percent = goal === 0 ? 0 : Math.round((completed / goal) * 100);
 
-        return {
-            week: `Week ${week}`,
-            percent:
-                possible === 0 ? 0 : Math.round((completed / possible) * 100),
-        };
+        return { week: `W${week}`, days: count, dayLabels, completed, goal, left, percent };
     });
 }
