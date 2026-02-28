@@ -1,18 +1,11 @@
 export function calculateDailyProgress(
-    logs: { day: number; completed: number }[],
+    logs: { habitId: number; day: number; completed: boolean }[],
     totalHabits: number,
     daysInMonth = 31,
 ) {
-    const map = new Map<number, number>();
-
-    logs.forEach((l) => {
-        map.set(l.day, l.completed);
-    });
-
     return Array.from({ length: daysInMonth }, (_, i) => {
         const day = i + 1;
-        const completed = map.get(day) ?? 0;
-
+        const completed = logs.filter((l) => l.day === day && l.completed).length;
         return {
             day,
             percent: Math.round((completed / totalHabits) * 100),
