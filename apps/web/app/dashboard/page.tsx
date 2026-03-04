@@ -50,7 +50,9 @@ export default function DashboardPage() {
 
     // Derive per-habit stats from logs
     const habitsWithStats: HabitWithStats[] = initialHabits.map((h) => {
-        const done = logs.filter((l) => l.habitId === h.id && l.completed).length;
+        const done = logs.filter(
+            (l) => l.habitId === h.id && l.completed,
+        ).length;
         return {
             ...h,
             completed: done,
@@ -60,9 +62,9 @@ export default function DashboardPage() {
     });
 
     const totalCompleted = habitsWithStats.reduce((s, h) => s + h.completed, 0);
-    const totalGoal      = habitsWithStats.reduce((s, h) => s + h.goal, 0);
+    const totalGoal = habitsWithStats.reduce((s, h) => s + h.goal, 0);
 
-    const dailyData  = calculateDailyProgress(logs, initialHabits.length);
+    const dailyData = calculateDailyProgress(logs, initialHabits.length);
     const weeklyData = calculateWeeklyProgress(logs, initialHabits.length);
 
     return (
@@ -83,7 +85,10 @@ export default function DashboardPage() {
 
                     {/* Right column: donut + top habits */}
                     <div className="flex flex-col gap-6">
-                        <DonutChart completed={totalCompleted} total={totalGoal} />
+                        <DonutChart
+                            completed={totalCompleted}
+                            total={totalGoal}
+                        />
                         <TopHabits habits={habitsWithStats} />
                     </div>
                 </div>
@@ -92,7 +97,11 @@ export default function DashboardPage() {
                 <DailyLineChart data={dailyData} />
 
                 {/* Habit grid */}
-                <HabitGrid habits={habitsWithStats} logs={logs} onToggle={toggleHabit} />
+                <HabitGrid
+                    habits={habitsWithStats}
+                    logs={logs}
+                    onToggle={toggleHabit}
+                />
             </div>
         </div>
     );
