@@ -13,24 +13,7 @@ import MonthSelector from "../../components/MonthSelector";
 import TopHabits from "../../components/overview/TopHabits";
 import { calculateDailyProgress } from "../../src/utils/dailyProgress";
 import { calculateWeeklyProgress } from "../../src/utils/weeklyProgress";
-
-export type Habit = {
-    id: number;
-    name: string;
-    goal: number;
-};
-
-export type HabitWithStats = Habit & {
-    completed: number;
-    left: number;
-    percent: number;
-};
-
-export type HabitLog = {
-    habitId: number;
-    day: number;
-    completed: boolean;
-};
+import { HabitLog, HabitWithStats } from "./types";
 
 export default function DashboardPage() {
     const [logs, setLogs] = useState<HabitLog[]>(mockLogs);
