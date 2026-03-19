@@ -57,6 +57,11 @@ export default function SignupPage() {
 
     function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
+        const formData = new FormData(event.currentTarget);
+        const name = formData.get("name") as string;
+        const email = formData.get("email") as string;
+        const password = formData.get("password") as string;
+        const confirm = formData.get("confirm") as string;
     }
 
     return (
@@ -163,6 +168,7 @@ export default function SignupPage() {
                             </label>
                             <input
                                 id="name"
+                                name="name"
                                 type="text"
                                 required
                                 autoComplete="name"
@@ -180,6 +186,7 @@ export default function SignupPage() {
                             </label>
                             <input
                                 id="email"
+                                name="email"
                                 type="email"
                                 required
                                 autoComplete="email"
@@ -198,6 +205,7 @@ export default function SignupPage() {
                             <div className="relative">
                                 <input
                                     id="password"
+                                    name="password"
                                     type={showPassword ? "text" : "password"}
                                     required
                                     autoComplete="new-password"
@@ -230,14 +238,15 @@ export default function SignupPage() {
 
                         <div>
                             <label
-                                htmlFor="confirm"
+                                htmlFor="confirmPassword"
                                 className="block text-sm font-medium text-gray-700 mb-1.5"
                             >
                                 Confirm password
                             </label>
                             <div className="relative">
                                 <input
-                                    id="confirm"
+                                    id="confirmPassword"
+                                    name="confirmPassword"
                                     type={showConfirm ? "text" : "password"}
                                     required
                                     autoComplete="new-password"
@@ -266,6 +275,7 @@ export default function SignupPage() {
                         <div className="flex items-start gap-2">
                             <input
                                 id="terms"
+                                name="terms"
                                 type="checkbox"
                                 required
                                 className="mt-0.5 h-4 w-4 rounded border-gray-300 accent-indigo-600"
