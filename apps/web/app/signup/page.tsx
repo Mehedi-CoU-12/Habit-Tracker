@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { IconEyeClosed, IconEyeOpen } from "../../components/icons/Icon";
 
@@ -51,12 +52,49 @@ function PasswordStrengthBar({ password }: { password: string }) {
 }
 
 export default function SignupPage() {
+    const router = useRouter();
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
     const [password, setPassword] = useState("");
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
 
-    function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
+        setError("");
+        const formData = new FormData(event.currentTarget);
+        const name = formData.get("name") as string;
+        const email = formData.get("email") as string;
+        const password = formData.get("password") as string;
+        const confirmPassword = formData.get("confirmPassword") as string;
+
+        if (password !== confirmPassword) {
+            setError("Passwords do not match");
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const res = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/auth/signup`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name, email, password }),
+                }
+            );
+            const data = await res.json();
+            if (!res.ok) {
+                setError(data.message ?? "Signup failed");
+                return;
+            }
+            localStorage.setItem("accessToken", data.accessToken);
+            router.push("/dashboard");
+        } catch {
+            setError("Network error. Please try again.");
+        } finally {
+            setLoading(false);
+        }
     }
 
     return (
@@ -163,6 +201,7 @@ export default function SignupPage() {
                             </label>
                             <input
                                 id="name"
+                                name="name"
                                 type="text"
                                 required
                                 autoComplete="name"
@@ -180,6 +219,7 @@ export default function SignupPage() {
                             </label>
                             <input
                                 id="email"
+                                name="email"
                                 type="email"
                                 required
                                 autoComplete="email"
@@ -198,6 +238,7 @@ export default function SignupPage() {
                             <div className="relative">
                                 <input
                                     id="password"
+                                    name="password"
                                     type={showPassword ? "text" : "password"}
                                     required
                                     autoComplete="new-password"
@@ -230,14 +271,15 @@ export default function SignupPage() {
 
                         <div>
                             <label
-                                htmlFor="confirm"
+                                htmlFor="confirmPassword"
                                 className="block text-sm font-medium text-gray-700 mb-1.5"
                             >
                                 Confirm password
                             </label>
                             <div className="relative">
                                 <input
-                                    id="confirm"
+                                    id="confirmPassword"
+                                    name="confirmPassword"
                                     type={showConfirm ? "text" : "password"}
                                     required
                                     autoComplete="new-password"
@@ -266,6 +308,7 @@ export default function SignupPage() {
                         <div className="flex items-start gap-2">
                             <input
                                 id="terms"
+                                name="terms"
                                 type="checkbox"
                                 required
                                 className="mt-0.5 h-4 w-4 rounded border-gray-300 accent-indigo-600"
@@ -291,11 +334,16 @@ export default function SignupPage() {
                             </label>
                         </div>
 
+                        {error && (
+                            <p className="text-sm text-red-600">{error}</p>
+                        )}
+
                         <button
                             type="submit"
-                            className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:scale-[0.98]"
+                            disabled={loading}
+                            className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
                         >
-                            Create account
+                            {loading ? "Creating account…" : "Create account"}
                         </button>
                     </form>
 
