@@ -1,14 +1,45 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { IconEyeClosed, IconEyeOpen } from "../../components/icons/Icon";
 
 export default function LoginPage() {
+    const router = useRouter();
     const [showPassword, setShowPassword] = useState(false);
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
 
-    function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
+        setError("");
+        const formData = new FormData(event.currentTarget);
+        const email = formData.get("email") as string;
+        const password = formData.get("password") as string;
+
+        setLoading(true);
+        try {
+            const res = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/auth/login`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, password }),
+                }
+            );
+            const data = await res.json();
+            if (!res.ok) {
+                setError(data.message ?? "Login failed");
+                return;
+            }
+            localStorage.setItem("accessToken", data.accessToken);
+            router.push("/dashboard");
+        } catch {
+            setError("Network error. Please try again.");
+        } finally {
+            setLoading(false);
+        }
     }
 
     return (
@@ -121,6 +152,7 @@ export default function LoginPage() {
                             </label>
                             <input
                                 id="email"
+                                name="email"
                                 type="email"
                                 required
                                 autoComplete="email"
@@ -147,6 +179,7 @@ export default function LoginPage() {
                             <div className="relative">
                                 <input
                                     id="password"
+                                    name="password"
                                     type={showPassword ? "text" : "password"}
                                     required
                                     autoComplete="current-password"
@@ -186,11 +219,16 @@ export default function LoginPage() {
                             </label>
                         </div>
 
+                        {error && (
+                            <p className="text-sm text-red-600">{error}</p>
+                        )}
+
                         <button
                             type="submit"
-                            className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:scale-[0.98]"
+                            disabled={loading}
+                            className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
                         >
-                            Sign in
+                            {loading ? "Signing in…" : "Sign in"}
                         </button>
                     </form>
 
