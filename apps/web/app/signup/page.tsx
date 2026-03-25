@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { IconEyeClosed, IconEyeOpen } from "../../components/icons/Icon";
 
@@ -51,17 +52,49 @@ function PasswordStrengthBar({ password }: { password: string }) {
 }
 
 export default function SignupPage() {
+    const router = useRouter();
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
     const [password, setPassword] = useState("");
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
 
-    function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
+        setError("");
         const formData = new FormData(event.currentTarget);
         const name = formData.get("name") as string;
         const email = formData.get("email") as string;
         const password = formData.get("password") as string;
-        const confirm = formData.get("confirm") as string;
+        const confirmPassword = formData.get("confirmPassword") as string;
+
+        if (password !== confirmPassword) {
+            setError("Passwords do not match");
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const res = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/auth/signup`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name, email, password }),
+                }
+            );
+            const data = await res.json();
+            if (!res.ok) {
+                setError(data.message ?? "Signup failed");
+                return;
+            }
+            localStorage.setItem("accessToken", data.accessToken);
+            router.push("/dashboard");
+        } catch {
+            setError("Network error. Please try again.");
+        } finally {
+            setLoading(false);
+        }
     }
 
     return (
@@ -301,11 +334,16 @@ export default function SignupPage() {
                             </label>
                         </div>
 
+                        {error && (
+                            <p className="text-sm text-red-600">{error}</p>
+                        )}
+
                         <button
                             type="submit"
-                            className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:scale-[0.98]"
+                            disabled={loading}
+                            className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
                         >
-                            Create account
+                            {loading ? "Creating account…" : "Create account"}
                         </button>
                     </form>
 
