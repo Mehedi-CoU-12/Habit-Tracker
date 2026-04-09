@@ -13,6 +13,7 @@ export const metadata: Metadata = {
     title: "HabitFlow — Build Better Habits",
     description:
         "Track your daily habits, visualize your progress, and achieve your goals with HabitFlow.",
+    icons: { icon: "/favicon.svg" },
 };
 
 export default function RootLayout({
