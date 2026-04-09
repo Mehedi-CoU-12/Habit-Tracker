@@ -1,19 +1,23 @@
 // components/habits/HabitRow.tsx
-import { HabitWithStats, HabitLog } from "../../app/dashboard/page";
-
-const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
+import { HabitWithStats, HabitLog } from "../../app/dashboard/types";
 
 export default function HabitRow({
     habit,
     logs,
+    daysInMonth,
     onToggle,
+    onDelete,
     isEven,
 }: {
     habit: HabitWithStats;
     logs: HabitLog[];
-    onToggle: (habitId: number, day: number) => void;
+    daysInMonth: number;
+    onToggle: (habitId: string, day: number) => void;
+    onDelete: (habitId: string) => void;
     isEven: boolean;
 }) {
+    const DAYS = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
     function isChecked(day: number) {
         return logs.some(
             (l) => l.habitId === habit.id && l.day === day && l.completed,
@@ -24,9 +28,20 @@ export default function HabitRow({
 
     return (
         <tr className={`${bg} border-b border-gray-100 last:border-0`}>
-            {/* Habit name — sticky */}
-            <td className={`sticky left-0 z-10 ${bg} px-4 py-2 font-medium text-gray-800 min-w-36`}>
-                {habit.name}
+            {/* Habit name + delete — sticky */}
+            <td className={`sticky left-0 z-10 ${bg} px-4 py-2 min-w-36`}>
+                <div className="flex items-center gap-2">
+                    <span className="font-medium text-gray-800 truncate">{habit.name}</span>
+                    <button
+                        onClick={() => onDelete(habit.id)}
+                        className="shrink-0 text-gray-300 hover:text-red-500 transition-colors"
+                        aria-label={`Delete ${habit.name}`}
+                    >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
             </td>
 
             {/* Goal */}
@@ -63,13 +78,11 @@ export default function HabitRow({
 
             {/* Progress bar */}
             <td className="px-4 py-2 min-w-24">
-                <div className="flex items-center gap-2">
-                    <div className="flex-1 h-2 rounded-full bg-gray-100">
-                        <div
-                            className="h-2 rounded-full bg-indigo-500 transition-all"
-                            style={{ width: `${Math.min(habit.percent, 100)}%` }}
-                        />
-                    </div>
+                <div className="flex-1 h-2 rounded-full bg-gray-100">
+                    <div
+                        className="h-2 rounded-full bg-indigo-500 transition-all"
+                        style={{ width: `${Math.min(habit.percent, 100)}%` }}
+                    />
                 </div>
             </td>
         </tr>
