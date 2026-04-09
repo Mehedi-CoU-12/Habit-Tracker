@@ -12,6 +12,7 @@ model User {
   name      String
   email     String     @unique
   password  String
+  avatarUrl String?
   habits    Habit[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
