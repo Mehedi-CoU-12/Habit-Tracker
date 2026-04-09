@@ -1,0 +1,67 @@
+import { ApiHabit } from "../../app/dashboard/types";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
+
+function authHeaders(): HeadersInit {
+    const token =
+        typeof window !== "undefined"
+            ? localStorage.getItem("accessToken")
+            : null;
+    return {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+}
+
+async function handleResponse<T>(res: Response): Promise<T> {
+    if (res.status === 401) {
+        if (typeof window !== "undefined") {
+            localStorage.removeItem("accessToken");
+            window.location.href = "/login";
+        }
+        throw new Error("Unauthorized");
+    }
+    if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { message?: string }).message ?? "Request failed");
+    }
+    return res.json() as Promise<T>;
+}
+
+export async function fetchHabits(year: number, month: number): Promise<ApiHabit[]> {
+    const res = await fetch(`${API_URL}/habits?year=${year}&month=${month}`, {
+        headers: authHeaders(),
+    });
+    return handleResponse<ApiHabit[]>(res);
+}
+
+export async function createHabit(name: string, goal: number): Promise<ApiHabit> {
+    const res = await fetch(`${API_URL}/habits`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ name, goal }),
+    });
+    return handleResponse<ApiHabit>(res);
+}
+
+export async function deleteHabit(id: string): Promise<void> {
+    const res = await fetch(`${API_URL}/habits/${id}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+    });
+    return handleResponse<void>(res);
+}
+
+export async function toggleLog(
+    habitId: string,
+    year: number,
+    month: number,
+    day: number,
+): Promise<{ completed: boolean }> {
+    const res = await fetch(`${API_URL}/habits/logs/toggle`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ habitId, year, month, day }),
+    });
+    return handleResponse<{ completed: boolean }>(res);
+}

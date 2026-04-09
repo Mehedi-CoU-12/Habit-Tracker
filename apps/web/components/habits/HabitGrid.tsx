@@ -1,22 +1,28 @@
-import { HabitWithStats, HabitLog } from "../../app/dashboard/page";
+import { HabitWithStats, HabitLog } from "../../app/dashboard/types";
 import HabitRow from "./HabitRow";
-
-const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
 
 export default function HabitGrid({
     habits,
     logs,
+    daysInMonth,
+    monthLabel,
     onToggle,
+    onDelete,
 }: {
     habits: HabitWithStats[];
     logs: HabitLog[];
-    onToggle: (habitId: number, day: number) => void;
+    daysInMonth: number;
+    monthLabel: string;
+    onToggle: (habitId: string, day: number) => void;
+    onDelete: (habitId: string) => void;
 }) {
+    const DAYS = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
     return (
         <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100">
                 <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                    Daily Habits — January 2026
+                    Daily Habits — {monthLabel}
                 </h2>
             </div>
 
@@ -24,7 +30,7 @@ export default function HabitGrid({
                 <table className="w-full text-xs border-collapse">
                     <thead>
                         <tr className="bg-gray-50 border-b border-gray-200">
-                            <th className="sticky left-0 z-10 bg-gray-50 text-left px-4 py-3 font-semibold text-gray-600 min-w-36">
+                            <th className="sticky left-0 z-10 bg-gray-50 text-left px-4 py-3 font-semibold text-gray-600 min-w-40">
                                 Habit
                             </th>
                             <th className="text-center px-2 py-3 font-semibold text-gray-500 w-10">Goal</th>
@@ -45,10 +51,22 @@ export default function HabitGrid({
                                 key={h.id}
                                 habit={h}
                                 logs={logs}
+                                daysInMonth={daysInMonth}
                                 onToggle={onToggle}
+                                onDelete={onDelete}
                                 isEven={idx % 2 === 0}
                             />
                         ))}
+                        {habits.length === 0 && (
+                            <tr>
+                                <td
+                                    colSpan={daysInMonth + 6}
+                                    className="text-center py-12 text-gray-400 text-sm"
+                                >
+                                    No habits yet. Add your first habit above.
+                                </td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </div>

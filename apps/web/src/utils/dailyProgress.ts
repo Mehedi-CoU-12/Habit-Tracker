@@ -1,5 +1,5 @@
 export function calculateDailyProgress(
-    logs: { habitId: number; day: number; completed: boolean }[],
+    logs: { habitId: string; day: number; completed: boolean }[],
     totalHabits: number,
     daysInMonth = 31,
 ) {
@@ -8,7 +8,7 @@ export function calculateDailyProgress(
         const completed = logs.filter((l) => l.day === day && l.completed).length;
         return {
             day,
-            percent: Math.round((completed / totalHabits) * 100),
+            percent: totalHabits === 0 ? 0 : Math.round((completed / totalHabits) * 100),
         };
     });
 }

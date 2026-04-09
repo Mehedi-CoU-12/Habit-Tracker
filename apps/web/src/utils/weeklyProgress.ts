@@ -1,25 +1,45 @@
-// January 2026 starts on a Thursday — weeks run Thu → Wed
-const DAY_NAMES = ["Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed"];
+import dayjs from "dayjs";
 
 export function calculateWeeklyProgress(
-    logs: { habitId: number; day: number; completed: boolean }[],
+    logs: { habitId: string; day: number; completed: boolean }[],
     totalHabits: number,
+    year: number,
+    month: number,
 ) {
-    return [1, 2, 3, 4, 5].map((week) => {
-        const start = (week - 1) * 7 + 1;
-        const end   = Math.min(week * 7, 31);
-        const count = end - start + 1;
+    const firstDay = dayjs(`${year}-${String(month).padStart(2, "0")}-01`);
+    const daysInMonth = firstDay.daysInMonth();
+    const startDow = firstDay.day(); // 0=Sun…6=Sat
+    const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-        const dayLabels = Array.from({ length: count }, (_, i) => DAY_NAMES[i] ?? "");
+    // Build all days with their weekday label
+    const allDays = Array.from({ length: daysInMonth }, (_, i) => ({
+        day: i + 1,
+        label: WEEKDAYS[(startDow + i) % 7],
+    }));
 
+    // Chunk into groups of 7
+    const chunks: typeof allDays[] = [];
+    for (let i = 0; i < allDays.length; i += 7) {
+        chunks.push(allDays.slice(i, i + 7));
+    }
+
+    return chunks.map((weekDays, idx) => {
+        const start = weekDays[0]!.day;
+        const end = weekDays[weekDays.length - 1]!.day;
         const completed = logs.filter(
             (l) => l.day >= start && l.day <= end && l.completed,
         ).length;
-
-        const goal = count * totalHabits;
+        const goal = weekDays.length * totalHabits;
         const left = goal - completed;
         const percent = goal === 0 ? 0 : Math.round((completed / goal) * 100);
-
-        return { week: `W${week}`, days: count, dayLabels, completed, goal, left, percent };
+        return {
+            week: `W${idx + 1}`,
+            days: weekDays.length,
+            dayLabels: weekDays.map((d) => d.label ?? ""),
+            completed,
+            goal,
+            left,
+            percent,
+        };
     });
 }

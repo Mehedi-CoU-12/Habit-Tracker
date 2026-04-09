@@ -1,11 +1,5 @@
 // components/overview/TopHabits.tsx
-type HabitWithStats = {
-    id: number;
-    name: string;
-    goal: number;
-    completed: number;
-    percent: number;
-};
+import { HabitWithStats } from "../../app/dashboard/types";
 
 export default function TopHabits({ habits }: { habits: HabitWithStats[] }) {
     const sorted = [...habits].sort((a, b) => b.percent - a.percent);
@@ -19,13 +13,13 @@ export default function TopHabits({ habits }: { habits: HabitWithStats[] }) {
             <ol className="space-y-3">
                 {sorted.slice(0, 10).map((h, i) => (
                     <li key={h.id} className="flex items-center gap-3">
-                        <span className="w-5 text-xs font-bold text-gray-400 text-right flex-shrink-0">
+                        <span className="w-5 text-xs font-bold text-gray-400 text-right shrink-0">
                             {i + 1}
                         </span>
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-1">
                                 <span className="text-sm text-gray-700 truncate">{h.name}</span>
-                                <span className="text-xs font-semibold text-indigo-600 ml-2 flex-shrink-0">
+                                <span className="text-xs font-semibold text-indigo-600 ml-2 shrink-0">
                                     {h.percent}%
                                 </span>
                             </div>
@@ -36,7 +30,7 @@ export default function TopHabits({ habits }: { habits: HabitWithStats[] }) {
                                 />
                             </div>
                         </div>
-                        <span className="text-xs text-gray-400 flex-shrink-0 w-14 text-right">
+                        <span className="text-xs text-gray-400 shrink-0 w-14 text-right">
                             {h.completed}/{h.goal}
                         </span>
                     </li>
