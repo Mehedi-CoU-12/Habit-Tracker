@@ -1,5 +1,13 @@
 import { ApiHabit } from "../../app/dashboard/types";
 
+export type UserProfile = {
+    id: string;
+    name: string;
+    email: string;
+    avatarUrl: string | null;
+    createdAt: string;
+};
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
 
 function authHeaders(): HeadersInit {
@@ -26,6 +34,39 @@ async function handleResponse<T>(res: Response): Promise<T> {
         throw new Error((body as { message?: string }).message ?? "Request failed");
     }
     return res.json() as Promise<T>;
+}
+
+export async function fetchMe(): Promise<UserProfile> {
+    const res = await fetch(`${API_URL}/users/me`, { headers: authHeaders() });
+    return handleResponse<UserProfile>(res);
+}
+
+export async function updateProfile(data: {
+    name?: string;
+    currentPassword?: string;
+    newPassword?: string;
+}): Promise<UserProfile> {
+    const res = await fetch(`${API_URL}/users/me`, {
+        method: "PATCH",
+        headers: authHeaders(),
+        body: JSON.stringify(data),
+    });
+    return handleResponse<UserProfile>(res);
+}
+
+export async function uploadAvatar(file: File): Promise<UserProfile> {
+    const token =
+        typeof window !== "undefined"
+            ? localStorage.getItem("accessToken")
+            : null;
+    const form = new FormData();
+    form.append("avatar", file);
+    const res = await fetch(`${API_URL}/users/me/avatar`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+    });
+    return handleResponse<UserProfile>(res);
 }
 
 export async function fetchHabits(year: number, month: number): Promise<ApiHabit[]> {

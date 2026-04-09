@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchMe } from "../../src/lib/api";
 import { IconEyeClosed, IconEyeOpen } from "../../components/icons/Icon";
 
 export default function LoginPage() {
@@ -10,6 +12,18 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+
+    const { data: me } = useQuery({
+        queryKey: ["me"],
+        queryFn: fetchMe,
+        retry: false,
+        staleTime: Infinity,
+    });
+
+    if (me) {
+        router.replace("/dashboard");
+        return null;
+    }
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
