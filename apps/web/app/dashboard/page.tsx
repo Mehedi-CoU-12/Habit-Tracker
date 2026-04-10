@@ -359,6 +359,8 @@ export default function DashboardPage() {
                             logs={logs}
                             daysInMonth={daysInMonth}
                             monthLabel={monthLabel}
+                            year={selectedYear}
+                            month={selectedMonth}
                             onToggle={(habitId, day) => toggleMutation.mutate({ habitId, day })}
                             onDelete={(habitId) => deleteMutation.mutate(habitId)}
                         />

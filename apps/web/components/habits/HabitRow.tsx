@@ -1,10 +1,19 @@
 // components/habits/HabitRow.tsx
 import { HabitWithStats, HabitLog } from "../../app/dashboard/types";
 
+function isPastDay(year: number, month: number, day: number): boolean {
+    const today = new Date();
+    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const cellDate = new Date(year, month - 1, day);
+    return cellDate < todayMidnight;
+}
+
 export default function HabitRow({
     habit,
     logs,
     daysInMonth,
+    year,
+    month,
     onToggle,
     onDelete,
     isEven,
@@ -12,6 +21,8 @@ export default function HabitRow({
     habit: HabitWithStats;
     logs: HabitLog[];
     daysInMonth: number;
+    year: number;
+    month: number;
     onToggle: (habitId: string, day: number) => void;
     onDelete: (habitId: string) => void;
     isEven: boolean;
@@ -50,16 +61,24 @@ export default function HabitRow({
             {/* Day checkboxes */}
             {DAYS.map((day) => {
                 const checked = isChecked(day);
+                const past = isPastDay(year, month, day);
+
                 return (
                     <td key={day} className="text-center px-1 py-2">
                         <button
-                            onClick={() => onToggle(habit.id, day)}
-                            className={`w-5 h-5 rounded transition-colors border ${
-                                checked
-                                    ? "bg-indigo-500 border-indigo-500 text-white"
-                                    : "border-gray-300 hover:border-indigo-300"
-                            }`}
-                            aria-label={`Toggle day ${day}`}
+                            onClick={() => !past && onToggle(habit.id, day)}
+                            disabled={past}
+                            title={past ? "Cannot edit past days" : undefined}
+                            className={`w-5 h-5 rounded border transition-colors
+                                ${past
+                                    ? checked
+                                        ? "bg-indigo-300 border-indigo-300 text-white cursor-not-allowed opacity-60"
+                                        : "border-gray-200 bg-gray-100 cursor-not-allowed"
+                                    : checked
+                                        ? "bg-indigo-500 border-indigo-500 text-white hover:bg-indigo-600"
+                                        : "border-gray-300 hover:border-indigo-300"
+                                }`}
+                            aria-label={`Day ${day}${past ? " (locked)" : ""}`}
                         >
                             {checked && (
                                 <svg className="w-3 h-3 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
