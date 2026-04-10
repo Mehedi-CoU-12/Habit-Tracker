@@ -12,7 +12,15 @@ import {
     ResponsiveContainer,
 } from "recharts";
 
-function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: number }) {
+function CustomTooltip({
+    active,
+    payload,
+    label,
+}: {
+    active?: boolean;
+    payload?: { value: number }[];
+    label?: number;
+}) {
     if (!active || !payload || payload.length === 0) return null;
     const value = payload[0]!.value;
     return (
@@ -35,7 +43,10 @@ export default function DailyLineChart({
             </h2>
             <div className="w-full h-56">
                 <ResponsiveContainer>
-                    <LineChart data={data} margin={{ top: 4, right: 16, left: -10, bottom: 0 }}>
+                    <LineChart
+                        data={data}
+                        margin={{ top: 4, right: 16, left: -10, bottom: 0 }}
+                    >
                         <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
                         <XAxis
                             dataKey="day"
@@ -52,14 +63,22 @@ export default function DailyLineChart({
                             tickFormatter={(v) => `${v}%`}
                         />
                         <Tooltip content={<CustomTooltip />} />
-                        <ReferenceLine y={100} stroke="#e5e7eb" strokeDasharray="4 4" />
+                        <ReferenceLine
+                            y={100}
+                            stroke="#e5e7eb"
+                            strokeDasharray="4 4"
+                        />
                         <Line
                             type="monotone"
                             dataKey="percent"
                             stroke="#6366f1"
                             strokeWidth={2.5}
                             dot={false}
-                            activeDot={{ r: 4, fill: "#6366f1", strokeWidth: 0 }}
+                            activeDot={{
+                                r: 4,
+                                fill: "#6366f1",
+                                strokeWidth: 0,
+                            }}
                         />
                     </LineChart>
                 </ResponsiveContainer>

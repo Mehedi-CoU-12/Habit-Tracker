@@ -3,7 +3,11 @@ import HabitRow from "./HabitRow";
 
 function isPastDay(year: number, month: number, day: number): boolean {
     const today = new Date();
-    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const todayMidnight = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+    );
     return new Date(year, month - 1, day) < todayMidnight;
 }
 
@@ -62,7 +66,9 @@ export default function HabitGrid({
                             <th className="sticky left-0 z-10 bg-gray-50 text-left px-4 py-3 font-semibold text-gray-600 min-w-40">
                                 Habit
                             </th>
-                            <th className="text-center px-2 py-3 font-semibold text-gray-500 w-10">Goal</th>
+                            <th className="text-center px-2 py-3 font-semibold text-gray-500 w-10">
+                                Goal
+                            </th>
                             {DAYS.map((d) => {
                                 const past = isPastDay(year, month, d);
                                 const today = isToday(year, month, d);
@@ -70,25 +76,36 @@ export default function HabitGrid({
                                     <th
                                         key={d}
                                         className={`text-center px-1 py-3 w-7 font-medium
-                                            ${today
-                                                ? "text-indigo-600 font-bold"
-                                                : past
-                                                    ? "text-gray-300"
-                                                    : "text-gray-400"
+                                            ${
+                                                today
+                                                    ? "text-indigo-600 font-bold"
+                                                    : past
+                                                      ? "text-gray-300"
+                                                      : "text-gray-400"
                                             }`}
                                     >
                                         {today ? (
                                             <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white text-xs font-bold">
                                                 {d}
                                             </span>
-                                        ) : d}
+                                        ) : (
+                                            d
+                                        )}
                                     </th>
                                 );
                             })}
-                            <th className="text-center px-3 py-3 font-semibold text-gray-500 w-16">Done</th>
-                            <th className="text-center px-3 py-3 font-semibold text-gray-500 w-12">Left</th>
-                            <th className="text-center px-3 py-3 font-semibold text-gray-500 w-12">%</th>
-                            <th className="text-center px-4 py-3 font-semibold text-gray-500 min-w-24">Progress</th>
+                            <th className="text-center px-3 py-3 font-semibold text-gray-500 w-16">
+                                Done
+                            </th>
+                            <th className="text-center px-3 py-3 font-semibold text-gray-500 w-12">
+                                Left
+                            </th>
+                            <th className="text-center px-3 py-3 font-semibold text-gray-500 w-12">
+                                %
+                            </th>
+                            <th className="text-center px-4 py-3 font-semibold text-gray-500 min-w-24">
+                                Progress
+                            </th>
                         </tr>
                     </thead>
                     <tbody>

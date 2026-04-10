@@ -3,7 +3,11 @@ import { HabitWithStats, HabitLog } from "../../app/dashboard/types";
 
 function isPastDay(year: number, month: number, day: number): boolean {
     const today = new Date();
-    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const todayMidnight = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+    );
     const cellDate = new Date(year, month - 1, day);
     return cellDate < todayMidnight;
 }
@@ -42,21 +46,35 @@ export default function HabitRow({
             {/* Habit name + delete — sticky */}
             <td className={`sticky left-0 z-10 ${bg} px-4 py-2 min-w-36`}>
                 <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-800 truncate">{habit.name}</span>
+                    <span className="font-medium text-gray-800 truncate">
+                        {habit.name}
+                    </span>
                     <button
                         onClick={() => onDelete(habit.id)}
                         className="shrink-0 text-gray-300 hover:text-red-500 transition-colors"
                         aria-label={`Delete ${habit.name}`}
                     >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        <svg
+                            className="w-3.5 h-3.5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M6 18L18 6M6 6l12 12"
+                            />
                         </svg>
                     </button>
                 </div>
             </td>
 
             {/* Goal */}
-            <td className="text-center px-2 py-2 text-gray-500 tabular-nums">{habit.goal}</td>
+            <td className="text-center px-2 py-2 text-gray-500 tabular-nums">
+                {habit.goal}
+            </td>
 
             {/* Day checkboxes */}
             {DAYS.map((day) => {
@@ -70,19 +88,30 @@ export default function HabitRow({
                             disabled={past}
                             title={past ? "Cannot edit past days" : undefined}
                             className={`w-5 h-5 rounded border transition-colors
-                                ${past
-                                    ? checked
-                                        ? "bg-indigo-300 border-indigo-300 text-white cursor-not-allowed opacity-60"
-                                        : "border-gray-200 bg-gray-100 cursor-not-allowed"
-                                    : checked
-                                        ? "bg-indigo-500 border-indigo-500 text-white hover:bg-indigo-600"
-                                        : "border-gray-300 hover:border-indigo-300"
+                                ${
+                                    past
+                                        ? checked
+                                            ? "bg-indigo-300 border-indigo-300 text-white cursor-not-allowed opacity-60"
+                                            : "border-gray-200 bg-gray-100 cursor-not-allowed"
+                                        : checked
+                                          ? "bg-indigo-500 border-indigo-500 text-white hover:bg-indigo-600"
+                                          : "border-gray-300 hover:border-indigo-300"
                                 }`}
                             aria-label={`Day ${day}${past ? " (locked)" : ""}`}
                         >
                             {checked && (
-                                <svg className="w-3 h-3 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                <svg
+                                    className="w-3 h-3 mx-auto"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    strokeWidth={3}
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M5 13l4 4L19 7"
+                                    />
                                 </svg>
                             )}
                         </button>
@@ -91,9 +120,15 @@ export default function HabitRow({
             })}
 
             {/* Stats */}
-            <td className="text-center px-3 py-2 font-semibold text-indigo-700 tabular-nums">{habit.completed}</td>
-            <td className="text-center px-3 py-2 text-gray-500 tabular-nums">{habit.left}</td>
-            <td className="text-center px-3 py-2 text-gray-700 tabular-nums">{habit.percent}%</td>
+            <td className="text-center px-3 py-2 font-semibold text-indigo-700 tabular-nums">
+                {habit.completed}
+            </td>
+            <td className="text-center px-3 py-2 text-gray-500 tabular-nums">
+                {habit.left}
+            </td>
+            <td className="text-center px-3 py-2 text-gray-700 tabular-nums">
+                {habit.percent}%
+            </td>
 
             {/* Progress bar */}
             <td className="px-4 py-2 min-w-24">
