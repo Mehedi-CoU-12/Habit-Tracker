@@ -92,7 +92,7 @@ export default function ProfilePage() {
                         />
                         <ProfileSection me={me!} queryClient={queryClient} />
                         <PasswordSection queryClient={queryClient} />
-                        <DangerSection router={router} />
+                        <DangerSection router={router} queryClient={queryClient} />
                     </div>
                 )}
             </div>
@@ -374,9 +374,16 @@ function PasswordSection({
 }
 
 /* ── Sign out ─────────────────────────────────────────── */
-function DangerSection({ router }: { router: ReturnType<typeof useRouter> }) {
+function DangerSection({
+    router,
+    queryClient,
+}: {
+    router: ReturnType<typeof useRouter>;
+    queryClient: ReturnType<typeof useQueryClient>;
+}) {
     function handleSignOut() {
         localStorage.removeItem("accessToken");
+        queryClient.removeQueries({ queryKey: ["me"] });
         router.push("/login");
     }
 

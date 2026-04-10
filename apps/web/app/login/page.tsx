@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchMe } from "../../src/lib/api";
 import { IconEyeClosed, IconEyeOpen } from "../../components/icons/Icon";
@@ -20,10 +20,9 @@ export default function LoginPage() {
         staleTime: Infinity,
     });
 
-    if (me) {
-        router.replace("/dashboard");
-        return null;
-    }
+    useEffect(() => {
+        if (me) router.replace("/dashboard");
+    }, [me, router]);
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();

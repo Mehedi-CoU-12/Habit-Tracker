@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { fetchMe } from "../src/lib/api";
@@ -65,10 +66,9 @@ export default function Home() {
         staleTime: Infinity,
     });
 
-    if (me) {
-        router.replace("/dashboard");
-        return null;
-    }
+    useEffect(() => {
+        if (me) router.replace("/dashboard");
+    }, [me, router]);
 
     return (
         <div className="min-h-screen bg-white">
