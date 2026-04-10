@@ -245,6 +245,7 @@ export default function DashboardPage() {
 
     function handleSignOut() {
         localStorage.removeItem("accessToken");
+        queryClient.removeQueries({ queryKey: ["me"] });
         router.push("/login");
     }
 
