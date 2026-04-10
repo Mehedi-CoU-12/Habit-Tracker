@@ -11,12 +11,12 @@ export default function DonutChart({
     total: number;
 }) {
     const left = total - completed;
-    const donePercent  = total === 0 ? 0 : Math.round((completed / total) * 100);
-    const leftPercent  = 100 - donePercent;
+    const donePercent = total === 0 ? 0 : Math.round((completed / total) * 100);
+    const leftPercent = 100 - donePercent;
 
     const data = [
         { name: "Completed", value: completed },
-        { name: "Left",      value: left },
+        { name: "Left", value: left },
     ];
 
     return (
@@ -45,7 +45,9 @@ export default function DonutChart({
                     </PieChart>
                     {/* Center label */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-2xl font-bold text-gray-900">{donePercent}%</span>
+                        <span className="text-2xl font-bold text-gray-900">
+                            {donePercent}%
+                        </span>
                         <span className="text-xs text-gray-400">complete</span>
                     </div>
                 </div>
@@ -55,12 +57,16 @@ export default function DonutChart({
                     <div className="flex items-center gap-2">
                         <span className="w-3 h-3 rounded-full bg-indigo-500 inline-block" />
                         <span className="text-gray-600">Completed</span>
-                        <span className="font-semibold text-gray-800">{donePercent}%</span>
+                        <span className="font-semibold text-gray-800">
+                            {donePercent}%
+                        </span>
                     </div>
                     <div className="flex items-center gap-2">
                         <span className="w-3 h-3 rounded-full bg-gray-200 inline-block" />
                         <span className="text-gray-600">Left</span>
-                        <span className="font-semibold text-gray-800">{leftPercent}%</span>
+                        <span className="font-semibold text-gray-800">
+                            {leftPercent}%
+                        </span>
                     </div>
                 </div>
 

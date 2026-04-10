@@ -18,7 +18,9 @@ export default function TopHabits({ habits }: { habits: HabitWithStats[] }) {
                         </span>
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-1">
-                                <span className="text-sm text-gray-700 truncate">{h.name}</span>
+                                <span className="text-sm text-gray-700 truncate">
+                                    {h.name}
+                                </span>
                                 <span className="text-xs font-semibold text-indigo-600 ml-2 shrink-0">
                                     {h.percent}%
                                 </span>

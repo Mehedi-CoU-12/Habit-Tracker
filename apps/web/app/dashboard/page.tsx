@@ -14,7 +14,13 @@ import TopHabits from "../../components/overview/TopHabits";
 import { calculateDailyProgress } from "../../src/utils/dailyProgress";
 import { calculateWeeklyProgress } from "../../src/utils/weeklyProgress";
 import Image from "next/image";
-import { fetchHabits, createHabit, deleteHabit, toggleLog, fetchMe } from "../../src/lib/api";
+import {
+    fetchHabits,
+    createHabit,
+    deleteHabit,
+    toggleLog,
+    fetchMe,
+} from "../../src/lib/api";
 import { ApiHabit, HabitLog, HabitWithStats } from "./types";
 
 function AddHabitModal({
@@ -30,8 +36,14 @@ function AddHabitModal({
 
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
-        if (!name.trim()) { setError("Name is required"); return; }
-        if (goal < 1 || goal > 31) { setError("Goal must be between 1 and 31"); return; }
+        if (!name.trim()) {
+            setError("Name is required");
+            return;
+        }
+        if (goal < 1 || goal > 31) {
+            setError("Goal must be between 1 and 31");
+            return;
+        }
         onAdd(name.trim(), goal);
     }
 
@@ -39,14 +51,26 @@ function AddHabitModal({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6">
                 <div className="flex items-center justify-between mb-5">
-                    <h2 className="text-base font-semibold text-gray-900">New habit</h2>
+                    <h2 className="text-base font-semibold text-gray-900">
+                        New habit
+                    </h2>
                     <button
                         onClick={onClose}
                         className="text-gray-400 hover:text-gray-600 transition"
                         aria-label="Close"
                     >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M6 18L18 6M6 6l12 12"
+                            />
                         </svg>
                     </button>
                 </div>
@@ -66,7 +90,10 @@ function AddHabitModal({
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                            Monthly goal <span className="text-gray-400 font-normal">(days)</span>
+                            Monthly goal{" "}
+                            <span className="text-gray-400 font-normal">
+                                (days)
+                            </span>
                         </label>
                         <input
                             type="number"
@@ -118,7 +145,11 @@ export default function DashboardPage() {
         staleTime: 5 * 60 * 1000,
     });
 
-    const { data: rawHabits = [], isLoading, isError } = useQuery({
+    const {
+        data: rawHabits = [],
+        isLoading,
+        isError,
+    } = useQuery({
         queryKey,
         queryFn: () => fetchHabits(selectedYear, selectedMonth),
         retry: false,
@@ -153,7 +184,12 @@ export default function DashboardPage() {
     const totalGoal = habits.reduce((s, h) => s + h.goal, 0);
 
     const dailyData = calculateDailyProgress(logs, habits.length, daysInMonth);
-    const weeklyData = calculateWeeklyProgress(logs, habits.length, selectedYear, selectedMonth);
+    const weeklyData = calculateWeeklyProgress(
+        logs,
+        habits.length,
+        selectedYear,
+        selectedMonth,
+    );
 
     // --- Mutations ---
 
@@ -168,7 +204,10 @@ export default function DashboardPage() {
                     if (habit.id !== habitId) return habit;
                     const logIdx = habit.logs.findIndex((l) => l.day === day);
                     if (logIdx >= 0) {
-                        return { ...habit, logs: habit.logs.filter((_, i) => i !== logIdx) };
+                        return {
+                            ...habit,
+                            logs: habit.logs.filter((_, i) => i !== logIdx),
+                        };
                     }
                     const optimistic = {
                         id: "temp",
@@ -214,7 +253,9 @@ export default function DashboardPage() {
             {showAddModal && (
                 <AddHabitModal
                     onClose={() => setShowAddModal(false)}
-                    onAdd={(name, goal) => createMutation.mutate({ name, goal })}
+                    onAdd={(name, goal) =>
+                        createMutation.mutate({ name, goal })
+                    }
                 />
             )}
 
@@ -223,11 +264,21 @@ export default function DashboardPage() {
                 <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
                     <Link href="/" className="flex items-center gap-2">
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600">
-                            <svg className="h-5 w-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                                <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            <svg
+                                className="h-5 w-5 text-white"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                            >
+                                <path
+                                    fillRule="evenodd"
+                                    d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                    clipRule="evenodd"
+                                />
                             </svg>
                         </div>
-                        <span className="text-sm font-bold text-gray-900">HabitFlow</span>
+                        <span className="text-sm font-bold text-gray-900">
+                            HabitFlow
+                        </span>
                     </Link>
 
                     <div className="flex items-center gap-2">
@@ -235,8 +286,18 @@ export default function DashboardPage() {
                             onClick={() => setShowAddModal(true)}
                             className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-indigo-700"
                         >
-                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                            <svg
+                                className="h-3.5 w-3.5"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={2.5}
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M12 4v16m8-8H4"
+                                />
                             </svg>
                             Add habit
                         </button>
@@ -263,8 +324,18 @@ export default function DashboardPage() {
                                 <span className="hidden sm:block text-xs font-medium text-gray-700 max-w-24 truncate">
                                     {me?.name ?? ""}
                                 </span>
-                                <svg className="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                <svg
+                                    className="h-3.5 w-3.5 text-gray-400"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    strokeWidth={2}
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M19 9l-7 7-7-7"
+                                    />
                                 </svg>
                             </button>
 
@@ -278,16 +349,32 @@ export default function DashboardPage() {
                                     {/* Dropdown */}
                                     <div className="absolute right-0 z-20 mt-1.5 w-52 rounded-xl border border-gray-200 bg-white shadow-lg py-1.5">
                                         <div className="px-3 py-2 border-b border-gray-100">
-                                            <p className="text-xs font-semibold text-gray-900 truncate">{me?.name}</p>
-                                            <p className="text-xs text-gray-500 truncate">{me?.email}</p>
+                                            <p className="text-xs font-semibold text-gray-900 truncate">
+                                                {me?.name}
+                                            </p>
+                                            <p className="text-xs text-gray-500 truncate">
+                                                {me?.email}
+                                            </p>
                                         </div>
                                         <Link
                                             href="/profile"
-                                            onClick={() => setShowUserMenu(false)}
+                                            onClick={() =>
+                                                setShowUserMenu(false)
+                                            }
                                             className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 transition"
                                         >
-                                            <svg className="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                            <svg
+                                                className="h-3.5 w-3.5 text-gray-400"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                                strokeWidth={2}
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                                />
                                             </svg>
                                             Profile &amp; settings
                                         </Link>
@@ -295,8 +382,18 @@ export default function DashboardPage() {
                                             onClick={handleSignOut}
                                             className="flex items-center gap-2 w-full px-3 py-2 text-xs text-red-600 hover:bg-red-50 transition"
                                         >
-                                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                            <svg
+                                                className="h-3.5 w-3.5"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                                strokeWidth={2}
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                                                />
                                             </svg>
                                             Sign out
                                         </button>
@@ -325,9 +422,13 @@ export default function DashboardPage() {
                 {isError && (
                     <div className="rounded-xl border border-red-200 bg-red-50 px-6 py-10 text-center">
                         <p className="text-sm font-medium text-red-600">
-                            Could not load habits. Make sure the API is running and you are signed in.
+                            Could not load habits. Make sure the API is running
+                            and you are signed in.
                         </p>
-                        <Link href="/login" className="mt-3 inline-block text-sm font-semibold text-indigo-600 hover:text-indigo-700">
+                        <Link
+                            href="/login"
+                            className="mt-3 inline-block text-sm font-semibold text-indigo-600 hover:text-indigo-700"
+                        >
                             Sign in again →
                         </Link>
                     </div>
@@ -345,7 +446,10 @@ export default function DashboardPage() {
                                 />
                             </div>
                             <div className="flex flex-col gap-6">
-                                <DonutChart completed={totalCompleted} total={totalGoal} />
+                                <DonutChart
+                                    completed={totalCompleted}
+                                    total={totalGoal}
+                                />
                                 <TopHabits habits={habits} />
                             </div>
                         </div>
@@ -361,8 +465,12 @@ export default function DashboardPage() {
                             monthLabel={monthLabel}
                             year={selectedYear}
                             month={selectedMonth}
-                            onToggle={(habitId, day) => toggleMutation.mutate({ habitId, day })}
-                            onDelete={(habitId) => deleteMutation.mutate(habitId)}
+                            onToggle={(habitId, day) =>
+                                toggleMutation.mutate({ habitId, day })
+                            }
+                            onDelete={(habitId) =>
+                                deleteMutation.mutate(habitId)
+                            }
                         />
                     </>
                 )}
