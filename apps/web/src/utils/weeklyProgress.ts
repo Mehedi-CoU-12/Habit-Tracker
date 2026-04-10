@@ -18,7 +18,7 @@ export function calculateWeeklyProgress(
     }));
 
     // Chunk into groups of 7
-    const chunks: typeof allDays[] = [];
+    const chunks: (typeof allDays)[] = [];
     for (let i = 0; i < allDays.length; i += 7) {
         chunks.push(allDays.slice(i, i + 7));
     }

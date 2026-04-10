@@ -24,14 +24,21 @@ function authHeaders(): HeadersInit {
 async function handleResponse<T>(res: Response): Promise<T> {
     if (res.status === 401) {
         if (typeof window !== "undefined") {
-            localStorage.removeItem("accessToken");
-            window.location.href = "/login";
+            const isAuthPage = ["/login", "/signup"].includes(
+                window.location.pathname,
+            );
+            if (!isAuthPage) {
+                localStorage.removeItem("accessToken");
+                window.location.href = "/login";
+            }
         }
         throw new Error("Unauthorized");
     }
     if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error((body as { message?: string }).message ?? "Request failed");
+        throw new Error(
+            (body as { message?: string }).message ?? "Request failed",
+        );
     }
     return res.json() as Promise<T>;
 }
@@ -69,14 +76,20 @@ export async function uploadAvatar(file: File): Promise<UserProfile> {
     return handleResponse<UserProfile>(res);
 }
 
-export async function fetchHabits(year: number, month: number): Promise<ApiHabit[]> {
+export async function fetchHabits(
+    year: number,
+    month: number,
+): Promise<ApiHabit[]> {
     const res = await fetch(`${API_URL}/habits?year=${year}&month=${month}`, {
         headers: authHeaders(),
     });
     return handleResponse<ApiHabit[]>(res);
 }
 
-export async function createHabit(name: string, goal: number): Promise<ApiHabit> {
+export async function createHabit(
+    name: string,
+    goal: number,
+): Promise<ApiHabit> {
     const res = await fetch(`${API_URL}/habits`, {
         method: "POST",
         headers: authHeaders(),
