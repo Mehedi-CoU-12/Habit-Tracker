@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateHabitDto } from './dto/create-habit.dto.js';
 import { ToggleLogDto } from './dto/toggle-log.dto.js';
@@ -24,7 +28,9 @@ export class HabitsService {
   }
 
   async deleteHabit(userId: string, habitId: string) {
-    const habit = await this.prisma.habit.findUnique({ where: { id: habitId } });
+    const habit = await this.prisma.habit.findUnique({
+      where: { id: habitId },
+    });
     if (!habit) throw new NotFoundException('Habit not found');
     if (habit.userId !== userId) throw new ForbiddenException();
     return this.prisma.habit.delete({ where: { id: habitId } });
@@ -33,7 +39,9 @@ export class HabitsService {
   async toggleLog(userId: string, dto: ToggleLogDto) {
     const { habitId, year, month, day } = dto;
 
-    const habit = await this.prisma.habit.findUnique({ where: { id: habitId } });
+    const habit = await this.prisma.habit.findUnique({
+      where: { id: habitId },
+    });
     if (!habit) throw new NotFoundException('Habit not found');
     if (habit.userId !== userId) throw new ForbiddenException();
 
