@@ -24,7 +24,7 @@ function authHeaders(): HeadersInit {
 async function handleResponse<T>(res: Response): Promise<T> {
     if (res.status === 401) {
         if (typeof window !== "undefined") {
-            const isAuthPage = ["/login", "/signup"].includes(
+            const isAuthPage = ["/", "/login", "/signup"].includes(
                 window.location.pathname,
             );
             if (!isAuthPage) {

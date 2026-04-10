@@ -384,7 +384,7 @@ function DangerSection({
     function handleSignOut() {
         localStorage.removeItem("accessToken");
         queryClient.removeQueries({ queryKey: ["me"] });
-        router.push("/login");
+        router.push("/");
     }
 
     return (
