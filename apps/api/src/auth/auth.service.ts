@@ -32,7 +32,12 @@ export class AuthService {
     const token = this.signToken(user.id, user.email);
     return {
       accessToken: token,
-      user: { id: user.id, name: user.name, email: user.email, avatarUrl: user.avatarUrl },
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        avatarUrl: user.avatarUrl,
+      },
     };
   }
 
@@ -52,7 +57,12 @@ export class AuthService {
     const token = this.signToken(user.id, user.email);
     return {
       accessToken: token,
-      user: { id: user.id, name: user.name, email: user.email, avatarUrl: user.avatarUrl },
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        avatarUrl: user.avatarUrl,
+      },
     };
   }
 
