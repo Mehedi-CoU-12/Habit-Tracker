@@ -129,7 +129,7 @@ export default function Home() {
 
                     <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                         <Link
-                            href="/dashboard"
+                            href="/login"
                             className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-indigo-700 active:scale-[0.98]"
                         >
                             Open Dashboard
@@ -215,7 +215,7 @@ export default function Home() {
                             Start for free
                         </Link>
                         <Link
-                            href="/dashboard"
+                            href="/signup"
                             className="rounded-xl border border-white/30 bg-white/10 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/20 active:scale-[0.98]"
                         >
                             View demo
