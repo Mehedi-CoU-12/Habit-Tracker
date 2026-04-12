@@ -1,43 +1,45 @@
-// components/overview/TopHabits.tsx
 import { HabitWithStats } from "../../app/dashboard/types";
+import OverviewCard from "./OverviewCard";
 
 export default function TopHabits({ habits }: { habits: HabitWithStats[] }) {
     const sorted = [...habits].sort((a, b) => b.percent - a.percent);
 
     return (
-        <div className="rounded-xl border border-gray-200 bg-white p-5 flex flex-col">
-            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">
-                Top 10 Daily Habits
-            </h2>
-
-            <ol className="space-y-3">
-                {sorted.slice(0, 10).map((h, i) => (
-                    <li key={h.id} className="flex items-center gap-3">
-                        <span className="w-5 text-xs font-bold text-gray-400 text-right shrink-0">
-                            {i + 1}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-1">
-                                <span className="text-sm text-gray-700 truncate">
-                                    {h.name}
-                                </span>
-                                <span className="text-xs font-semibold text-indigo-600 ml-2 shrink-0">
-                                    {h.percent}%
-                                </span>
+        <OverviewCard title="Top 10 Daily Habits" bodyClassName="p-5">
+            {sorted.length === 0 ? (
+                <p className="text-xs text-gray-400 text-center py-4">
+                    No habits yet.
+                </p>
+            ) : (
+                <ol className="space-y-3">
+                    {sorted.slice(0, 10).map((h, i) => (
+                        <li key={h.id} className="flex items-center gap-3">
+                            <span className="w-5 shrink-0 text-right text-xs font-bold text-gray-400">
+                                {i + 1}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                                <div className="mb-1 flex items-center justify-between">
+                                    <span className="truncate text-sm text-gray-700">
+                                        {h.name}
+                                    </span>
+                                    <span className="ml-2 shrink-0 text-xs font-semibold text-indigo-600">
+                                        {h.percent}%
+                                    </span>
+                                </div>
+                                <div className="h-1.5 w-full rounded-full bg-gray-100">
+                                    <div
+                                        className="h-1.5 rounded-full bg-indigo-500 transition-all"
+                                        style={{ width: `${h.percent}%` }}
+                                    />
+                                </div>
                             </div>
-                            <div className="h-1.5 w-full rounded-full bg-gray-100">
-                                <div
-                                    className="h-1.5 rounded-full bg-indigo-500 transition-all"
-                                    style={{ width: `${h.percent}%` }}
-                                />
-                            </div>
-                        </div>
-                        <span className="text-xs text-gray-400 shrink-0 w-14 text-right">
-                            {h.completed}/{h.goal}
-                        </span>
-                    </li>
-                ))}
-            </ol>
-        </div>
+                            <span className="w-14 shrink-0 text-right text-xs text-gray-400">
+                                {h.completed}/{h.goal}
+                            </span>
+                        </li>
+                    ))}
+                </ol>
+            )}
+        </OverviewCard>
     );
 }
