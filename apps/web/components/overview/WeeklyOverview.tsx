@@ -1,5 +1,7 @@
 "use client";
 
+import OverviewCard from "./OverviewCard";
+
 type WeekData = {
     week: string;
     days: number;
@@ -44,22 +46,23 @@ export default function WeeklyOverview({
     ];
 
     return (
-        <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100">
-                <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                    Weekly Overview
-                </h2>
-            </div>
-
+        <OverviewCard
+            title="Overview"
+            action={
+                <span className="text-xs font-bold text-indigo-700">
+                    {totalCompleted}/{totalGoal} &mdash; {globalPercent}%
+                </span>
+            }
+        >
             <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                     <thead>
                         <tr className="bg-gray-50">
-                            <th className="text-left px-5 py-3 font-medium text-gray-500 w-28"></th>
+                            <th className="w-28 px-5 py-3 text-left font-medium text-gray-500" />
                             {data.map((w) => (
                                 <th
                                     key={w.week}
-                                    className="text-center px-4 py-3 font-semibold text-indigo-600"
+                                    className="px-4 py-3 text-center font-semibold text-indigo-600"
                                 >
                                     {w.week}
                                 </th>
@@ -80,22 +83,27 @@ export default function WeeklyOverview({
                                 {data.map((w) => (
                                     <td
                                         key={w.week}
-                                        className={`text-center px-4 py-2.5 tabular-nums ${row.highlight ? "font-semibold text-indigo-700" : "text-gray-700"}`}
+                                        className={`tabular-nums px-4 py-2.5 text-center ${
+                                            row.highlight
+                                                ? "font-semibold text-indigo-700"
+                                                : "text-gray-700"
+                                        }`}
                                     >
                                         {row.getValue(w)}
                                     </td>
                                 ))}
                             </tr>
                         ))}
+
                         {/* Progress bar row */}
-                        <tr className="bg-white border-t border-gray-100">
+                        <tr className="border-t border-gray-100 bg-white">
                             <td className="px-5 py-3 font-medium text-gray-500">
                                 Chart
                             </td>
                             {data.map((w) => (
                                 <td key={w.week} className="px-4 py-3">
-                                    <div className="flex flex-col items-center gap-1">
-                                        <div className="w-full h-2 rounded-full bg-gray-100">
+                                    <div className="flex flex-col items-center gap-1.5">
+                                        <div className="h-2 w-full rounded-full bg-gray-100">
                                             <div
                                                 className="h-2 rounded-full bg-indigo-500 transition-all"
                                                 style={{
@@ -103,6 +111,9 @@ export default function WeeklyOverview({
                                                 }}
                                             />
                                         </div>
+                                        <span className="text-xs text-gray-400">
+                                            {w.percent}%
+                                        </span>
                                     </div>
                                 </td>
                             ))}
@@ -110,16 +121,6 @@ export default function WeeklyOverview({
                     </tbody>
                 </table>
             </div>
-
-            {/* Global footer */}
-            <div className="px-5 py-3 bg-indigo-50 border-t border-indigo-100 flex items-center justify-between">
-                <span className="text-sm font-medium text-indigo-700">
-                    Global Progress
-                </span>
-                <span className="text-sm font-bold text-indigo-800">
-                    {totalCompleted} / {totalGoal} = {globalPercent}%
-                </span>
-            </div>
-        </div>
+        </OverviewCard>
     );
 }
