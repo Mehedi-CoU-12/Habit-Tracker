@@ -1,4 +1,5 @@
 import { HabitWithStats, HabitLog } from "../../app/dashboard/types";
+import OverviewCard from "../overview/OverviewCard";
 import HabitRow from "./HabitRow";
 
 function isPastDay(year: number, month: number, day: number): boolean {
@@ -42,11 +43,9 @@ export default function HabitGrid({
     const DAYS = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
     return (
-        <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                    Daily Habits — {monthLabel}
-                </h2>
+        <OverviewCard
+            title={`Daily Habits — ${monthLabel}`}
+            action={
                 <div className="flex items-center gap-3 text-xs text-gray-400">
                     <span className="flex items-center gap-1.5">
                         <span className="inline-block w-3 h-3 rounded border border-gray-200 bg-gray-100" />
@@ -57,7 +56,8 @@ export default function HabitGrid({
                         Today
                     </span>
                 </div>
-            </div>
+            }
+        >
 
             <div className="overflow-x-auto">
                 <table className="w-full text-xs border-collapse">
@@ -135,6 +135,6 @@ export default function HabitGrid({
                     </tbody>
                 </table>
             </div>
-        </div>
+        </OverviewCard>
     );
 }
