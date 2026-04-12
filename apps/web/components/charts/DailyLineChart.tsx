@@ -1,4 +1,3 @@
-// components/charts/DailyLineChart.tsx
 "use client";
 
 import {
@@ -11,6 +10,7 @@ import {
     ReferenceLine,
     ResponsiveContainer,
 } from "recharts";
+import OverviewCard from "../overview/OverviewCard";
 
 function CustomTooltip({
     active,
@@ -33,21 +33,23 @@ function CustomTooltip({
 
 export default function DailyLineChart({
     data,
+    monthLabel,
 }: {
     data: { day: number; percent: number }[];
+    monthLabel: string;
 }) {
     return (
-        <div className="rounded-xl border border-gray-200 bg-white p-5">
-            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">
-                Daily Progress — January 2026
-            </h2>
+        <OverviewCard title={`Daily Progress — ${monthLabel}`} bodyClassName="p-5">
             <div className="w-full h-56">
                 <ResponsiveContainer>
                     <LineChart
                         data={data}
                         margin={{ top: 4, right: 16, left: -10, bottom: 0 }}
                     >
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                        <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="#f3f4f6"
+                        />
                         <XAxis
                             dataKey="day"
                             tick={{ fontSize: 11, fill: "#9ca3af" }}
@@ -83,6 +85,6 @@ export default function DailyLineChart({
                     </LineChart>
                 </ResponsiveContainer>
             </div>
-        </div>
+        </OverviewCard>
     );
 }
