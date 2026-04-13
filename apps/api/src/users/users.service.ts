@@ -21,7 +21,13 @@ export class UsersService {
   async getMe(userId: string) {
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { id: true, name: true, email: true, avatarUrl: true, createdAt: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatarUrl: true,
+        createdAt: true,
+      },
     });
     return user;
   }
@@ -29,11 +35,21 @@ export class UsersService {
   async updateProfile(userId: string, dto: UpdateProfileDto) {
     if (dto.newPassword) {
       if (!dto.currentPassword) {
-        throw new BadRequestException('Current password is required to set a new password');
+        throw new BadRequestException(
+          'Current password is required to set a new password',
+        );
       }
-      const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+      const user = await this.prisma.user.findUniqueOrThrow({
+        where: { id: userId },
+      });
+      if (!user.password) {
+        throw new BadRequestException(
+          'This account uses Google sign-in and has no password',
+        );
+      }
       const valid = await bcrypt.compare(dto.currentPassword, user.password);
-      if (!valid) throw new UnauthorizedException('Current password is incorrect');
+      if (!valid)
+        throw new UnauthorizedException('Current password is incorrect');
     }
 
     const data: { name?: string; password?: string } = {};
@@ -43,7 +59,13 @@ export class UsersService {
     const updated = await this.prisma.user.update({
       where: { id: userId },
       data,
-      select: { id: true, name: true, email: true, avatarUrl: true, createdAt: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatarUrl: true,
+        createdAt: true,
+      },
     });
     return updated;
   }
@@ -56,13 +78,21 @@ export class UsersService {
       folder: 'habitflow/avatars',
       public_id: `user_${userId}`,
       overwrite: true,
-      transformation: [{ width: 200, height: 200, crop: 'fill', gravity: 'face' }],
+      transformation: [
+        { width: 200, height: 200, crop: 'fill', gravity: 'face' },
+      ],
     });
 
     const updated = await this.prisma.user.update({
       where: { id: userId },
       data: { avatarUrl: result.secure_url },
-      select: { id: true, name: true, email: true, avatarUrl: true, createdAt: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatarUrl: true,
+        createdAt: true,
+      },
     });
     return updated;
   }
