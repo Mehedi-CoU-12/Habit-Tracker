@@ -45,11 +45,12 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
-    if (!user) {
+    if (!user || !user.password) {
+      // No password means account was created via Google — must use Google sign-in
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const valid = await bcrypt.compare(dto.password, user.password);
+    const valid = bcrypt.compareSync(dto.password, user.password);
     if (!valid) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -64,6 +65,41 @@ export class AuthService {
         avatarUrl: user.avatarUrl,
       },
     };
+  }
+
+  async googleLogin(googleUser: {
+    googleId: string;
+    name: string;
+    email: string;
+    avatarUrl: string | null;
+  }) {
+    let user = await this.prisma.user.findUnique({
+      where: { email: googleUser.email },
+    });
+
+    if (user) {
+      // Link googleId if not already linked
+      if (!user.googleId) {
+        user = await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            googleId: googleUser.googleId,
+            avatarUrl: user.avatarUrl ?? googleUser.avatarUrl,
+          },
+        });
+      }
+    } else {
+      user = await this.prisma.user.create({
+        data: {
+          name: googleUser.name,
+          email: googleUser.email,
+          googleId: googleUser.googleId,
+          avatarUrl: googleUser.avatarUrl,
+        },
+      });
+    }
+
+    return { accessToken: this.signToken(user.id, user.email) };
   }
 
   private signToken(userId: string, email: string): string {
