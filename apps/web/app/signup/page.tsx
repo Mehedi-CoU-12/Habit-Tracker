@@ -8,6 +8,7 @@ import { fetchMe } from "../../src/lib/api";
 import {
     IconEyeClosed,
     IconEyeOpen,
+    IconGoogle,
     IconLogo,
 } from "../../components/icons/Icon";
 
@@ -341,6 +342,20 @@ export default function SignupPage() {
                             {loading ? "Creating account…" : "Create account"}
                         </button>
                     </form>
+
+                    <div className="mt-5 flex items-center gap-3">
+                        <div className="h-px flex-1 bg-gray-200" />
+                        <span className="text-xs text-gray-400">or</span>
+                        <div className="h-px flex-1 bg-gray-200" />
+                    </div>
+
+                    <a
+                        href={`${process.env.NEXT_PUBLIC_API_URL}/auth/google`}
+                        className="mt-4 flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 active:scale-[0.98]"
+                    >
+                        <IconGoogle />
+                        Continue with Google
+                    </a>
 
                     <p className="mt-6 text-center text-sm text-gray-500">
                         Already have an account?{" "}
