@@ -92,7 +92,10 @@ export default function ProfilePage() {
                         />
                         <ProfileSection me={me!} queryClient={queryClient} />
                         <PasswordSection queryClient={queryClient} />
-                        <DangerSection router={router} queryClient={queryClient} />
+                        <DangerSection
+                            router={router}
+                            queryClient={queryClient}
+                        />
                     </div>
                 )}
             </div>
