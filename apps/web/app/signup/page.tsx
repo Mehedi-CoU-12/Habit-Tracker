@@ -336,17 +336,33 @@ export default function SignupPage() {
                             </div>
                         </div>
 
-                        <div className="flex items-start gap-2">
-                            <input
-                                id="terms"
-                                name="terms"
-                                type="checkbox"
-                                required
-                                className="mt-0.5 h-4 w-4 cursor-pointer rounded border-gray-300 accent-indigo-600"
-                            />
+                        <div className="flex items-start gap-3">
+                            {/* Custom checkbox — 44px touch target via -inset-3 */}
+                            <span className="relative mt-0.5 shrink-0">
+                                <input
+                                    id="terms"
+                                    name="terms"
+                                    type="checkbox"
+                                    required
+                                    className="peer absolute -inset-3 cursor-pointer opacity-0"
+                                />
+                                <span className="pointer-events-none flex h-5 w-5 items-center justify-center rounded border-2 border-gray-300 bg-white transition peer-checked:border-indigo-600 peer-checked:bg-indigo-600">
+                                    <svg
+                                        className="h-3 w-3 text-white opacity-0 transition peer-checked:opacity-100"
+                                        viewBox="0 0 12 12"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2.5"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    >
+                                        <path d="M2 6l3 3 5-5" />
+                                    </svg>
+                                </span>
+                            </span>
                             <label
                                 htmlFor="terms"
-                                className="text-sm  text-gray-600"
+                                className="text-sm text-gray-600"
                             >
                                 I agree to the{" "}
                                 <Link
