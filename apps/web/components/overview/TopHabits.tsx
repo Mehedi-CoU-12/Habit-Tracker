@@ -29,7 +29,7 @@ export default function TopHabits({ habits }: { habits: HabitWithStats[] }) {
         <OverviewCard
             title="Top 10 Daily Habits"
             className="h-full"
-            bodyClassName="flex-1 min-h-0 overflow-y-auto p-5"
+            bodyClassName="flex-1 min-h-0 overflow-y-auto p-5 pr-3"
         >
             {sorted.length === 0 ? (
                 <div className="flex h-full flex-col items-center justify-center gap-3 py-8 text-center">
