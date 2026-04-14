@@ -27,7 +27,7 @@ export default function TemplatesModal({ onClose, onApply, loading }: Props) {
                     </div>
                     <button
                         onClick={onClose}
-                        className="text-gray-400 hover:text-gray-600 transition"
+                        className="cursor-pointer text-gray-400 hover:text-gray-600 transition"
                         aria-label="Close"
                     >
                         <svg
@@ -56,7 +56,7 @@ export default function TemplatesModal({ onClose, onApply, loading }: Props) {
                                     selected?.id === tpl.id ? null : tpl,
                                 )
                             }
-                            className={`w-full text-left rounded-xl border p-4 transition ${
+                            className={`w-full cursor-pointer text-left rounded-xl border p-4 transition ${
                                 selected?.id === tpl.id
                                     ? "border-indigo-500 bg-indigo-50 ring-2 ring-indigo-500/20"
                                     : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
@@ -103,7 +103,7 @@ export default function TemplatesModal({ onClose, onApply, loading }: Props) {
                     <button
                         type="button"
                         onClick={onClose}
-                        className="flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
+                        className="flex-1 cursor-pointer rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
                     >
                         Cancel
                     </button>
@@ -111,7 +111,7 @@ export default function TemplatesModal({ onClose, onApply, loading }: Props) {
                         type="button"
                         disabled={!selected || loading}
                         onClick={() => selected && onApply(selected.id)}
-                        className="flex-1 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 cursor-pointer rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {loading
                             ? "Adding…"

@@ -51,7 +51,7 @@ export default function HabitRow({
                     </span>
                     <button
                         onClick={() => onDelete(habit.id)}
-                        className="shrink-0 text-gray-300 hover:text-red-500 transition-colors"
+                        className="shrink-0 cursor-pointer text-gray-300 hover:text-red-500 transition-colors"
                         aria-label={`Delete ${habit.name}`}
                     >
                         <svg
@@ -94,8 +94,8 @@ export default function HabitRow({
                                             ? "bg-indigo-300 border-indigo-300 text-white cursor-not-allowed opacity-60"
                                             : "border-gray-200 bg-gray-100 cursor-not-allowed"
                                         : checked
-                                          ? "bg-indigo-500 border-indigo-500 text-white hover:bg-indigo-600"
-                                          : "border-gray-300 hover:border-indigo-300"
+                                          ? "cursor-pointer bg-indigo-500 border-indigo-500 text-white hover:bg-indigo-600"
+                                          : "cursor-pointer border-gray-300 hover:border-indigo-300"
                                 }`}
                             aria-label={`Day ${day}${past ? " (locked)" : ""}`}
                         >

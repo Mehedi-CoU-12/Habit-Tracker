@@ -61,7 +61,7 @@ export default function MonthSelector({
                             onChange={(e) =>
                                 onYearChange(Number(e.target.value))
                             }
-                            className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
+                            className="cursor-pointer rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
                         >
                             {YEARS.map((y) => (
                                 <option key={y} value={y}>
@@ -79,7 +79,7 @@ export default function MonthSelector({
                             onChange={(e) =>
                                 onMonthChange(Number(e.target.value))
                             }
-                            className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
+                            className="cursor-pointer rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
                         >
                             {MONTHS.map((m, i) => (
                                 <option key={m} value={i + 1}>
