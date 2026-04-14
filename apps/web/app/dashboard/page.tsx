@@ -13,7 +13,6 @@ import MonthSelector from "../../components/MonthSelector";
 import TopHabits from "../../components/overview/TopHabits";
 import { calculateDailyProgress } from "../../src/utils/dailyProgress";
 import { calculateWeeklyProgress } from "../../src/utils/weeklyProgress";
-import Image from "next/image";
 import {
     fetchHabits,
     createHabit,
@@ -23,15 +22,8 @@ import {
     applyTemplate,
 } from "../../src/lib/api";
 import TemplatesModal from "../../components/habits/TemplatesModal";
-import {
-    IconChevronDownSmall,
-    IconClose,
-    IconLogo,
-    IconPlusSmall,
-    IconSignOutSmall,
-    IconTemplateList,
-    IconUserSmall,
-} from "../../components/icons/Icon";
+import Navbar from "../../components/layout/Navbar";
+import { IconClose } from "../../components/icons/Icon";
 import { ApiHabit, HabitLog, HabitWithStats } from "./types";
 
 function AddHabitModal({
@@ -60,14 +52,14 @@ function AddHabitModal({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6">
                 <div className="flex items-center justify-between mb-5">
-                    <h2 className="text-base font-semibold text-gray-900">
+                    <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
                         New habit
                     </h2>
                     <button
                         onClick={onClose}
-                        className="text-gray-400 hover:text-gray-600 transition cursor-pointer"
+                        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition cursor-pointer"
                         aria-label="Close"
                     >
                         <IconClose />
@@ -76,7 +68,7 @@ function AddHabitModal({
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                             Habit name
                         </label>
                         <input
@@ -84,13 +76,13 @@ function AddHabitModal({
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             placeholder="e.g. Morning Run"
-                            className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:placeholder-gray-500 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                             Monthly goal{" "}
-                            <span className="text-gray-400 font-normal">
+                            <span className="text-gray-400 dark:text-gray-500 font-normal">
                                 (days)
                             </span>
                         </label>
@@ -100,7 +92,7 @@ function AddHabitModal({
                             max={31}
                             value={goal}
                             onChange={(e) => setGoal(Number(e.target.value))}
-                            className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                         />
                     </div>
                     {error && <p className="text-sm text-red-600">{error}</p>}
@@ -108,7 +100,7 @@ function AddHabitModal({
                         <button
                             type="button"
                             onClick={onClose}
-                            className="flex-1 cursor-pointer rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
+                            className="flex-1 cursor-pointer rounded-lg border border-gray-200 dark:border-gray-600 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
                         >
                             Cancel
                         </button>
@@ -135,7 +127,6 @@ export default function DashboardPage() {
     const [showAddModal, setShowAddModal] = useState(false);
     const [showTemplatesModal, setShowTemplatesModal] = useState(false);
 
-    const [showUserMenu, setShowUserMenu] = useState(false);
     const queryKey = ["habits", selectedYear, selectedMonth];
 
     const { data: me } = useQuery({
@@ -258,7 +249,7 @@ export default function DashboardPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             {showAddModal && (
                 <AddHabitModal
                     onClose={() => setShowAddModal(false)}
@@ -278,100 +269,13 @@ export default function DashboardPage() {
                 />
             )}
 
-            {/* Top navbar */}
-            <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/90 backdrop-blur">
-                <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
-                    <Link href="/" className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white">
-                            <IconLogo />
-                        </div>
-                        <span className="text-sm font-bold text-gray-900">
-                            HabitFlow
-                        </span>
-                    </Link>
-
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => setShowTemplatesModal(true)}
-                            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
-                        >
-                            <IconTemplateList />
-                            Templates
-                        </button>
-                        <button
-                            onClick={() => setShowAddModal(true)}
-                            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-indigo-700"
-                        >
-                            <IconPlusSmall />
-                            Add habit
-                        </button>
-
-                        {/* User menu */}
-                        <div className="relative">
-                            <button
-                                onClick={() => setShowUserMenu((v) => !v)}
-                                className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-gray-100"
-                            >
-                                {me?.avatarUrl ? (
-                                    <Image
-                                        src={me.avatarUrl}
-                                        alt={me.name}
-                                        width={28}
-                                        height={28}
-                                        className="h-7 w-7 rounded-full object-cover ring-2 ring-indigo-100"
-                                    />
-                                ) : (
-                                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white">
-                                        {me?.name?.[0]?.toUpperCase() ?? "?"}
-                                    </div>
-                                )}
-                                <span className="hidden sm:block text-xs font-medium text-gray-700 max-w-24 truncate">
-                                    {me?.name ?? ""}
-                                </span>
-                                <IconChevronDownSmall />
-                            </button>
-
-                            {showUserMenu && (
-                                <>
-                                    {/* Backdrop */}
-                                    <div
-                                        className="fixed inset-0 z-10"
-                                        onClick={() => setShowUserMenu(false)}
-                                    />
-                                    {/* Dropdown */}
-                                    <div className="absolute right-0 z-20 mt-1.5 w-52 rounded-xl border border-gray-200 bg-white shadow-lg py-1.5">
-                                        <div className="px-3 py-2 border-b border-gray-100">
-                                            <p className="text-xs font-semibold text-gray-900 truncate">
-                                                {me?.name}
-                                            </p>
-                                            <p className="text-xs text-gray-500 truncate">
-                                                {me?.email}
-                                            </p>
-                                        </div>
-                                        <Link
-                                            href="/profile"
-                                            onClick={() =>
-                                                setShowUserMenu(false)
-                                            }
-                                            className="flex cursor-pointer items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 transition"
-                                        >
-                                            <IconUserSmall />
-                                            Profile &amp; settings
-                                        </Link>
-                                        <button
-                                            onClick={handleSignOut}
-                                            className="flex cursor-pointer items-center gap-2 w-full px-3 py-2 text-xs text-red-600 hover:bg-red-50 transition"
-                                        >
-                                            <IconSignOutSmall />
-                                            Sign out
-                                        </button>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </header>
+            <Navbar
+                variant="dashboard"
+                me={me} 
+                onAddHabit={() => setShowAddModal(true)}
+                onShowTemplates={() => setShowTemplatesModal(true)}
+                onSignOut={handleSignOut}
+            />
 
             <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
                 <MonthSelector
