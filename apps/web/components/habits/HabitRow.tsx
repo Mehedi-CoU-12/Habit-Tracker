@@ -1,6 +1,7 @@
 // components/habits/HabitRow.tsx
 import { useState } from "react";
 import { HabitWithStats, HabitLog } from "../../app/dashboard/types";
+import { IconCheckTiny, IconCloseSmall } from "../icons/Icon";
 
 function isPastDay(year: number, month: number, day: number): boolean {
     const today = new Date();
@@ -46,13 +47,17 @@ export default function HabitRow({
         : "bg-gray-50/50 dark:bg-gray-700/20";
 
     return (
-        <tr className={`${bg} border-b border-gray-100 dark:border-gray-700 last:border-0`}>
+        <tr
+            className={`${bg} border-b border-gray-100 dark:border-gray-700 last:border-0`}
+        >
             {/* Habit name + delete — sticky */}
             <td className={`sticky left-0 z-10 ${bg} px-4 py-2 min-w-36`}>
                 <div className="flex items-center gap-2">
                     <span
                         className="font-medium text-gray-800 dark:text-gray-200 truncate"
-                        title={habit?.name?.length > 20 ? habit.name : undefined}
+                        title={
+                            habit?.name?.length > 20 ? habit.name : undefined
+                        }
                     >
                         {habit?.name?.length > 20
                             ? habit?.name?.slice(0, 20) + "..."
@@ -80,19 +85,7 @@ export default function HabitRow({
                             className="shrink-0 cursor-pointer text-gray-300 dark:text-gray-600 hover:text-red-500 transition-colors"
                             aria-label={`Delete ${habit.name}`}
                         >
-                            <svg
-                                className="w-3.5 h-3.5"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                strokeWidth={2}
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M6 18L18 6M6 6l12 12"
-                                />
-                            </svg>
+                            <IconCloseSmall />
                         </button>
                     )}
                 </div>
@@ -127,19 +120,9 @@ export default function HabitRow({
                             aria-label={`Day ${day}${past ? " (locked)" : ""}`}
                         >
                             {checked && (
-                                <svg
-                                    className="w-3 h-3 mx-auto"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                    strokeWidth={3}
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        d="M5 13l4 4L19 7"
-                                    />
-                                </svg>
+                                <span className="mx-auto block w-3 h-3">
+                                    <IconCheckTiny />
+                                </span>
                             )}
                         </button>
                     </td>
