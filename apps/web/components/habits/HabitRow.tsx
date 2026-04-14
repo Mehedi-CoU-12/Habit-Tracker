@@ -1,4 +1,5 @@
 // components/habits/HabitRow.tsx
+import { useState } from "react";
 import { HabitWithStats, HabitLog } from "../../app/dashboard/types";
 
 function isPastDay(year: number, month: number, day: number): boolean {
@@ -31,6 +32,7 @@ export default function HabitRow({
     onDelete: (habitId: string) => void;
     isEven: boolean;
 }) {
+    const [confirmDelete, setConfirmDelete] = useState(false);
     const DAYS = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
     function isChecked(day: number) {
@@ -46,28 +48,51 @@ export default function HabitRow({
             {/* Habit name + delete — sticky */}
             <td className={`sticky left-0 z-10 ${bg} px-4 py-2 min-w-36`}>
                 <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-800 truncate">
-                        {habit.name}
-                    </span>
-                    <button
-                        onClick={() => onDelete(habit.id)}
-                        className="shrink-0 cursor-pointer text-gray-300 hover:text-red-500 transition-colors"
-                        aria-label={`Delete ${habit.name}`}
+                    <span
+                        className="font-medium text-gray-800 truncate"
+                        title={habit?.name?.length > 20 ? habit.name : undefined}
                     >
-                        <svg
-                            className="w-3.5 h-3.5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={2}
+                        {habit?.name?.length > 20
+                            ? habit?.name?.slice(0, 20) + "..."
+                            : habit?.name}
+                    </span>
+
+                    {confirmDelete ? (
+                        <div className="flex items-center gap-1 shrink-0">
+                            <button
+                                onClick={() => onDelete(habit.id)}
+                                className="cursor-pointer rounded px-1.5 py-0.5 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors"
+                            >
+                                Yes
+                            </button>
+                            <button
+                                onClick={() => setConfirmDelete(false)}
+                                className="cursor-pointer rounded px-1.5 py-0.5 text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors"
+                            >
+                                No
+                            </button>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={() => setConfirmDelete(true)}
+                            className="shrink-0 cursor-pointer text-gray-300 hover:text-red-500 transition-colors"
+                            aria-label={`Delete ${habit.name}`}
                         >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M6 18L18 6M6 6l12 12"
-                            />
-                        </svg>
-                    </button>
+                            <svg
+                                className="w-3.5 h-3.5"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M6 18L18 6M6 6l12 12"
+                                />
+                            </svg>
+                        </button>
+                    )}
                 </div>
             </td>
 
