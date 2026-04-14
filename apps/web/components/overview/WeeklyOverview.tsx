@@ -103,7 +103,7 @@ export default function WeeklyOverview({
                                 Chart
                             </td>
                             {data.map((w) => (
-                                <td key={w.week} className="px-4 py-3">
+                                <td key={w.week} className="px-4 py-4">
                                     <div className="flex flex-col items-center gap-1.5">
                                         <div className="h-2 w-full rounded-full bg-gray-100 dark:bg-gray-700">
                                             <div
