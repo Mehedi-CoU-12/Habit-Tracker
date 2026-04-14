@@ -28,7 +28,7 @@ export default function TopHabits({ habits }: { habits: HabitWithStats[] }) {
     return (
         <OverviewCard
             title="Top 10 Daily Habits"
-            className="flex-1 min-h-0"
+            className="h-full"
             bodyClassName="flex-1 min-h-0 overflow-y-auto p-5"
         >
             {sorted.length === 0 ? (

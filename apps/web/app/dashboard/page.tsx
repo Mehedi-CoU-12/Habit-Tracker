@@ -250,7 +250,6 @@ export default function DashboardPage() {
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-            
             <Navbar
                 variant="dashboard"
                 me={me}
@@ -309,28 +308,30 @@ export default function DashboardPage() {
 
                 {!isLoading && !isError && (
                     <div className="space-y-6">
-                        {/* ── Charts + Sidebar row ── */}
+                        {/* ── Row 1: Line chart + Donut ── */}
                         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                            <div className="lg:col-span-3 space-y-6">
+                            <div className="lg:col-span-3">
                                 <DailyLineChart
                                     data={dailyData}
                                     monthLabel={monthLabel}
                                 />
+                            </div>
+                            <DonutChart
+                                completed={totalCompleted}
+                                total={totalGoal}
+                            />
+                        </div>
+
+                        {/* ── Row 2: Weekly overview + Top habits (same row = same height) ── */}
+                        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:items-stretch">
+                            <div className="lg:col-span-3">
                                 <WeeklyOverview
                                     data={weeklyData}
                                     totalCompleted={totalCompleted}
                                     totalGoal={totalGoal}
                                 />
                             </div>
-
-                            {/* ── Sidebar ── */}
-                            <div className="flex h-full flex-col gap-6">
-                                <DonutChart
-                                    completed={totalCompleted}
-                                    total={totalGoal}
-                                />
-                                <TopHabits habits={habits} />
-                            </div>
+                            <TopHabits habits={habits} />
                         </div>
 
                         {/* ── Full-width habit grid ── */}
