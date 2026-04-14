@@ -126,14 +126,14 @@ export function IconBars3() {
     );
 }
 
-export function IconTrophy() {
+export function IconTrophy({ className = "w-6 h-6" }: { className?: string } = {}) {
     return (
         <svg
-            className="w-6 h-6"
+            className={className}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
-            strokeWidth={1.8}
+            strokeWidth={1.5}
         >
             <path
                 strokeLinecap="round"

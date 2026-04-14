@@ -324,7 +324,7 @@ export default function DashboardPage() {
                             </div>
 
                             {/* ── Sidebar ── */}
-                            <div className="flex flex-col gap-6">
+                            <div className="flex h-full flex-col gap-6">
                                 <DonutChart
                                     completed={totalCompleted}
                                     total={totalGoal}
