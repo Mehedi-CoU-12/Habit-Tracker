@@ -307,42 +307,46 @@ export default function DashboardPage() {
                 )}
 
                 {!isLoading && !isError && (
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                        {/* ── Main column ── */}
-                        <div className="lg:col-span-3 space-y-6">
-                            <DailyLineChart
-                                data={dailyData}
-                                monthLabel={monthLabel}
-                            />
-                            <WeeklyOverview
-                                data={weeklyData}
-                                totalCompleted={totalCompleted}
-                                totalGoal={totalGoal}
-                            />
-                            <HabitGrid
-                                habits={habits}
-                                logs={logs}
-                                daysInMonth={daysInMonth}
-                                monthLabel={monthLabel}
-                                year={selectedYear}
-                                month={selectedMonth}
-                                onToggle={(habitId, day) =>
-                                    toggleMutation.mutate({ habitId, day })
-                                }
-                                onDelete={(habitId) =>
-                                    deleteMutation.mutate(habitId)
-                                }
-                            />
+                    <div className="space-y-6">
+                        {/* ── Charts + Sidebar row ── */}
+                        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                            <div className="lg:col-span-3 space-y-6">
+                                <DailyLineChart
+                                    data={dailyData}
+                                    monthLabel={monthLabel}
+                                />
+                                <WeeklyOverview
+                                    data={weeklyData}
+                                    totalCompleted={totalCompleted}
+                                    totalGoal={totalGoal}
+                                />
+                            </div>
+
+                            {/* ── Sidebar ── */}
+                            <div className="flex flex-col gap-6">
+                                <DonutChart
+                                    completed={totalCompleted}
+                                    total={totalGoal}
+                                />
+                                <TopHabits habits={habits} />
+                            </div>
                         </div>
 
-                        {/* ── Sidebar ── */}
-                        <div className="flex flex-col gap-6">
-                            <DonutChart
-                                completed={totalCompleted}
-                                total={totalGoal}
-                            />
-                            <TopHabits habits={habits} />
-                        </div>
+                        {/* ── Full-width habit grid ── */}
+                        <HabitGrid
+                            habits={habits}
+                            logs={logs}
+                            daysInMonth={daysInMonth}
+                            monthLabel={monthLabel}
+                            year={selectedYear}
+                            month={selectedMonth}
+                            onToggle={(habitId, day) =>
+                                toggleMutation.mutate({ habitId, day })
+                            }
+                            onDelete={(habitId) =>
+                                deleteMutation.mutate(habitId)
+                            }
+                        />
                     </div>
                 )}
             </div>
