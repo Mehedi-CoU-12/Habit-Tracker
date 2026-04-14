@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { ApplyTemplateDto } from './dto/apply-template.dto.js';
 import { CreateHabitDto } from './dto/create-habit.dto.js';
 import { ToggleLogDto } from './dto/toggle-log.dto.js';
 import { HabitsService } from './habits.service.js';
@@ -47,6 +48,14 @@ export class HabitsController {
     @Param('id') id: string,
   ) {
     return this.habitsService.deleteHabit(req.user.id, id);
+  }
+
+  @Post('apply-template')
+  applyTemplate(
+    @Request() req: { user: { id: string } },
+    @Body() dto: ApplyTemplateDto,
+  ) {
+    return this.habitsService.applyTemplate(req.user.id, dto.templateId);
   }
 
   @Post('logs/toggle')
