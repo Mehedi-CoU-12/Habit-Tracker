@@ -20,7 +20,9 @@ import {
     deleteHabit,
     toggleLog,
     fetchMe,
+    applyTemplate,
 } from "../../src/lib/api";
+import TemplatesModal from "../../components/habits/TemplatesModal";
 import { ApiHabit, HabitLog, HabitWithStats } from "./types";
 
 function AddHabitModal({
@@ -134,6 +136,7 @@ export default function DashboardPage() {
     const [selectedYear, setSelectedYear] = useState(now.getFullYear());
     const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
     const [showAddModal, setShowAddModal] = useState(false);
+    const [showTemplatesModal, setShowTemplatesModal] = useState(false);
 
     const [showUserMenu, setShowUserMenu] = useState(false);
     const queryKey = ["habits", selectedYear, selectedMonth];
@@ -238,6 +241,14 @@ export default function DashboardPage() {
         },
     });
 
+    const templateMutation = useMutation({
+        mutationFn: (templateId: string) => applyTemplate(templateId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey });
+            setShowTemplatesModal(false);
+        },
+    });
+
     const deleteMutation = useMutation({
         mutationFn: (habitId: string) => deleteHabit(habitId),
         onSuccess: () => queryClient.invalidateQueries({ queryKey }),
@@ -257,6 +268,16 @@ export default function DashboardPage() {
                     onAdd={(name, goal) =>
                         createMutation.mutate({ name, goal })
                     }
+                />
+            )}
+
+            {showTemplatesModal && (
+                <TemplatesModal
+                    onClose={() => setShowTemplatesModal(false)}
+                    onApply={(templateId) =>
+                        templateMutation.mutate(templateId)
+                    }
+                    loading={templateMutation.isPending}
                 />
             )}
 
@@ -283,6 +304,25 @@ export default function DashboardPage() {
                     </Link>
 
                     <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setShowTemplatesModal(true)}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
+                        >
+                            <svg
+                                className="h-3.5 w-3.5"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h10.5"
+                                />
+                            </svg>
+                            Templates
+                        </button>
                         <button
                             onClick={() => setShowAddModal(true)}
                             className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-indigo-700"
