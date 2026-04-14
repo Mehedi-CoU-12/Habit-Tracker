@@ -1,6 +1,35 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <rect width="32" height="32" rx="8" fill="#4F46E5"/>
-  <path fill-rule="evenodd" clip-rule="evenodd"
-    d="M10.267 7.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L13 14.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-    fill="white"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <!-- Indigo → Violet diagonal gradient -->
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <!-- Subtle top-gloss for depth -->
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="white" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded-square background -->
+  <rect width="32" height="32" rx="7" fill="url(#bg)"/>
+  <!-- Top gloss -->
+  <rect width="32" height="17" rx="7" fill="url(#gloss)"/>
+
+  <!-- ── H letterform ── -->
+  <!-- Left vertical bar -->
+  <rect x="5.5" y="6.5" width="6" height="19" rx="2.5" fill="white"/>
+  <!-- Right vertical bar -->
+  <rect x="20.5" y="6.5" width="6" height="19" rx="2.5" fill="white"/>
+
+  <!-- Flowing crossbar: arcs upward to represent "flow" / progress -->
+  <path
+    d="M 8.5 17 C 12.5 10.5 19.5 10.5 23.5 17"
+    stroke="white" stroke-width="5.5"
+    stroke-linecap="round" fill="none"
+  />
+
+  <!-- Small highlight dot at the arc peak — looks like a "spark" or goal marker -->
+  <circle cx="16" cy="10.5" r="2" fill="white" fill-opacity="0.55"/>
 </svg>
