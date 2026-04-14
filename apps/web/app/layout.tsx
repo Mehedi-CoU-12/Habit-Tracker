@@ -11,10 +11,10 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-    title: "HabitFlow — Build Better Habits",
+    title: "HabitFlow | Build Better Habits",
     description:
         "Track your daily habits, visualize your progress, and achieve your goals with HabitFlow.",
-    icons: { icon: "/favicon.svg" },
+    icons: { icon: "/favicon-bluebg.svg" },
 };
 
 export default function RootLayout({
