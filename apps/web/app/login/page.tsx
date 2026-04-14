@@ -16,8 +16,17 @@ import {
 export default function LoginPage() {
     const router = useRouter();
     const [showPassword, setShowPassword] = useState(false);
+    const [email, setEmail] = useState("");
+    const [emailError, setEmailError] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+
+    function validateEmail(value: string): string {
+        if (!value) return "Email is required";
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
+            return "Enter a valid email address";
+        return "";
+    }
 
     const { data: me } = useQuery({
         queryKey: ["me"],
@@ -33,8 +42,14 @@ export default function LoginPage() {
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setError("");
+
+        const emailErr = validateEmail(email);
+        if (emailErr) {
+            setEmailError(emailErr);
+            return;
+        }
+
         const formData = new FormData(event.currentTarget);
-        const email = formData.get("email") as string;
         const password = formData.get("password") as string;
 
         setLoading(true);
@@ -144,8 +159,28 @@ export default function LoginPage() {
                                 required
                                 autoComplete="email"
                                 placeholder="you@example.com"
-                                className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                                value={email}
+                                onChange={(e) => {
+                                    setEmail(e.target.value);
+                                    if (emailError)
+                                        setEmailError(
+                                            validateEmail(e.target.value),
+                                        );
+                                }}
+                                onBlur={() =>
+                                    setEmailError(validateEmail(email))
+                                }
+                                className={`w-full rounded-lg border px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition ${
+                                    emailError
+                                        ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                                        : "border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                                }`}
                             />
+                            {emailError && (
+                                <p className="mt-1.5 text-xs text-red-600">
+                                    {emailError}
+                                </p>
+                            )}
                         </div>
 
                         <div>
