@@ -226,7 +226,7 @@ export default function LoginPage() {
                             <input
                                 id="remember"
                                 type="checkbox"
-                                className="h-4 w-4 rounded border-gray-300 text-indigo-600 accent-indigo-600"
+                                className="h-4 w-4 cursor-pointer rounded border-gray-300 text-indigo-600 accent-indigo-600"
                             />
                             <label
                                 htmlFor="remember"
@@ -243,7 +243,7 @@ export default function LoginPage() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+                            className="w-full cursor-pointer rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                             {loading ? "Signing in…" : "Sign in"}
                         </button>
