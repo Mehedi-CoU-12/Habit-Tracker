@@ -183,7 +183,8 @@ export default function SignupPage() {
             </div>
 
             {/* Right form panel */}
-            <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-12 bg-white">
+            <div className="flex-1 overflow-y-auto bg-white">
+            <div className="flex min-h-full flex-col items-center justify-center p-6 py-10 sm:p-12">
                 {/* Mobile logo */}
                 <div className="lg:hidden flex items-center gap-2 mb-8">
                     <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
@@ -418,6 +419,7 @@ export default function SignupPage() {
                         </Link>
                     </p>
                 </div>
+            </div>
             </div>
         </main>
     );
