@@ -41,15 +41,17 @@ export default function HabitRow({
         );
     }
 
-    const bg = isEven ? "bg-white" : "bg-gray-50/50";
+    const bg = isEven
+        ? "bg-white dark:bg-gray-800"
+        : "bg-gray-50/50 dark:bg-gray-700/20";
 
     return (
-        <tr className={`${bg} border-b border-gray-100 last:border-0`}>
+        <tr className={`${bg} border-b border-gray-100 dark:border-gray-700 last:border-0`}>
             {/* Habit name + delete — sticky */}
             <td className={`sticky left-0 z-10 ${bg} px-4 py-2 min-w-36`}>
                 <div className="flex items-center gap-2">
                     <span
-                        className="font-medium text-gray-800 truncate"
+                        className="font-medium text-gray-800 dark:text-gray-200 truncate"
                         title={habit?.name?.length > 20 ? habit.name : undefined}
                     >
                         {habit?.name?.length > 20
@@ -67,7 +69,7 @@ export default function HabitRow({
                             </button>
                             <button
                                 onClick={() => setConfirmDelete(false)}
-                                className="cursor-pointer rounded px-1.5 py-0.5 text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors"
+                                className="cursor-pointer rounded px-1.5 py-0.5 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
                             >
                                 No
                             </button>
@@ -75,7 +77,7 @@ export default function HabitRow({
                     ) : (
                         <button
                             onClick={() => setConfirmDelete(true)}
-                            className="shrink-0 cursor-pointer text-gray-300 hover:text-red-500 transition-colors"
+                            className="shrink-0 cursor-pointer text-gray-300 dark:text-gray-600 hover:text-red-500 transition-colors"
                             aria-label={`Delete ${habit.name}`}
                         >
                             <svg
@@ -97,7 +99,7 @@ export default function HabitRow({
             </td>
 
             {/* Goal */}
-            <td className="text-center px-2 py-2 text-gray-500 tabular-nums">
+            <td className="text-center px-2 py-2 text-gray-500 dark:text-gray-400 tabular-nums">
                 {habit.goal}
             </td>
 
@@ -117,10 +119,10 @@ export default function HabitRow({
                                     past
                                         ? checked
                                             ? "bg-indigo-300 border-indigo-300 text-white cursor-not-allowed opacity-60"
-                                            : "border-gray-200 bg-gray-100 cursor-not-allowed"
+                                            : "border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 cursor-not-allowed"
                                         : checked
                                           ? "cursor-pointer bg-indigo-500 border-indigo-500 text-white hover:bg-indigo-600"
-                                          : "cursor-pointer border-gray-300 hover:border-indigo-300"
+                                          : "cursor-pointer border-gray-300 dark:border-gray-600 hover:border-indigo-300"
                                 }`}
                             aria-label={`Day ${day}${past ? " (locked)" : ""}`}
                         >
@@ -145,19 +147,19 @@ export default function HabitRow({
             })}
 
             {/* Stats */}
-            <td className="text-center px-3 py-2 font-semibold text-indigo-700 tabular-nums">
+            <td className="text-center px-3 py-2 font-semibold text-indigo-700 dark:text-indigo-400 tabular-nums">
                 {habit.completed}
             </td>
-            <td className="text-center px-3 py-2 text-gray-500 tabular-nums">
+            <td className="text-center px-3 py-2 text-gray-500 dark:text-gray-400 tabular-nums">
                 {habit.left}
             </td>
-            <td className="text-center px-3 py-2 text-gray-700 tabular-nums">
+            <td className="text-center px-3 py-2 text-gray-700 dark:text-gray-300 tabular-nums">
                 {habit.percent}%
             </td>
 
             {/* Progress bar */}
             <td className="px-4 py-2 min-w-24">
-                <div className="flex-1 h-2 rounded-full bg-gray-100">
+                <div className="flex-1 h-2 rounded-full bg-gray-100 dark:bg-gray-700">
                     <div
                         className="h-2 rounded-full bg-indigo-500 transition-all"
                         style={{ width: `${Math.min(habit.percent, 100)}%` }}
