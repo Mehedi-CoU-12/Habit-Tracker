@@ -47,17 +47,13 @@ export default function HabitRow({
         : "bg-gray-50/50 dark:bg-gray-700/20";
 
     return (
-        <tr
-            className={`${bg} border-b border-gray-100 dark:border-gray-700 last:border-0`}
-        >
+        <tr className={`${bg} border-b border-gray-100 dark:border-gray-700 last:border-0`}>
             {/* Habit name + delete — sticky */}
-            <td className={`sticky left-0 z-10 ${bg} px-4 py-2 min-w-36`}>
+            <td className={`sticky left-0 z-10 ${bg} px-4 py-2 w-36`}>
                 <div className="flex items-center gap-2">
                     <span
                         className="font-medium text-gray-800 dark:text-gray-200 truncate"
-                        title={
-                            habit?.name?.length > 20 ? habit.name : undefined
-                        }
+                        title={habit?.name?.length > 20 ? habit.name : undefined}
                     >
                         {habit?.name?.length > 20
                             ? habit?.name?.slice(0, 20) + "..."
@@ -92,7 +88,7 @@ export default function HabitRow({
             </td>
 
             {/* Goal */}
-            <td className="text-center px-2 py-2 text-gray-500 dark:text-gray-400 tabular-nums">
+            <td className="text-center py-2 w-8 text-gray-500 dark:text-gray-400 tabular-nums">
                 {habit.goal}
             </td>
 
@@ -102,25 +98,24 @@ export default function HabitRow({
                 const past = isPastDay(year, month, day);
 
                 return (
-                    <td key={day} className="text-center px-1 py-2">
+                    <td key={day} className="text-center py-2 w-6">
                         <button
                             onClick={() => !past && onToggle(habit.id, day)}
                             disabled={past}
                             title={past ? "Cannot edit past days" : undefined}
-                            className={`w-5 h-5 rounded border transition-colors
-                                ${
-                                    past
-                                        ? checked
-                                            ? "bg-indigo-300 border-indigo-300 text-white cursor-not-allowed opacity-60"
-                                            : "border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 cursor-not-allowed"
-                                        : checked
-                                          ? "cursor-pointer bg-indigo-500 border-indigo-500 text-white hover:bg-indigo-600"
-                                          : "cursor-pointer border-gray-300 dark:border-gray-600 hover:border-indigo-300"
-                                }`}
+                            className={`w-5 h-5 mx-auto flex items-center justify-center rounded border transition-colors ${
+                                past
+                                    ? checked
+                                        ? "bg-indigo-300 border-indigo-300 cursor-not-allowed opacity-60"
+                                        : "border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 cursor-not-allowed"
+                                    : checked
+                                      ? "cursor-pointer bg-indigo-500 border-indigo-500 hover:bg-indigo-600"
+                                      : "cursor-pointer border-gray-300 dark:border-gray-600 hover:border-indigo-400 dark:hover:border-indigo-500"
+                            }`}
                             aria-label={`Day ${day}${past ? " (locked)" : ""}`}
                         >
                             {checked && (
-                                <span className="mx-auto block w-3 h-3">
+                                <span className="block w-3 h-3 text-white">
                                     <IconCheckTiny />
                                 </span>
                             )}
@@ -130,19 +125,19 @@ export default function HabitRow({
             })}
 
             {/* Stats */}
-            <td className="text-center px-3 py-2 font-semibold text-indigo-700 dark:text-indigo-400 tabular-nums">
+            <td className="text-center py-2 w-11 font-semibold text-indigo-700 dark:text-indigo-400 tabular-nums">
                 {habit.completed}
             </td>
-            <td className="text-center px-3 py-2 text-gray-500 dark:text-gray-400 tabular-nums">
+            <td className="text-center py-2 w-9 text-gray-500 dark:text-gray-400 tabular-nums">
                 {habit.left}
             </td>
-            <td className="text-center px-3 py-2 text-gray-700 dark:text-gray-300 tabular-nums">
+            <td className="text-center py-2 w-9 text-gray-700 dark:text-gray-300 tabular-nums">
                 {habit.percent}%
             </td>
 
             {/* Progress bar */}
-            <td className="px-4 py-2 min-w-24">
-                <div className="flex-1 h-2 rounded-full bg-gray-100 dark:bg-gray-700">
+            <td className="px-3 py-2 w-24">
+                <div className="h-2 w-full rounded-full bg-gray-100 dark:bg-gray-700">
                     <div
                         className="h-2 rounded-full bg-indigo-500 transition-all"
                         style={{ width: `${Math.min(habit.percent, 100)}%` }}
