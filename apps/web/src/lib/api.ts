@@ -106,6 +106,17 @@ export async function deleteHabit(id: string): Promise<void> {
     return handleResponse<void>(res);
 }
 
+export async function applyTemplate(
+    templateId: string,
+): Promise<{ created: number }> {
+    const res = await fetch(`${API_URL}/habits/apply-template`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ templateId }),
+    });
+    return handleResponse<{ created: number }>(res);
+}
+
 export async function toggleLog(
     habitId: string,
     year: number,
