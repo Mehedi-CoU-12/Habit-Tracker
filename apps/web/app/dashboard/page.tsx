@@ -250,6 +250,15 @@ export default function DashboardPage() {
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+            
+            <Navbar
+                variant="dashboard"
+                me={me}
+                onAddHabit={() => setShowAddModal(true)}
+                onShowTemplates={() => setShowTemplatesModal(true)}
+                onSignOut={handleSignOut}
+            />
+
             {showAddModal && (
                 <AddHabitModal
                     onClose={() => setShowAddModal(false)}
@@ -268,14 +277,6 @@ export default function DashboardPage() {
                     loading={templateMutation.isPending}
                 />
             )}
-
-            <Navbar
-                variant="dashboard"
-                me={me} 
-                onAddHabit={() => setShowAddModal(true)}
-                onShowTemplates={() => setShowTemplatesModal(true)}
-                onSignOut={handleSignOut}
-            />
 
             <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
                 <MonthSelector
