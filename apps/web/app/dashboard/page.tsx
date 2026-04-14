@@ -23,6 +23,15 @@ import {
     applyTemplate,
 } from "../../src/lib/api";
 import TemplatesModal from "../../components/habits/TemplatesModal";
+import {
+    IconChevronDownSmall,
+    IconClose,
+    IconLogo,
+    IconPlusSmall,
+    IconSignOutSmall,
+    IconTemplateList,
+    IconUserSmall,
+} from "../../components/icons/Icon";
 import { ApiHabit, HabitLog, HabitWithStats } from "./types";
 
 function AddHabitModal({
@@ -58,22 +67,10 @@ function AddHabitModal({
                     </h2>
                     <button
                         onClick={onClose}
-                        className="text-gray-400 hover:text-gray-600 transition"
+                        className="text-gray-400 hover:text-gray-600 transition cursor-pointer"
                         aria-label="Close"
                     >
-                        <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M6 18L18 6M6 6l12 12"
-                            />
-                        </svg>
+                        <IconClose />
                     </button>
                 </div>
 
@@ -111,13 +108,13 @@ function AddHabitModal({
                         <button
                             type="button"
                             onClick={onClose}
-                            className="flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
+                            className="flex-1 cursor-pointer rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
-                            className="flex-1 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition"
+                            className="flex-1 cursor-pointer rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition"
                         >
                             Add habit
                         </button>
@@ -285,18 +282,8 @@ export default function DashboardPage() {
             <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/90 backdrop-blur">
                 <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
                     <Link href="/" className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600">
-                            <svg
-                                className="h-5 w-5 text-white"
-                                viewBox="0 0 24 24"
-                                fill="currentColor"
-                            >
-                                <path
-                                    fillRule="evenodd"
-                                    d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                    clipRule="evenodd"
-                                />
-                            </svg>
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white">
+                            <IconLogo />
                         </div>
                         <span className="text-sm font-bold text-gray-900">
                             HabitFlow
@@ -306,40 +293,16 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => setShowTemplatesModal(true)}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
+                            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
                         >
-                            <svg
-                                className="h-3.5 w-3.5"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                strokeWidth={2}
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h10.5"
-                                />
-                            </svg>
+                            <IconTemplateList />
                             Templates
                         </button>
                         <button
                             onClick={() => setShowAddModal(true)}
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-indigo-700"
+                            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-indigo-700"
                         >
-                            <svg
-                                className="h-3.5 w-3.5"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                strokeWidth={2.5}
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M12 4v16m8-8H4"
-                                />
-                            </svg>
+                            <IconPlusSmall />
                             Add habit
                         </button>
 
@@ -347,7 +310,7 @@ export default function DashboardPage() {
                         <div className="relative">
                             <button
                                 onClick={() => setShowUserMenu((v) => !v)}
-                                className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-gray-100"
+                                className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-gray-100"
                             >
                                 {me?.avatarUrl ? (
                                     <Image
@@ -365,19 +328,7 @@ export default function DashboardPage() {
                                 <span className="hidden sm:block text-xs font-medium text-gray-700 max-w-24 truncate">
                                     {me?.name ?? ""}
                                 </span>
-                                <svg
-                                    className="h-3.5 w-3.5 text-gray-400"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                    strokeWidth={2}
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        d="M19 9l-7 7-7-7"
-                                    />
-                                </svg>
+                                <IconChevronDownSmall />
                             </button>
 
                             {showUserMenu && (
@@ -402,40 +353,16 @@ export default function DashboardPage() {
                                             onClick={() =>
                                                 setShowUserMenu(false)
                                             }
-                                            className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 transition"
+                                            className="flex cursor-pointer items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 transition"
                                         >
-                                            <svg
-                                                className="h-3.5 w-3.5 text-gray-400"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke="currentColor"
-                                                strokeWidth={2}
-                                            >
-                                                <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                                                />
-                                            </svg>
+                                            <IconUserSmall />
                                             Profile &amp; settings
                                         </Link>
                                         <button
                                             onClick={handleSignOut}
-                                            className="flex items-center gap-2 w-full px-3 py-2 text-xs text-red-600 hover:bg-red-50 transition"
+                                            className="flex cursor-pointer items-center gap-2 w-full px-3 py-2 text-xs text-red-600 hover:bg-red-50 transition"
                                         >
-                                            <svg
-                                                className="h-3.5 w-3.5"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke="currentColor"
-                                                strokeWidth={2}
-                                            >
-                                                <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                                                />
-                                            </svg>
+                                            <IconSignOutSmall />
                                             Sign out
                                         </button>
                                     </div>
