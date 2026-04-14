@@ -4,14 +4,14 @@ import OverviewCard from "./OverviewCard";
 
 function rankColor(i: number) {
     if (i === 0) return "text-amber-400";
-    if (i === 1) return "text-gray-400";
+    if (i === 1) return "text-sky-400";
     if (i === 2) return "text-orange-500";
     return "text-gray-400 dark:text-gray-500";
 }
 
 function percentColor(i: number) {
     if (i === 0) return "text-amber-500";
-    if (i === 1) return "text-gray-400";
+    if (i === 1) return "text-sky-400";
     if (i === 2) return "text-orange-500";
     return "text-indigo-600 dark:text-indigo-400";
 }
