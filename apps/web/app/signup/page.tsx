@@ -307,11 +307,11 @@ export default function SignupPage() {
                                 name="terms"
                                 type="checkbox"
                                 required
-                                className="mt-0.5 h-4 w-4 rounded border-gray-300 accent-indigo-600"
+                                className="mt-0.5 h-4 w-4 cursor-pointer rounded border-gray-300 accent-indigo-600"
                             />
                             <label
                                 htmlFor="terms"
-                                className="text-sm text-gray-600"
+                                className="text-sm  text-gray-600"
                             >
                                 I agree to the{" "}
                                 <Link
@@ -337,7 +337,7 @@ export default function SignupPage() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+                            className="w-full cursor-pointer rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                             {loading ? "Creating account…" : "Create account"}
                         </button>
