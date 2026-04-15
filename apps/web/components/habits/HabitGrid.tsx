@@ -2,14 +2,14 @@ import { HabitWithStats, HabitLog } from "../../app/dashboard/types";
 import OverviewCard from "../overview/OverviewCard";
 import HabitRow from "./HabitRow";
 
-function isPastDay(year: number, month: number, day: number): boolean {
+function isFutureDay(year: number, month: number, day: number): boolean {
     const today = new Date();
     const todayMidnight = new Date(
         today.getFullYear(),
         today.getMonth(),
         today.getDate(),
     );
-    return new Date(year, month - 1, day) < todayMidnight;
+    return new Date(year, month - 1, day) > todayMidnight;
 }
 
 function isToday(year: number, month: number, day: number): boolean {
@@ -49,7 +49,7 @@ export default function HabitGrid({
                 <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
                     <span className="flex items-center gap-1.5">
                         <span className="inline-block w-3 h-3 rounded border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700" />
-                        Past (locked)
+                        Future (locked)
                     </span>
                     <span className="flex items-center gap-1.5">
                         <span className="inline-block w-3 h-3 rounded border-2 border-indigo-400" />
@@ -68,7 +68,7 @@ export default function HabitGrid({
                             Goal
                         </th>
                         {DAYS.map((d) => {
-                            const past = isPastDay(year, month, d);
+                            const future = isFutureDay(year, month, d);
                             const today = isToday(year, month, d);
                             return (
                                 <th
@@ -76,7 +76,7 @@ export default function HabitGrid({
                                     className={`text-center py-3 w-6 font-medium ${
                                         today
                                             ? "text-indigo-600 font-bold"
-                                            : past
+                                            : future
                                               ? "text-gray-300 dark:text-gray-600"
                                               : "text-gray-400 dark:text-gray-500"
                                     }`}

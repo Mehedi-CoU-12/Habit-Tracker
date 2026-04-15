@@ -323,10 +323,6 @@ export default function DashboardPage() {
                         </div>
 
                         {/* ── Row 2: Weekly overview + Top habits ── */}
-                        {/* TopHabits is wrapped in relative/absolute so it doesn't
-                            contribute to the grid row height — WeeklyOverview defines
-                            the row height, TopHabits fills it exactly via inset-0,
-                            and its body scrolls when content exceeds that height. */}
                         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                             <div className="lg:col-span-3">
                                 <WeeklyOverview
