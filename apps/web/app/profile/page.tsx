@@ -31,9 +31,7 @@ export default function ProfilePage() {
             <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/90 backdrop-blur">
                 <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-3">
                     <Link href="/dashboard" className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white">
-                            <IconLogo />
-                        </div>
+                        <IconLogo />
                         <span className="text-sm font-bold text-gray-900">
                             HabitFlow
                         </span>

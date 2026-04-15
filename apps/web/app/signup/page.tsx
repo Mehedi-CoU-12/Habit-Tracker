@@ -136,9 +136,7 @@ export default function SignupPage() {
             <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 bg-linear-to-br from-indigo-600 via-indigo-700 to-violet-800">
                 <div>
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-indigo-600">
-                            <IconLogo />
-                        </div>
+                        <IconLogo />
                         <span className="text-white font-bold text-xl">
                             HabitFlow
                         </span>
@@ -184,242 +182,237 @@ export default function SignupPage() {
 
             {/* Right form panel */}
             <div className="flex-1 overflow-y-auto bg-white">
-            <div className="flex min-h-full flex-col items-center justify-center p-6 py-10 sm:p-12">
-                {/* Mobile logo */}
-                <div className="lg:hidden flex items-center gap-2 mb-8">
-                    <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
+                <div className="flex min-h-full flex-col items-center justify-center p-6 py-10 sm:p-12">
+                    {/* Mobile logo */}
+                    <div className="lg:hidden flex items-center gap-2 mb-8">
                         <IconLogo />
+                        <span className="text-gray-900 font-bold text-xl">
+                            HabitFlow
+                        </span>
                     </div>
-                    <span className="text-gray-900 font-bold text-xl">
-                        HabitFlow
-                    </span>
-                </div>
 
-                <div className="w-full max-w-sm">
-                    <h1 className="text-2xl font-bold text-gray-900">
-                        Create your account
-                    </h1>
-                    <p className="mt-1 text-sm text-gray-500">
-                        Start tracking habits — it&apos;s free forever.
-                    </p>
+                    <div className="w-full max-w-sm">
+                        <h1 className="text-2xl font-bold text-gray-900">
+                            Create your account
+                        </h1>
+                        <p className="mt-1 text-sm text-gray-500">
+                            Start tracking habits — it&apos;s free forever.
+                        </p>
 
-                    <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-                        <div>
-                            <label
-                                htmlFor="name"
-                                className="block text-sm font-medium text-gray-700 mb-1.5"
-                            >
-                                Full name
-                            </label>
-                            <input
-                                id="name"
-                                name="name"
-                                type="text"
-                                required
-                                autoComplete="name"
-                                placeholder="Jane Doe"
-                                className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-                            />
-                        </div>
-
-                        <div>
-                            <label
-                                htmlFor="email"
-                                className="block text-sm font-medium text-gray-700 mb-1.5"
-                            >
-                                Email address
-                            </label>
-                            <input
-                                id="email"
-                                name="email"
-                                type="email"
-                                required
-                                autoComplete="email"
-                                placeholder="you@example.com"
-                                value={email}
-                                onChange={(e) => {
-                                    setEmail(e.target.value);
-                                    if (emailError)
-                                        setEmailError(
-                                            validateEmail(e.target.value),
-                                        );
-                                }}
-                                onBlur={() =>
-                                    setEmailError(validateEmail(email))
-                                }
-                                className={`w-full rounded-lg border px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition ${
-                                    emailError
-                                        ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
-                                        : "border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-                                }`}
-                            />
-                            {emailError && (
-                                <p className="mt-1.5 text-xs text-red-600">
-                                    {emailError}
-                                </p>
-                            )}
-                        </div>
-
-                        <div>
-                            <label
-                                htmlFor="password"
-                                className="block text-sm font-medium text-gray-700 mb-1.5"
-                            >
-                                Password
-                            </label>
-                            <div className="relative">
-                                <input
-                                    id="password"
-                                    name="password"
-                                    type={showPassword ? "text" : "password"}
-                                    required
-                                    autoComplete="new-password"
-                                    placeholder="At least 8 characters"
-                                    value={password}
-                                    onChange={(e) =>
-                                        setPassword(e.target.value)
-                                    }
-                                    className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 pr-10 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword((v) => !v)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
-                                    aria-label={
-                                        showPassword
-                                            ? "Hide password"
-                                            : "Show password"
-                                    }
+                        <form
+                            onSubmit={handleSubmit}
+                            className="mt-8 space-y-5"
+                        >
+                            <div>
+                                <label
+                                    htmlFor="name"
+                                    className="block text-sm font-medium text-gray-700 mb-1.5"
                                 >
-                                    {showPassword ? (
-                                        <IconEyeOpen />
-                                    ) : (
-                                        <IconEyeClosed />
-                                    )}
-                                </button>
-                            </div>
-                            <PasswordStrengthBar password={password} />
-                        </div>
-
-                        <div>
-                            <label
-                                htmlFor="confirmPassword"
-                                className="block text-sm font-medium text-gray-700 mb-1.5"
-                            >
-                                Confirm password
-                            </label>
-                            <div className="relative">
+                                    Full name
+                                </label>
                                 <input
-                                    id="confirmPassword"
-                                    name="confirmPassword"
-                                    type={showConfirm ? "text" : "password"}
+                                    id="name"
+                                    name="name"
+                                    type="text"
                                     required
-                                    autoComplete="new-password"
-                                    placeholder="Re-enter your password"
-                                    className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 pr-10 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                                    autoComplete="name"
+                                    placeholder="Jane Doe"
+                                    className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                                 />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowConfirm((v) => !v)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
-                                    aria-label={
-                                        showConfirm
-                                            ? "Hide password"
-                                            : "Show password"
-                                    }
+                            </div>
+
+                            <div>
+                                <label
+                                    htmlFor="email"
+                                    className="block text-sm font-medium text-gray-700 mb-1.5"
                                 >
-                                    {showConfirm ? (
-                                        <IconEyeOpen />
-                                    ) : (
-                                        <IconEyeClosed />
-                                    )}
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="flex items-start gap-3">
-                            {/* Custom checkbox — 44px touch target via -inset-3 */}
-                            <span className="relative mt-0.5 shrink-0">
+                                    Email address
+                                </label>
                                 <input
-                                    id="terms"
-                                    name="terms"
-                                    type="checkbox"
+                                    id="email"
+                                    name="email"
+                                    type="email"
                                     required
-                                    className="peer absolute -inset-3 cursor-pointer opacity-0"
+                                    autoComplete="email"
+                                    placeholder="you@example.com"
+                                    value={email}
+                                    onChange={(e) => {
+                                        setEmail(e.target.value);
+                                        if (emailError)
+                                            setEmailError(
+                                                validateEmail(e.target.value),
+                                            );
+                                    }}
+                                    onBlur={() =>
+                                        setEmailError(validateEmail(email))
+                                    }
+                                    className={`w-full rounded-lg border px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition ${
+                                        emailError
+                                            ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                                            : "border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                                    }`}
                                 />
-                                <span className="pointer-events-none flex h-5 w-5 items-center justify-center rounded border-2 border-gray-300 bg-white transition peer-checked:border-indigo-600 peer-checked:bg-indigo-600">
-                                    <svg
-                                        className="h-3 w-3 text-white opacity-0 transition peer-checked:opacity-100"
-                                        viewBox="0 0 12 12"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="2.5"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
+                                {emailError && (
+                                    <p className="mt-1.5 text-xs text-red-600">
+                                        {emailError}
+                                    </p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label
+                                    htmlFor="password"
+                                    className="block text-sm font-medium text-gray-700 mb-1.5"
+                                >
+                                    Password
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        id="password"
+                                        name="password"
+                                        type={
+                                            showPassword ? "text" : "password"
+                                        }
+                                        required
+                                        autoComplete="new-password"
+                                        placeholder="At least 8 characters"
+                                        value={password}
+                                        onChange={(e) =>
+                                            setPassword(e.target.value)
+                                        }
+                                        className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 pr-10 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setShowPassword((v) => !v)
+                                        }
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+                                        aria-label={
+                                            showPassword
+                                                ? "Hide password"
+                                                : "Show password"
+                                        }
                                     >
-                                        <path d="M2 6l3 3 5-5" />
-                                    </svg>
-                                </span>
-                            </span>
-                            <label
-                                htmlFor="terms"
-                                className="text-sm text-gray-600"
+                                        {showPassword ? (
+                                            <IconEyeOpen />
+                                        ) : (
+                                            <IconEyeClosed />
+                                        )}
+                                    </button>
+                                </div>
+                                <PasswordStrengthBar password={password} />
+                            </div>
+
+                            <div>
+                                <label
+                                    htmlFor="confirmPassword"
+                                    className="block text-sm font-medium text-gray-700 mb-1.5"
+                                >
+                                    Confirm password
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        id="confirmPassword"
+                                        name="confirmPassword"
+                                        type={showConfirm ? "text" : "password"}
+                                        required
+                                        autoComplete="new-password"
+                                        placeholder="Re-enter your password"
+                                        className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 pr-10 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setShowConfirm((v) => !v)
+                                        }
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+                                        aria-label={
+                                            showConfirm
+                                                ? "Hide password"
+                                                : "Show password"
+                                        }
+                                    >
+                                        {showConfirm ? (
+                                            <IconEyeOpen />
+                                        ) : (
+                                            <IconEyeClosed />
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="flex items-start gap-1">
+                                <input
+                                    id="remember"
+                                    type="checkbox"
+                                    className="h-4 w-4 cursor-pointer rounded border-gray-300 text-indigo-600 accent-indigo-600"
+                                />
+                                <label
+                                    htmlFor="remember"
+                                    className="text-sm text-gray-600"
+                                ></label>
+                                <label
+                                    htmlFor="terms"
+                                    className="text-sm text-gray-600"
+                                >
+                                    I agree to the{" "}
+                                    <Link
+                                        href="#"
+                                        className="font-medium text-indigo-600 hover:text-indigo-700 transition"
+                                    >
+                                        Terms of Service
+                                    </Link>{" "}
+                                    and{" "}
+                                    <Link
+                                        href="#"
+                                        className="font-medium text-indigo-600 hover:text-indigo-700 transition"
+                                    >
+                                        Privacy Policy
+                                    </Link>
+                                </label>
+                            </div>
+
+                            {error && (
+                                <p className="text-sm text-red-600">{error}</p>
+                            )}
+
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full cursor-pointer rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
                             >
-                                I agree to the{" "}
-                                <Link
-                                    href="#"
-                                    className="font-medium text-indigo-600 hover:text-indigo-700 transition"
-                                >
-                                    Terms of Service
-                                </Link>{" "}
-                                and{" "}
-                                <Link
-                                    href="#"
-                                    className="font-medium text-indigo-600 hover:text-indigo-700 transition"
-                                >
-                                    Privacy Policy
-                                </Link>
-                            </label>
+                                {loading
+                                    ? "Creating account…"
+                                    : "Create account"}
+                            </button>
+                        </form>
+
+                        <div className="mt-5 flex items-center gap-3">
+                            <div className="h-px flex-1 bg-gray-200" />
+                            <span className="text-xs text-gray-400">or</span>
+                            <div className="h-px flex-1 bg-gray-200" />
                         </div>
 
-                        {error && (
-                            <p className="text-sm text-red-600">{error}</p>
-                        )}
-
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full cursor-pointer rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+                        <a
+                            href={`${process.env.NEXT_PUBLIC_API_URL}/auth/google`}
+                            className="mt-4 flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 active:scale-[0.98]"
                         >
-                            {loading ? "Creating account…" : "Create account"}
-                        </button>
-                    </form>
+                            <IconGoogle />
+                            Continue with Google
+                        </a>
 
-                    <div className="mt-5 flex items-center gap-3">
-                        <div className="h-px flex-1 bg-gray-200" />
-                        <span className="text-xs text-gray-400">or</span>
-                        <div className="h-px flex-1 bg-gray-200" />
+                        <p className="mt-6 text-center text-sm text-gray-500">
+                            Already have an account?{" "}
+                            <Link
+                                href="/login"
+                                className="font-semibold text-indigo-600 hover:text-indigo-700 transition"
+                            >
+                                Sign in
+                            </Link>
+                        </p>
                     </div>
-
-                    <a
-                        href={`${process.env.NEXT_PUBLIC_API_URL}/auth/google`}
-                        className="mt-4 flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 active:scale-[0.98]"
-                    >
-                        <IconGoogle />
-                        Continue with Google
-                    </a>
-
-                    <p className="mt-6 text-center text-sm text-gray-500">
-                        Already have an account?{" "}
-                        <Link
-                            href="/login"
-                            className="font-semibold text-indigo-600 hover:text-indigo-700 transition"
-                        >
-                            Sign in
-                        </Link>
-                    </p>
                 </div>
-            </div>
             </div>
         </main>
     );

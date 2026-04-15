@@ -82,9 +82,7 @@ export default function LoginPage() {
             <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 bg-linear-to-br from-indigo-600 via-indigo-700 to-violet-800">
                 <div>
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-indigo-600">
-                            <IconLogo />
-                        </div>
+                        <IconLogo />
                         <span className="text-white font-bold text-xl">
                             HabitFlow
                         </span>
@@ -128,9 +126,7 @@ export default function LoginPage() {
             <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-12 bg-white">
                 {/* Mobile logo */}
                 <div className="lg:hidden flex items-center gap-2 mb-8">
-                    <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
-                        <IconLogo />
-                    </div>
+                    <IconLogo />
                     <span className="text-gray-900 font-bold text-xl">
                         HabitFlow
                     </span>
