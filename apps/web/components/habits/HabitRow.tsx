@@ -3,15 +3,14 @@ import { useState } from "react";
 import { HabitWithStats, HabitLog } from "../../app/dashboard/types";
 import { IconCheckTiny, IconCloseSmall } from "../icons/Icon";
 
-function isPastDay(year: number, month: number, day: number): boolean {
+function isFutureDay(year: number, month: number, day: number): boolean {
     const today = new Date();
     const todayMidnight = new Date(
         today.getFullYear(),
         today.getMonth(),
         today.getDate(),
     );
-    const cellDate = new Date(year, month - 1, day);
-    return cellDate < todayMidnight;
+    return new Date(year, month - 1, day) > todayMidnight;
 }
 
 export default function HabitRow({
@@ -47,13 +46,17 @@ export default function HabitRow({
         : "bg-gray-50/50 dark:bg-gray-700/20";
 
     return (
-        <tr className={`${bg} border-b border-gray-100 dark:border-gray-700 last:border-0`}>
+        <tr
+            className={`${bg} border-b border-gray-100 dark:border-gray-700 last:border-0`}
+        >
             {/* Habit name + delete — sticky */}
             <td className={`sticky left-0 z-10 ${bg} px-4 py-2 w-36`}>
                 <div className="flex items-center gap-2">
                     <span
                         className="font-medium text-gray-800 dark:text-gray-200 truncate"
-                        title={habit?.name?.length > 20 ? habit.name : undefined}
+                        title={
+                            habit?.name?.length > 20 ? habit.name : undefined
+                        }
                     >
                         {habit?.name?.length > 20
                             ? habit?.name?.slice(0, 20) + "..."
@@ -95,16 +98,16 @@ export default function HabitRow({
             {/* Day checkboxes */}
             {DAYS.map((day) => {
                 const checked = isChecked(day);
-                const past = isPastDay(year, month, day);
+                const future = isFutureDay(year, month, day);
 
                 return (
                     <td key={day} className="text-center py-2 w-6">
                         <button
-                            onClick={() => !past && onToggle(habit.id, day)}
-                            disabled={past}
-                            title={past ? "Cannot edit past days" : undefined}
+                            onClick={() => !future && onToggle(habit.id, day)}
+                            disabled={future}
+                            title={future ? "Cannot log future days" : undefined}
                             className={`w-5 h-5 mx-auto flex items-center justify-center rounded border transition-colors ${
-                                past
+                                future
                                     ? checked
                                         ? "bg-indigo-300 border-indigo-300 cursor-not-allowed opacity-60"
                                         : "border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 cursor-not-allowed"
@@ -112,7 +115,7 @@ export default function HabitRow({
                                       ? "cursor-pointer bg-indigo-500 border-indigo-500 hover:bg-indigo-600"
                                       : "cursor-pointer border-gray-300 dark:border-gray-600 hover:border-indigo-400 dark:hover:border-indigo-500"
                             }`}
-                            aria-label={`Day ${day}${past ? " (locked)" : ""}`}
+                            aria-label={`Day ${day}${future ? " (future, locked)" : ""}`}
                         >
                             {checked && (
                                 <span className="block w-3 h-3 text-white">
