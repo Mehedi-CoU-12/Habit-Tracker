@@ -42,14 +42,42 @@ export function IconEyeClosed() {
 }
 
 /** HabitFlow badge logo — parent element controls text color */
-export function IconLogo() {
+export function IconLogo({ className = "h-8 w-8" }: { className?: string }) {
     return (
-        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-            <path
-                fillRule="evenodd"
-                d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                clipRule="evenodd"
+        <svg
+            className={className}
+            viewBox="0 0 32 32"
+            xmlns="http://www.w3.org/2000/svg"
+        >
+            <defs>
+                <linearGradient id="logo-bg" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#6366f1" />
+                    <stop offset="100%" stopColor="#7c3aed" />
+                </linearGradient>
+                <linearGradient id="logo-gloss" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="white" stopOpacity="0.18" />
+                    <stop offset="100%" stopColor="white" stopOpacity="0" />
+                </linearGradient>
+            </defs>
+            <rect width="32" height="32" rx="7" fill="url(#logo-bg)" />
+            <rect width="32" height="17" rx="7" fill="url(#logo-gloss)" />
+            <rect x="5.5" y="6.5" width="6" height="19" rx="2.5" fill="white" />
+            <rect
+                x="20.5"
+                y="6.5"
+                width="6"
+                height="19"
+                rx="2.5"
+                fill="white"
             />
+            <path
+                d="M 8.5 17 C 12.5 10.5 19.5 10.5 23.5 17"
+                stroke="white"
+                strokeWidth="5.5"
+                strokeLinecap="round"
+                fill="none"
+            />
+            <circle cx="16" cy="10.5" r="2" fill="white" fillOpacity="0.55" />
         </svg>
     );
 }
@@ -126,7 +154,9 @@ export function IconBars3() {
     );
 }
 
-export function IconTrophy({ className = "w-6 h-6" }: { className?: string } = {}) {
+export function IconTrophy({
+    className = "w-6 h-6",
+}: { className?: string } = {}) {
     return (
         <svg
             className={className}
