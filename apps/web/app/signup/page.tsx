@@ -181,21 +181,21 @@ export default function SignupPage() {
             </div>
 
             {/* Right form panel */}
-            <div className="flex-1 overflow-y-auto bg-white">
+            <div className="flex-1 overflow-y-auto bg-white dark:bg-gray-900">
                 <div className="flex min-h-full flex-col items-center justify-center p-6 py-10 sm:p-12">
                     {/* Mobile logo */}
                     <div className="lg:hidden flex items-center gap-2 mb-8">
                         <IconLogo />
-                        <span className="text-gray-900 font-bold text-xl">
+                        <span className="text-gray-900 dark:text-white font-bold text-xl">
                             HabitFlow
                         </span>
                     </div>
 
                     <div className="w-full max-w-sm">
-                        <h1 className="text-2xl font-bold text-gray-900">
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                             Create your account
                         </h1>
-                        <p className="mt-1 text-sm text-gray-500">
+                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                             Start tracking habits — it&apos;s free forever.
                         </p>
 
@@ -206,7 +206,7 @@ export default function SignupPage() {
                             <div>
                                 <label
                                     htmlFor="name"
-                                    className="block text-sm font-medium text-gray-700 mb-1.5"
+                                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
                                 >
                                     Full name
                                 </label>
@@ -217,14 +217,14 @@ export default function SignupPage() {
                                     required
                                     autoComplete="name"
                                     placeholder="Jane Doe"
-                                    className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                                 />
                             </div>
 
                             <div>
                                 <label
                                     htmlFor="email"
-                                    className="block text-sm font-medium text-gray-700 mb-1.5"
+                                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
                                 >
                                     Email address
                                 </label>
@@ -246,14 +246,14 @@ export default function SignupPage() {
                                     onBlur={() =>
                                         setEmailError(validateEmail(email))
                                     }
-                                    className={`w-full rounded-lg border px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition ${
+                                    className={`w-full rounded-lg border px-3.5 py-2.5 text-sm text-gray-900 dark:text-gray-100 dark:bg-gray-800 dark:placeholder-gray-500 placeholder-gray-400 outline-none transition ${
                                         emailError
                                             ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
-                                            : "border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                                            : "border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                                     }`}
                                 />
                                 {emailError && (
-                                    <p className="mt-1.5 text-xs text-red-600">
+                                    <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">
                                         {emailError}
                                     </p>
                                 )}
@@ -262,7 +262,7 @@ export default function SignupPage() {
                             <div>
                                 <label
                                     htmlFor="password"
-                                    className="block text-sm font-medium text-gray-700 mb-1.5"
+                                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
                                 >
                                     Password
                                 </label>
@@ -280,14 +280,14 @@ export default function SignupPage() {
                                         onChange={(e) =>
                                             setPassword(e.target.value)
                                         }
-                                        className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 pr-10 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                                        className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 px-3.5 py-2.5 pr-10 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                                     />
                                     <button
                                         type="button"
                                         onClick={() =>
                                             setShowPassword((v) => !v)
                                         }
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition"
                                         aria-label={
                                             showPassword
                                                 ? "Hide password"
@@ -307,7 +307,7 @@ export default function SignupPage() {
                             <div>
                                 <label
                                     htmlFor="confirmPassword"
-                                    className="block text-sm font-medium text-gray-700 mb-1.5"
+                                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
                                 >
                                     Confirm password
                                 </label>
@@ -319,14 +319,14 @@ export default function SignupPage() {
                                         required
                                         autoComplete="new-password"
                                         placeholder="Re-enter your password"
-                                        className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 pr-10 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                                        className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 px-3.5 py-2.5 pr-10 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                                     />
                                     <button
                                         type="button"
                                         onClick={() =>
                                             setShowConfirm((v) => !v)
                                         }
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition"
                                         aria-label={
                                             showConfirm
                                                 ? "Hide password"
@@ -346,27 +346,27 @@ export default function SignupPage() {
                                 <input
                                     id="remember"
                                     type="checkbox"
-                                    className="h-4 w-4 cursor-pointer rounded border-gray-300 text-indigo-600 accent-indigo-600"
+                                    className="h-4 w-4 cursor-pointer rounded border-gray-300 dark:border-gray-500 dark:scheme-dark text-indigo-600 accent-indigo-600"
                                 />
                                 <label
                                     htmlFor="remember"
-                                    className="text-sm text-gray-600"
+                                    className="text-sm text-gray-600 dark:text-gray-400"
                                 ></label>
                                 <label
                                     htmlFor="terms"
-                                    className="text-sm text-gray-600"
+                                    className="text-sm text-gray-600 dark:text-gray-400"
                                 >
                                     I agree to the{" "}
                                     <Link
                                         href="#"
-                                        className="font-medium text-indigo-600 hover:text-indigo-700 transition"
+                                        className="font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition"
                                     >
                                         Terms of Service
                                     </Link>{" "}
                                     and{" "}
                                     <Link
                                         href="#"
-                                        className="font-medium text-indigo-600 hover:text-indigo-700 transition"
+                                        className="font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition"
                                     >
                                         Privacy Policy
                                     </Link>
@@ -374,7 +374,9 @@ export default function SignupPage() {
                             </div>
 
                             {error && (
-                                <p className="text-sm text-red-600">{error}</p>
+                                <p className="text-sm text-red-600 dark:text-red-400">
+                                    {error}
+                                </p>
                             )}
 
                             <button
@@ -389,24 +391,26 @@ export default function SignupPage() {
                         </form>
 
                         <div className="mt-5 flex items-center gap-3">
-                            <div className="h-px flex-1 bg-gray-200" />
-                            <span className="text-xs text-gray-400">or</span>
-                            <div className="h-px flex-1 bg-gray-200" />
+                            <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+                            <span className="text-xs text-gray-400 dark:text-gray-500">
+                                or
+                            </span>
+                            <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
                         </div>
 
                         <a
                             href={`${process.env.NEXT_PUBLIC_API_URL}/auth/google`}
-                            className="mt-4 flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 active:scale-[0.98]"
+                            className="mt-4 flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm transition hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-[0.98]"
                         >
                             <IconGoogle />
                             Continue with Google
                         </a>
 
-                        <p className="mt-6 text-center text-sm text-gray-500">
+                        <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
                             Already have an account?{" "}
                             <Link
                                 href="/login"
-                                className="font-semibold text-indigo-600 hover:text-indigo-700 transition"
+                                className="font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition"
                             >
                                 Sign in
                             </Link>
