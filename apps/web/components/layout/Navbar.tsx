@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useTheme } from "../../provider/theme";
 import {
     IconChevronDownSmall,
+    IconLogo,
     IconMoon,
     IconPlusSmall,
     IconSignOutSmall,
@@ -43,13 +44,7 @@ export default function Navbar(props: NavbarProps) {
             >
                 {/* Logo */}
                 <Link href="/" className="flex items-center gap-2">
-                    <Image
-                        src="/favicon-bluebg.svg"
-                        alt="HabitFlow"
-                        width={32}
-                        height={32}
-                        className="h-8 w-8"
-                    />
+                    <IconLogo />
                     <span
                         className={`font-bold text-gray-900 dark:text-white ${isDashboard ? "text-sm" : "text-lg"}`}
                     >
