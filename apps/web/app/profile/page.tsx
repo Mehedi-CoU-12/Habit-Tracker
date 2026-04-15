@@ -26,19 +26,19 @@ export default function ProfilePage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             {/* Navbar */}
-            <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/90 backdrop-blur">
+            <header className="sticky top-0 z-40 border-b border-gray-200 dark:border-gray-700 bg-white/90 dark:bg-gray-900/90 backdrop-blur">
                 <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-3">
                     <Link href="/dashboard" className="flex items-center gap-2">
                         <IconLogo />
-                        <span className="text-sm font-bold text-gray-900">
+                        <span className="text-sm font-bold text-gray-900 dark:text-white">
                             HabitFlow
                         </span>
                     </Link>
                     <Link
                         href="/dashboard"
-                        className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 transition"
+                        className="flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition"
                     >
                         <IconChevronLeftSmall />
                         Back to dashboard
@@ -48,10 +48,10 @@ export default function ProfilePage() {
 
             <div className="max-w-3xl mx-auto px-6 py-10 space-y-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                         Profile &amp; Settings
                     </h1>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                         Manage your account information and password.
                     </p>
                 </div>
@@ -114,8 +114,8 @@ function AvatarSection({
     const avatarSrc = preview ?? me.avatarUrl;
 
     return (
-        <div className="rounded-xl border border-gray-200 bg-white p-6">
-            <h2 className="text-sm font-semibold text-gray-700 mb-4">
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
                 Profile picture
             </h2>
             <div className="flex items-center gap-5">
@@ -155,11 +155,11 @@ function AvatarSection({
                     <button
                         onClick={() => fileInputRef.current?.click()}
                         disabled={mutation.isPending}
-                        className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
+                        className="rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 transition hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
                     >
                         {mutation.isPending ? "Uploading…" : "Change photo"}
                     </button>
-                    <p className="mt-1.5 text-xs text-gray-400">
+                    <p className="mt-1.5 text-xs text-gray-400 dark:text-gray-500">
                         JPG, PNG or WebP · max 5 MB
                     </p>
                     {error && (
@@ -194,13 +194,13 @@ function ProfileSection({
     });
 
     return (
-        <div className="rounded-xl border border-gray-200 bg-white p-6">
-            <h2 className="text-sm font-semibold text-gray-700 mb-4">
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
                 Account info
             </h2>
             <div className="space-y-4 max-w-sm">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                         Full name
                     </label>
                     <input
@@ -210,19 +210,19 @@ function ProfileSection({
                             setSuccess(false);
                             setError("");
                         }}
-                        className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                        className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                         Email
                     </label>
                     <input
                         value={me.email}
                         disabled
-                        className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-400 cursor-not-allowed"
+                        className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 px-3.5 py-2.5 text-sm text-gray-400 dark:text-gray-500 cursor-not-allowed"
                     />
-                    <p className="mt-1 text-xs text-gray-400">
+                    <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
                         Email cannot be changed.
                     </p>
                 </div>
@@ -295,8 +295,8 @@ function PasswordSection({
     }
 
     return (
-        <div className="rounded-xl border border-gray-200 bg-white p-6">
-            <h2 className="text-sm font-semibold text-gray-700 mb-4">
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
                 Change password
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4 max-w-sm">
@@ -308,7 +308,7 @@ function PasswordSection({
                     ] as const
                 ).map((field) => (
                     <div key={field}>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                             {field === "currentPassword"
                                 ? "Current password"
                                 : field === "newPassword"
@@ -326,7 +326,7 @@ function PasswordSection({
                                 setError("");
                                 setSuccess(false);
                             }}
-                            className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                         />
                     </div>
                 ))}
@@ -368,16 +368,16 @@ function DangerSection({
     }
 
     return (
-        <div className="rounded-xl border border-red-200 bg-white p-6">
-            <h2 className="text-sm font-semibold text-gray-700 mb-1">
+        <div className="rounded-xl border border-red-200 dark:border-red-900/50 bg-white dark:bg-gray-800 p-6">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
                 Sign out
             </h2>
-            <p className="text-xs text-gray-500 mb-4">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
                 You will be returned to the login page.
             </p>
             <button
                 onClick={handleSignOut}
-                className="rounded-lg border border-red-300 px-4 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50"
+                className="rounded-lg border border-red-300 dark:border-red-700 px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 transition hover:bg-red-50 dark:hover:bg-red-900/20"
             >
                 Sign out
             </button>
