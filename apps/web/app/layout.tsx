@@ -1,19 +1,34 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Caprasimo, Manrope, JetBrains_Mono } from "next/font/google";
 import { Providers } from "../provider/providers";
 
 import "./globals.css";
 
-const inter = Inter({
+const manrope = Manrope({
     subsets: ["latin"],
-    variable: "--font-inter",
+    weight: ["400", "500", "600", "700", "800"],
+    variable: "--font-manrope",
+    display: "swap",
+});
+
+const caprasimo = Caprasimo({
+    subsets: ["latin"],
+    weight: "400",
+    variable: "--font-caprasimo",
+    display: "swap",
+});
+
+const jetbrains = JetBrains_Mono({
+    subsets: ["latin"],
+    weight: ["400", "500", "600", "700"],
+    variable: "--font-jetbrains",
     display: "swap",
 });
 
 export const metadata: Metadata = {
-    title: "HabitFlow | Build Better Habits",
+    title: "Bloom | Habits that grow with you",
     description:
-        "Track your daily habits, visualize your progress, and achieve your goals with HabitFlow.",
+        "Track what matters and watch your plants bloom as your streaks stretch out.",
     icons: { icon: "/favicon-bluebg.svg" },
 };
 
@@ -23,7 +38,11 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en" className={inter.variable} suppressHydrationWarning>
+        <html
+            lang="en"
+            className={`${manrope.variable} ${caprasimo.variable} ${jetbrains.variable}`}
+            suppressHydrationWarning
+        >
             <body className="font-sans antialiased">
                 <Providers>{children}</Providers>
             </body>
