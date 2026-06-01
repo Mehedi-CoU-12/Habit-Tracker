@@ -11,7 +11,7 @@ import {
     ResponsiveContainer,
 } from "recharts";
 import OverviewCard from "../overview/OverviewCard";
-import { useTheme } from "../../provider/theme";
+import { ACCENTS, NEUTRALS, useBloom } from "../../provider/theme";
 
 function CustomTooltip({
     active,
@@ -25,9 +25,9 @@ function CustomTooltip({
     if (!active || !payload || payload.length === 0) return null;
     const value = payload[0]!.value;
     return (
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 shadow-md text-xs">
-            <p className="font-medium text-gray-700 dark:text-gray-300">Day {label}</p>
-            <p className="text-indigo-600 dark:text-indigo-400 font-bold">{value}%</p>
+        <div className="rounded-lg border border-line bg-surface px-3 py-2 text-xs shadow-md">
+            <p className="font-medium text-ink2">Day {label}</p>
+            <p className="font-bold text-accent">{value}%</p>
         </div>
     );
 }
@@ -39,12 +39,14 @@ export default function DailyLineChart({
     data: { day: number; percent: number }[];
     monthLabel: string;
 }) {
-    const { theme } = useTheme();
-    const gridColor = theme === "dark" ? "#374151" : "#f3f4f6";
-    const tickColor = theme === "dark" ? "#6b7280" : "#9ca3af";
+    const { dark, accent } = useBloom();
+    const n = dark ? NEUTRALS.dark : NEUTRALS.light;
+    const gridColor = n.line;
+    const tickColor = n.muted;
+    const lineColor = ACCENTS[accent].accent;
 
     return (
-        <OverviewCard title={`Daily Progress — ${monthLabel}`} bodyClassName="p-5">
+        <OverviewCard title={`Daily progress — ${monthLabel}`} bodyClassName="p-5">
             <div className="w-full h-56">
                 <ResponsiveContainer>
                     <LineChart
@@ -78,12 +80,12 @@ export default function DailyLineChart({
                         <Line
                             type="monotone"
                             dataKey="percent"
-                            stroke="#6366f1"
+                            stroke={lineColor}
                             strokeWidth={2.5}
                             dot={false}
                             activeDot={{
                                 r: 4,
-                                fill: "#6366f1",
+                                fill: lineColor,
                                 strokeWidth: 0,
                             }}
                         />

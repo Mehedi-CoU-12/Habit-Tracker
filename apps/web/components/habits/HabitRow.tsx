@@ -1,7 +1,8 @@
 // components/habits/HabitRow.tsx
 import { useState } from "react";
 import { HabitWithStats, HabitLog } from "../../app/dashboard/types";
-import { IconCheckTiny, IconCloseSmall } from "../icons/Icon";
+import { IconCloseSmall } from "../icons/Icon";
+import BloomIcon from "../bloom/BloomIcon";
 
 function isFutureDay(year: number, month: number, day: number): boolean {
     const today = new Date();
@@ -41,39 +42,42 @@ export default function HabitRow({
         );
     }
 
-    const bg = isEven
-        ? "bg-white dark:bg-gray-800"
-        : "bg-gray-50/50 dark:bg-gray-700/20";
+    const bg = isEven ? "bg-surface" : "bg-surface2/30";
 
     return (
-        <tr
-            className={`${bg} border-b border-gray-100 dark:border-gray-700 last:border-0`}
-        >
+        <tr className={`${bg} border-b border-line last:border-0`}>
             {/* Habit name + delete — sticky */}
-            <td className={`sticky left-0 z-10 ${bg} px-4 py-2 w-36`}>
+            <td className={`sticky left-0 z-10 ${bg} w-44 px-4 py-2`}>
                 <div className="flex items-center gap-2">
+                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-surface2">
+                        <BloomIcon
+                            name={habit.icon}
+                            size={14}
+                            className="text-ink2"
+                        />
+                    </span>
                     <span
-                        className="font-medium text-gray-800 dark:text-gray-200 truncate"
+                        className="truncate font-medium text-ink"
                         title={
-                            habit?.name?.length > 20 ? habit.name : undefined
+                            habit?.name?.length > 16 ? habit.name : undefined
                         }
                     >
-                        {habit?.name?.length > 20
-                            ? habit?.name?.slice(0, 20) + "..."
+                        {habit?.name?.length > 16
+                            ? habit?.name?.slice(0, 16) + "…"
                             : habit?.name}
                     </span>
 
                     {confirmDelete ? (
-                        <div className="flex items-center gap-1 shrink-0">
+                        <div className="flex shrink-0 items-center gap-1">
                             <button
                                 onClick={() => onDelete(habit.id)}
-                                className="cursor-pointer rounded px-1.5 py-0.5 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors"
+                                className="cursor-pointer rounded px-1.5 py-0.5 text-xs font-semibold text-white bg-red-500 transition-colors hover:bg-red-600"
                             >
                                 Yes
                             </button>
                             <button
                                 onClick={() => setConfirmDelete(false)}
-                                className="cursor-pointer rounded px-1.5 py-0.5 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                                className="cursor-pointer rounded px-1.5 py-0.5 text-xs font-medium text-muted transition-colors hover:text-ink"
                             >
                                 No
                             </button>
@@ -81,7 +85,7 @@ export default function HabitRow({
                     ) : (
                         <button
                             onClick={() => setConfirmDelete(true)}
-                            className="shrink-0 cursor-pointer text-gray-300 dark:text-gray-600 hover:text-red-500 transition-colors"
+                            className="shrink-0 cursor-pointer text-line transition-colors hover:text-red-500"
                             aria-label={`Delete ${habit.name}`}
                         >
                             <IconCloseSmall />
@@ -91,7 +95,7 @@ export default function HabitRow({
             </td>
 
             {/* Goal */}
-            <td className="text-center py-2 w-8 text-gray-500 dark:text-gray-400 tabular-nums">
+            <td className="w-8 py-2 text-center tabular-nums text-muted">
                 {habit.goal}
             </td>
 
@@ -101,48 +105,61 @@ export default function HabitRow({
                 const future = isFutureDay(year, month, day);
 
                 return (
-                    <td key={day} className="text-center py-2 w-6">
+                    <td key={day} className="w-6 py-2 text-center">
                         <button
                             onClick={() => !future && onToggle(habit.id, day)}
                             disabled={future}
-                            title={future ? "Cannot log future days" : undefined}
-                            className={`w-5 h-5 mx-auto flex items-center justify-center rounded border transition-colors ${
+                            title={
+                                future ? "Cannot log future days" : undefined
+                            }
+                            className={`mx-auto flex h-5 w-5 items-center justify-center rounded-md border transition-colors ${
                                 future
                                     ? checked
-                                        ? "bg-indigo-300 border-indigo-300 cursor-not-allowed opacity-60"
-                                        : "border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 cursor-not-allowed"
+                                        ? "cursor-not-allowed border-green/60 bg-green/60 opacity-60"
+                                        : "cursor-not-allowed border-line bg-surface2"
                                     : checked
-                                      ? "cursor-pointer bg-indigo-500 border-indigo-500 hover:bg-indigo-600"
-                                      : "cursor-pointer border-gray-300 dark:border-gray-600 hover:border-indigo-400 dark:hover:border-indigo-500"
+                                      ? "cursor-pointer border-green bg-green hover:brightness-95"
+                                      : "cursor-pointer border-line hover:border-accent"
                             }`}
                             aria-label={`Day ${day}${future ? " (future, locked)" : ""}`}
                         >
                             {checked && (
-                                <span className="block w-3 h-3 text-white">
-                                    <IconCheckTiny />
-                                </span>
+                                <BloomIcon
+                                    name="check"
+                                    size={12}
+                                    stroke="#fff"
+                                    strokeWidth={2.6}
+                                />
                             )}
                         </button>
                     </td>
                 );
             })}
 
-            {/* Stats */}
-            <td className="text-center py-2 w-11 font-semibold text-indigo-700 dark:text-indigo-400 tabular-nums">
+            {/* Streak */}
+            <td className="w-11 py-2 text-center">
+                <span className="inline-flex items-center justify-center gap-0.5 font-bold tabular-nums text-accent">
+                    <BloomIcon
+                        name="flame"
+                        size={12}
+                        fill="currentColor"
+                        strokeWidth={1.2}
+                    />
+                    {habit.streak}
+                </span>
+            </td>
+            <td className="w-11 py-2 text-center font-semibold tabular-nums text-green-deep">
                 {habit.completed}
             </td>
-            <td className="text-center py-2 w-9 text-gray-500 dark:text-gray-400 tabular-nums">
-                {habit.left}
-            </td>
-            <td className="text-center py-2 w-9 text-gray-700 dark:text-gray-300 tabular-nums">
+            <td className="w-9 py-2 text-center tabular-nums text-ink2">
                 {habit.percent}%
             </td>
 
             {/* Progress bar */}
-            <td className="px-3 py-2 w-24">
-                <div className="h-2 w-full rounded-full bg-gray-100 dark:bg-gray-700">
+            <td className="w-24 px-3 py-2">
+                <div className="h-2 w-full rounded-full bg-surface2">
                     <div
-                        className="h-2 rounded-full bg-indigo-500 transition-all"
+                        className="h-2 rounded-full bg-accent transition-all"
                         style={{ width: `${Math.min(habit.percent, 100)}%` }}
                     />
                 </div>

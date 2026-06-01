@@ -37,23 +37,24 @@ export default function MonthSelector({
     ).format("dddd");
 
     return (
-        <div className="border-b border-gray-200 dark:border-gray-700 pb-6 mb-2">
-            <div className="flex items-start justify-between flex-wrap gap-4">
+        <div className="mb-2 border-b border-line pb-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                    <p className="text-xs font-semibold text-indigo-500 uppercase tracking-widest mb-1">
-                        Habit Tracker
+                    <p className="mb-1 text-xs font-bold uppercase tracking-widest text-accent">
+                        Your garden
                     </p>
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
+                    <h1 className="font-display text-4xl tracking-tight text-ink">
                         {monthName}
                     </h1>
-                    <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">
-                        {year} · {daysInMonth} days · Week starts {firstDayName}
+                    <p className="mt-1 text-sm text-muted">
+                        {year} · {daysInMonth} days · Week starts {firstDayName}{" "}
+                        ☿
                     </p>
                 </div>
 
                 <div className="flex items-center gap-3">
                     <div className="flex flex-col gap-0.5">
-                        <label className="text-xs text-gray-400 dark:text-gray-500 font-medium">
+                        <label className="text-xs font-medium text-muted">
                             Year
                         </label>
                         <select
@@ -61,7 +62,7 @@ export default function MonthSelector({
                             onChange={(e) =>
                                 onYearChange(Number(e.target.value))
                             }
-                            className="cursor-pointer rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
+                            className="cursor-pointer rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-ink outline-none focus:border-accent"
                         >
                             {YEARS.map((y) => (
                                 <option key={y} value={y}>
@@ -71,7 +72,7 @@ export default function MonthSelector({
                         </select>
                     </div>
                     <div className="flex flex-col gap-0.5">
-                        <label className="text-xs text-gray-400 dark:text-gray-500 font-medium">
+                        <label className="text-xs font-medium text-muted">
                             Month
                         </label>
                         <select
@@ -79,7 +80,7 @@ export default function MonthSelector({
                             onChange={(e) =>
                                 onMonthChange(Number(e.target.value))
                             }
-                            className="cursor-pointer rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
+                            className="cursor-pointer rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-ink outline-none focus:border-accent"
                         >
                             {MONTHS.map((m, i) => (
                                 <option key={m} value={i + 1}>

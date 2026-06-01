@@ -9,10 +9,12 @@ import DailyLineChart from "../../components/charts/DailyLineChart";
 import DonutChart from "../../components/charts/DonutChart";
 import WeeklyOverview from "../../components/overview/WeeklyOverview";
 import HabitGrid from "../../components/habits/HabitGrid";
+import Garden from "../../components/habits/Garden";
 import MonthSelector from "../../components/MonthSelector";
 import TopHabits from "../../components/overview/TopHabits";
 import { calculateDailyProgress } from "../../src/utils/dailyProgress";
 import { calculateWeeklyProgress } from "../../src/utils/weeklyProgress";
+import { deriveHabitStats } from "../../src/lib/deriveStats";
 import {
     fetchHabits,
     createHabit,
@@ -20,95 +22,204 @@ import {
     toggleLog,
     fetchMe,
     applyTemplate,
+    CreateHabitInput,
 } from "../../src/lib/api";
 import TemplatesModal from "../../components/habits/TemplatesModal";
 import Navbar from "../../components/layout/Navbar";
-import { IconClose } from "../../components/icons/Icon";
-import { ApiHabit, HabitLog, HabitWithStats } from "./types";
+import Plant from "../../components/bloom/Plant";
+import BloomIcon from "../../components/bloom/BloomIcon";
+import { useBloom } from "../../provider/theme";
+import { ApiHabit, HabitLog } from "./types";
+
+const ICON_CHOICES = [
+    "leaf",
+    "sun",
+    "droplet",
+    "book",
+    "dumbbell",
+    "coffee",
+    "music",
+    "pen",
+    "moon",
+    "cloud",
+    "flame",
+    "sprout",
+];
+
+const TOD_CHOICES: { v: string; label: string; icon: string }[] = [
+    { v: "morning", label: "Morning", icon: "sun" },
+    { v: "afternoon", label: "Afternoon", icon: "cloud" },
+    { v: "evening", label: "Evening", icon: "moonStars" },
+    { v: "anytime", label: "Anytime", icon: "sparkle" },
+];
 
 function AddHabitModal({
     onClose,
     onAdd,
 }: {
     onClose: () => void;
-    onAdd: (name: string, goal: number) => void;
+    onAdd: (input: CreateHabitInput) => void;
 }) {
     const [name, setName] = useState("");
     const [goal, setGoal] = useState(30);
+    const [icon, setIcon] = useState("sprout");
+    const [tod, setTod] = useState("morning");
+    const [verb, setVerb] = useState("");
     const [error, setError] = useState("");
 
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         if (!name.trim()) {
-            setError("Name is required");
+            setError("Give your habit a name");
             return;
         }
         if (goal < 1 || goal > 31) {
             setError("Goal must be between 1 and 31");
             return;
         }
-        onAdd(name.trim(), goal);
+        onAdd({
+            name: name.trim(),
+            goal,
+            icon,
+            tod,
+            verb: verb.trim() || undefined,
+        });
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6">
-                <div className="flex items-center justify-between mb-5">
-                    <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                        New habit
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-(--bloom-overlay) p-4">
+            <div className="w-full max-w-md rounded-3xl border border-line bg-bg shadow-(--bloom-card-shadow)">
+                <div className="flex items-center justify-between border-b border-line px-6 py-5">
+                    <h2 className="font-display text-2xl text-ink">
+                        Plant a new habit
                     </h2>
                     <button
                         onClick={onClose}
-                        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition cursor-pointer"
+                        className="cursor-pointer text-muted transition hover:text-ink"
                         aria-label="Close"
                     >
-                        <IconClose />
+                        <BloomIcon name="x" size={22} />
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                            Habit name
-                        </label>
-                        <input
-                            autoFocus
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="e.g. Morning Run"
-                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:placeholder-gray-500 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-                        />
+                <form onSubmit={handleSubmit} className="space-y-5 p-6">
+                    <div className="flex items-center gap-4">
+                        <Plant streak={1} doneToday size={92} />
+                        <div className="flex-1">
+                            <input
+                                autoFocus
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="Run outside"
+                                className="w-full border-b-2 border-line bg-transparent pb-1.5 font-display text-2xl text-ink outline-none focus:border-accent"
+                            />
+                            <p className="mt-2 text-xs text-muted">
+                                Your seed grows as you keep the streak.
+                            </p>
+                        </div>
                     </div>
+
+                    {/* Seed / icon */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                            Monthly goal{" "}
-                            <span className="text-gray-400 dark:text-gray-500 font-normal">
-                                (days)
-                            </span>
-                        </label>
-                        <input
-                            type="number"
-                            min={1}
-                            max={31}
-                            value={goal}
-                            onChange={(e) => setGoal(Number(e.target.value))}
-                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-                        />
+                        <div className="mb-2 text-[11px] font-bold uppercase tracking-widest text-muted">
+                            Seed
+                        </div>
+                        <div className="grid grid-cols-6 gap-2">
+                            {ICON_CHOICES.map((ic) => (
+                                <button
+                                    key={ic}
+                                    type="button"
+                                    onClick={() => setIcon(ic)}
+                                    className={`grid aspect-square cursor-pointer place-items-center rounded-xl border transition ${
+                                        icon === ic
+                                            ? "border-accent bg-accent text-white"
+                                            : "border-line bg-surface text-ink2 hover:border-accent"
+                                    }`}
+                                >
+                                    <BloomIcon name={ic} size={18} />
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                    {error && <p className="text-sm text-red-600">{error}</p>}
+
+                    {/* When */}
+                    <div>
+                        <div className="mb-2 text-[11px] font-bold uppercase tracking-widest text-muted">
+                            When
+                        </div>
+                        <div className="grid grid-cols-4 gap-2">
+                            {TOD_CHOICES.map((o) => (
+                                <button
+                                    key={o.v}
+                                    type="button"
+                                    onClick={() => setTod(o.v)}
+                                    className={`flex cursor-pointer flex-col items-center gap-1.5 rounded-xl border py-3 transition ${
+                                        tod === o.v
+                                            ? "border-ink bg-ink text-bg"
+                                            : "border-line bg-surface text-ink2 hover:border-accent"
+                                    }`}
+                                >
+                                    <BloomIcon name={o.icon} size={17} />
+                                    <span className="text-[11px] font-semibold">
+                                        {o.label}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Goal + note */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-widest text-muted">
+                                Monthly goal
+                            </label>
+                            <input
+                                type="number"
+                                min={1}
+                                max={31}
+                                value={goal}
+                                onChange={(e) => setGoal(Number(e.target.value))}
+                                className="w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent"
+                            />
+                        </div>
+                        <div>
+                            <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-widest text-muted">
+                                Note{" "}
+                                <span className="font-normal normal-case text-muted/70">
+                                    (optional)
+                                </span>
+                            </label>
+                            <input
+                                value={verb}
+                                onChange={(e) => setVerb(e.target.value)}
+                                placeholder="20 min"
+                                className="w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent"
+                            />
+                        </div>
+                    </div>
+
+                    {error && <p className="text-sm text-red-500">{error}</p>}
+
                     <div className="flex gap-3 pt-1">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="flex-1 cursor-pointer rounded-lg border border-gray-200 dark:border-gray-600 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                            className="flex-1 cursor-pointer rounded-full border border-line px-4 py-2.5 text-sm font-semibold text-ink2 transition hover:bg-surface2"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
-                            className="flex-1 cursor-pointer rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition"
+                            className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-4 py-2.5 text-sm font-bold text-white transition hover:bg-accent-deep"
                         >
-                            Add habit
+                            <BloomIcon
+                                name="sprout"
+                                size={16}
+                                stroke="#fff"
+                                strokeWidth={2}
+                            />
+                            Plant it
                         </button>
                     </div>
                 </form>
@@ -120,6 +231,7 @@ function AddHabitModal({
 export default function DashboardPage() {
     const router = useRouter();
     const queryClient = useQueryClient();
+    const { layout } = useBloom();
 
     const now = new Date();
     const [selectedYear, setSelectedYear] = useState(now.getFullYear());
@@ -146,23 +258,6 @@ export default function DashboardPage() {
         retry: false,
     });
 
-    // Derive flat types from API response
-    const habits: HabitWithStats[] = (rawHabits as ApiHabit[]).map((h) => {
-        const done = h.logs.length;
-        return {
-            id: h.id,
-            name: h.name,
-            goal: h.goal,
-            completed: done,
-            left: Math.max(0, h.goal - done),
-            percent: h.goal === 0 ? 0 : Math.round((done / h.goal) * 100),
-        };
-    });
-
-    const logs: HabitLog[] = (rawHabits as ApiHabit[]).flatMap((h) =>
-        h.logs.map((l) => ({ habitId: h.id, day: l.day, completed: true })),
-    );
-
     const daysInMonth = dayjs(
         `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`,
     ).daysInMonth();
@@ -170,6 +265,15 @@ export default function DashboardPage() {
     const monthLabel = dayjs(
         `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`,
     ).format("MMMM YYYY");
+
+    // Derive Bloom stats (streak / doneToday / rate …) from the month's logs
+    const habits = (rawHabits as ApiHabit[]).map((h) =>
+        deriveHabitStats(h, selectedYear, selectedMonth, daysInMonth),
+    );
+
+    const logs: HabitLog[] = (rawHabits as ApiHabit[]).flatMap((h) =>
+        h.logs.map((l) => ({ habitId: h.id, day: l.day, completed: true })),
+    );
 
     const totalCompleted = habits.reduce((s, h) => s + h.completed, 0);
     const totalGoal = habits.reduce((s, h) => s + h.goal, 0);
@@ -181,6 +285,11 @@ export default function DashboardPage() {
         selectedYear,
         selectedMonth,
     );
+
+    const isCurrentMonth =
+        selectedYear === now.getFullYear() &&
+        selectedMonth === now.getMonth() + 1;
+    const todayDate = now.getDate();
 
     // --- Mutations ---
 
@@ -221,8 +330,7 @@ export default function DashboardPage() {
     });
 
     const createMutation = useMutation({
-        mutationFn: ({ name, goal }: { name: string; goal: number }) =>
-            createHabit(name, goal),
+        mutationFn: (input: CreateHabitInput) => createHabit(input),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey });
             setShowAddModal(false);
@@ -249,7 +357,7 @@ export default function DashboardPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="min-h-screen bg-bg">
             <Navbar
                 variant="dashboard"
                 me={me}
@@ -261,9 +369,7 @@ export default function DashboardPage() {
             {showAddModal && (
                 <AddHabitModal
                     onClose={() => setShowAddModal(false)}
-                    onAdd={(name, goal) =>
-                        createMutation.mutate({ name, goal })
-                    }
+                    onAdd={(input) => createMutation.mutate(input)}
                 />
             )}
 
@@ -277,7 +383,7 @@ export default function DashboardPage() {
                 />
             )}
 
-            <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+            <div className="mx-auto max-w-7xl space-y-6 px-6 py-8">
                 <MonthSelector
                     year={selectedYear}
                     month={selectedMonth}
@@ -287,19 +393,19 @@ export default function DashboardPage() {
 
                 {isLoading && (
                     <div className="flex items-center justify-center py-24">
-                        <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600" />
+                        <div className="h-8 w-8 animate-spin rounded-full border-4 border-line border-t-accent" />
                     </div>
                 )}
 
                 {isError && (
-                    <div className="rounded-xl border border-red-200 bg-red-50 px-6 py-10 text-center">
-                        <p className="text-sm font-medium text-red-600">
+                    <div className="rounded-bloom border border-red-300 bg-red-500/10 px-6 py-10 text-center">
+                        <p className="text-sm font-medium text-red-500">
                             Could not load habits. Make sure the API is running
                             and you are signed in.
                         </p>
                         <Link
                             href="/login"
-                            className="mt-3 inline-block text-sm font-semibold text-indigo-600 hover:text-indigo-700"
+                            className="mt-3 inline-block text-sm font-bold text-accent hover:text-accent-deep"
                         >
                             Sign in again →
                         </Link>
@@ -308,8 +414,22 @@ export default function DashboardPage() {
 
                 {!isLoading && !isError && (
                     <div className="space-y-6">
+                        {/* ── Garden (signature view) ── */}
+                        {layout === "garden" && (
+                            <Garden
+                                habits={habits}
+                                onToggleToday={(habitId) => {
+                                    if (isCurrentMonth)
+                                        toggleMutation.mutate({
+                                            habitId,
+                                            day: todayDate,
+                                        });
+                                }}
+                            />
+                        )}
+
                         {/* ── Row 1: Line chart + Donut ── */}
-                        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
                             <div className="lg:col-span-3">
                                 <DailyLineChart
                                     data={dailyData}
@@ -323,7 +443,7 @@ export default function DashboardPage() {
                         </div>
 
                         {/* ── Row 2: Weekly overview + Top habits ── */}
-                        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
                             <div className="lg:col-span-3">
                                 <WeeklyOverview
                                     data={weeklyData}
