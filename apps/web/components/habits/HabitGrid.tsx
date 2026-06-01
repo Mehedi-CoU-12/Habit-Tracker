@@ -44,93 +44,95 @@ export default function HabitGrid({
 
     return (
         <OverviewCard
-            title={`Daily Habits — ${monthLabel}`}
+            title={`The story so far — ${monthLabel}`}
             action={
-                <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
+                <div className="flex items-center gap-3 text-xs text-muted">
                     <span className="flex items-center gap-1.5">
-                        <span className="inline-block w-3 h-3 rounded border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700" />
-                        Future (locked)
+                        <span className="inline-block h-3 w-3 rounded-md border border-line bg-surface2" />
+                        Future
                     </span>
                     <span className="flex items-center gap-1.5">
-                        <span className="inline-block w-3 h-3 rounded border-2 border-indigo-400" />
-                        Today
+                        <span className="inline-block h-3 w-3 rounded-md bg-green" />
+                        Done
                     </span>
                 </div>
             }
         >
-            <table className="w-full text-xs border-collapse">
-                <thead>
-                    <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
-                        <th className="sticky left-0 z-10 bg-gray-50 dark:bg-gray-700/50 text-left px-4 py-3 font-semibold text-gray-600 dark:text-gray-400 w-36">
-                            Habit
-                        </th>
-                        <th className="text-center py-3 font-semibold text-gray-500 dark:text-gray-400 w-8">
-                            Goal
-                        </th>
-                        {DAYS.map((d) => {
-                            const future = isFutureDay(year, month, d);
-                            const today = isToday(year, month, d);
-                            return (
-                                <th
-                                    key={d}
-                                    className={`text-center py-3 w-6 font-medium ${
-                                        today
-                                            ? "text-indigo-600 font-bold"
-                                            : future
-                                              ? "text-gray-300 dark:text-gray-600"
-                                              : "text-gray-400 dark:text-gray-500"
-                                    }`}
-                                >
-                                    {today ? (
-                                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white text-xs font-bold">
-                                            {d}
-                                        </span>
-                                    ) : (
-                                        d
-                                    )}
-                                </th>
-                            );
-                        })}
-                        <th className="text-center py-3 font-semibold text-gray-500 dark:text-gray-400 w-11">
-                            Done
-                        </th>
-                        <th className="text-center py-3 font-semibold text-gray-500 dark:text-gray-400 w-9">
-                            Left
-                        </th>
-                        <th className="text-center py-3 font-semibold text-gray-500 dark:text-gray-400 w-9">
-                            %
-                        </th>
-                        <th className="text-center px-3 py-3 font-semibold text-gray-500 dark:text-gray-400 w-24">
-                            Progress
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {habits.map((h, idx) => (
-                        <HabitRow
-                            key={h.id}
-                            habit={h}
-                            logs={logs}
-                            daysInMonth={daysInMonth}
-                            year={year}
-                            month={month}
-                            onToggle={onToggle}
-                            onDelete={onDelete}
-                            isEven={idx % 2 === 0}
-                        />
-                    ))}
-                    {habits.length === 0 && (
-                        <tr>
-                            <td
-                                colSpan={daysInMonth + 6}
-                                className="text-center py-12 text-gray-400 dark:text-gray-500 text-sm"
-                            >
-                                No habits yet. Add your first habit above.
-                            </td>
+            <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-xs">
+                    <thead>
+                        <tr className="border-b border-line bg-surface2/50">
+                            <th className="sticky left-0 z-10 w-44 bg-surface2/50 px-4 py-3 text-left font-bold text-ink2">
+                                Habit
+                            </th>
+                            <th className="w-8 py-3 text-center font-semibold text-muted">
+                                Goal
+                            </th>
+                            {DAYS.map((d) => {
+                                const future = isFutureDay(year, month, d);
+                                const today = isToday(year, month, d);
+                                return (
+                                    <th
+                                        key={d}
+                                        className={`w-6 py-3 text-center font-medium ${
+                                            today
+                                                ? "font-bold text-accent"
+                                                : future
+                                                  ? "text-muted/50"
+                                                  : "text-muted"
+                                        }`}
+                                    >
+                                        {today ? (
+                                            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-accent text-xs font-bold text-white">
+                                                {d}
+                                            </span>
+                                        ) : (
+                                            d
+                                        )}
+                                    </th>
+                                );
+                            })}
+                            <th className="w-11 py-3 text-center font-semibold text-muted">
+                                Streak
+                            </th>
+                            <th className="w-11 py-3 text-center font-semibold text-muted">
+                                Done
+                            </th>
+                            <th className="w-9 py-3 text-center font-semibold text-muted">
+                                %
+                            </th>
+                            <th className="w-24 px-3 py-3 text-center font-semibold text-muted">
+                                Progress
+                            </th>
                         </tr>
-                    )}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {habits.map((h, idx) => (
+                            <HabitRow
+                                key={h.id}
+                                habit={h}
+                                logs={logs}
+                                daysInMonth={daysInMonth}
+                                year={year}
+                                month={month}
+                                onToggle={onToggle}
+                                onDelete={onDelete}
+                                isEven={idx % 2 === 0}
+                            />
+                        ))}
+                        {habits.length === 0 && (
+                            <tr>
+                                <td
+                                    colSpan={daysInMonth + 6}
+                                    className="py-12 text-center text-sm text-muted"
+                                >
+                                    No habits yet. Plant your first seed above.
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
         </OverviewCard>
     );
 }

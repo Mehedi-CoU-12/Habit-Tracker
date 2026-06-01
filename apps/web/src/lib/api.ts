@@ -86,14 +86,21 @@ export async function fetchHabits(
     return handleResponse<ApiHabit[]>(res);
 }
 
+export type CreateHabitInput = {
+    name: string;
+    goal: number;
+    icon?: string;
+    tod?: string;
+    verb?: string;
+};
+
 export async function createHabit(
-    name: string,
-    goal: number,
+    input: CreateHabitInput,
 ): Promise<ApiHabit> {
     const res = await fetch(`${API_URL}/habits`, {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify({ name, goal }),
+        body: JSON.stringify(input),
     });
     return handleResponse<ApiHabit>(res);
 }
