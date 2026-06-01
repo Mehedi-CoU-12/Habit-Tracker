@@ -25,6 +25,9 @@ model Habit {
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   name      String
   goal      Int
+  icon      String     @default("sprout")
+  tod       String     @default("anytime")
+  verb      String?
   logs      HabitLog[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
