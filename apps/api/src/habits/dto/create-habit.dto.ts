@@ -1,4 +1,11 @@
-import { IsString, IsInt, Min, Max, MinLength } from 'class-validator';
+import {
+  IsString,
+  IsInt,
+  Min,
+  Max,
+  MinLength,
+  IsOptional,
+} from 'class-validator';
 
 export class CreateHabitDto {
   @IsString()
@@ -9,4 +16,16 @@ export class CreateHabitDto {
   @Min(1)
   @Max(31)
   goal: number;
+
+  @IsOptional()
+  @IsString()
+  icon?: string;
+
+  @IsOptional()
+  @IsString()
+  tod?: string;
+
+  @IsOptional()
+  @IsString()
+  verb?: string;
 }
