@@ -26,7 +26,7 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "Bloom | Habits that grow with you",
+    title: "HabitFlow | Habits that grow with you",
     description:
         "Track what matters and watch your plants bloom as your streaks stretch out.",
     icons: { icon: "/favicon-bluebg.svg" },

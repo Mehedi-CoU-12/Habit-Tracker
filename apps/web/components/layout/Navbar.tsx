@@ -43,7 +43,7 @@ function Wordmark({ small }: { small?: boolean }) {
             <span
                 className={`font-display text-ink ${small ? "text-xl" : "text-2xl"}`}
             >
-                Bloom
+                HabitFlow
             </span>
         </Link>
     );

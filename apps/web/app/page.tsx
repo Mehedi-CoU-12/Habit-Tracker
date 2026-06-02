@@ -104,7 +104,7 @@ export default function Home() {
 
                     <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-ink2">
                         Track what matters and watch your plants bloom as your
-                        streaks stretch out. Bloom turns consistency into a
+                        streaks stretch out. HabitFlow turns consistency into a
                         garden you&apos;ll want to tend.
                     </p>
 
@@ -194,7 +194,7 @@ export default function Home() {
                         </h2>
                         <p className="mx-auto mt-3 max-w-md text-white/90">
                             Join thousands of people growing better habits with
-                            Bloom, one watered day at a time.
+                            HabitFlow, one watered day at a time.
                         </p>
                         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                             <Link
