@@ -5,54 +5,47 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { fetchMe } from "../src/lib/api";
-import {
-    IconArrowRight,
-    IconBarChart,
-    IconBars3,
-    IconCheckCircle,
-    IconClock,
-    IconStar,
-    IconTrophy,
-} from "../components/icons/Icon";
 import Navbar from "../components/layout/Navbar";
+import Plant from "../components/bloom/Plant";
+import BloomIcon from "../components/bloom/BloomIcon";
 
 const features = [
     {
-        icon: <IconCheckCircle />,
-        title: "Daily Check-ins",
-        desc: "Mark habits as done with one tap. Build a consistent daily routine that sticks.",
+        icon: "check",
+        title: "One-tap check-ins",
+        desc: "Water a habit with a single tap and watch its plant stand tall for the day.",
     },
     {
-        icon: <IconBarChart />,
-        title: "Progress Charts",
-        desc: "Visualize daily and weekly trends. See exactly where you're excelling and where to improve.",
+        icon: "chart",
+        title: "Progress charts",
+        desc: "Daily and weekly trends show exactly where you're flourishing and where to tend.",
     },
     {
-        icon: <IconBars3 />,
-        title: "Habit Grid",
-        desc: "A full 31-day calendar grid for each habit. Spot patterns and celebrate consistency.",
+        icon: "list",
+        title: "The story so far",
+        desc: "A full month grid for every habit — spot patterns and celebrate consistency.",
     },
     {
-        icon: <IconTrophy />,
-        title: "Weekly Overview",
-        desc: "Aggregated weekly stats show goal vs completion at a glance, every single week.",
+        icon: "flame",
+        title: "Streaks that grow",
+        desc: "Every kept day stretches your streak, and your plant blooms a little more.",
     },
     {
-        icon: <IconStar />,
-        title: "Top Habits Ranking",
-        desc: "See your top-performing habits ranked by completion rate to stay motivated.",
+        icon: "trophy",
+        title: "Top growers",
+        desc: "See your strongest habits ranked by completion to keep the momentum going.",
     },
     {
-        icon: <IconClock />,
-        title: "Monthly Goals",
-        desc: "Set custom monthly targets per habit. Track your goal vs actual completion every day.",
+        icon: "sprout",
+        title: "Seed packs",
+        desc: "Start fast with curated habit packs, each with its own icon and routine.",
     },
 ];
 
 const stats = [
-    { value: "10k+", label: "Active users" },
+    { value: "10k+", label: "Active gardeners" },
     { value: "98%", label: "Streak retention" },
-    { value: "50+", label: "Habit templates" },
+    { value: "50+", label: "Habit seeds" },
     { value: "Free", label: "Forever plan" },
 ];
 
@@ -71,64 +64,82 @@ export default function Home() {
     }, [me, router]);
 
     return (
-        <div className="min-h-screen bg-white dark:bg-gray-900">
+        <div className="min-h-screen bg-bg">
             <Navbar variant="public" />
 
             {/* ── Hero ── */}
-            <section className="relative overflow-hidden px-6 pb-20 pt-20 text-center">
-                <div className="pointer-events-none absolute inset-0 overflow-hidden">
-                    <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-indigo-100 dark:bg-indigo-900/20 opacity-60 blur-3xl" />
-                    <div className="absolute -right-32 top-0 h-96 w-96 rounded-full bg-violet-100 dark:bg-violet-900/20 opacity-60 blur-3xl" />
-                </div>
+            <section className="relative overflow-hidden px-6 pb-20 pt-16 text-center">
+                {/* sky → cream gradient wash */}
+                <div
+                    className="pointer-events-none absolute inset-0"
+                    style={{
+                        background:
+                            "linear-gradient(180deg, color-mix(in srgb, var(--bloom-sky) 30%, transparent) 0%, color-mix(in srgb, var(--bloom-accent) 12%, transparent) 45%, var(--bloom-bg) 100%)",
+                    }}
+                />
+                {/* sun */}
+                <div
+                    className="pointer-events-none absolute -right-10 top-20 h-52 w-52 rounded-full opacity-60"
+                    style={{ background: "var(--bloom-sun)" }}
+                />
 
                 <div className="relative mx-auto max-w-3xl">
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1 text-xs font-semibold text-indigo-700 dark:text-indigo-300">
-                        <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                    {/* three plants at growing stages */}
+                    <div className="mb-8 flex items-end justify-center gap-1">
+                        <Plant streak={0} doneToday size={84} />
+                        <Plant streak={5} doneToday size={124} />
+                        <Plant streak={40} doneToday size={142} />
+                    </div>
+
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1 text-xs font-bold text-ink2">
+                        <span className="h-1.5 w-1.5 rounded-full bg-accent" />
                         Free to use · No credit card required
                     </span>
 
-                    <h1 className="mt-6 text-5xl font-extrabold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
-                        Build habits that{" "}
-                        <span className="bg-linear-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
-                            actually stick
-                        </span>
+                    <h1 className="mt-6 font-display text-5xl leading-[1.05] text-ink sm:text-6xl">
+                        Habits, but they
+                        <br />
+                        <span className="text-accent">grow with you.</span>
                     </h1>
 
-                    <p className="mt-5 text-lg leading-relaxed text-gray-500 dark:text-gray-400">
-                        HabitFlow helps you track daily habits, visualize
-                        progress with beautiful charts, and stay accountable —
-                        one day at a time.
+                    <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-ink2">
+                        Track what matters and watch your plants bloom as your
+                        streaks stretch out. Bloom turns consistency into a
+                        garden you&apos;ll want to tend.
                     </p>
 
                     <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                         <Link
                             href="/login"
-                            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-indigo-700 active:scale-[0.98]"
+                            className="inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-bold text-white shadow-md transition hover:bg-accent-deep active:scale-[0.98]"
                         >
-                            Open Dashboard
-                            <IconArrowRight />
+                            Open your garden
+                            <BloomIcon
+                                name="arrowRight"
+                                size={18}
+                                stroke="#fff"
+                                strokeWidth={2.2}
+                            />
                         </Link>
                         <Link
                             href="/signup"
-                            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 shadow-sm transition hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-[0.98]"
+                            className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-6 py-3 text-sm font-bold text-ink2 shadow-sm transition hover:bg-surface2 active:scale-[0.98]"
                         >
-                            Create free account
+                            Plant your first seed
                         </Link>
                     </div>
                 </div>
             </section>
 
             {/* ── Stats ── */}
-            <section className="border-y border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 px-6 py-10">
+            <section className="border-y border-line bg-surface2/40 px-6 py-10">
                 <div className="mx-auto grid max-w-4xl grid-cols-2 gap-6 sm:grid-cols-4">
                     {stats.map(({ value, label }) => (
                         <div key={label} className="text-center">
-                            <p className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400">
+                            <p className="font-display text-3xl text-accent">
                                 {value}
                             </p>
-                            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                {label}
-                            </p>
+                            <p className="mt-1 text-sm text-muted">{label}</p>
                         </div>
                     ))}
                 </div>
@@ -138,13 +149,13 @@ export default function Home() {
             <section className="px-6 py-20">
                 <div className="mx-auto max-w-5xl">
                     <div className="text-center">
-                        <p className="text-sm font-semibold uppercase tracking-widest text-indigo-600 dark:text-indigo-400">
+                        <p className="text-xs font-bold uppercase tracking-widest text-accent">
                             Features
                         </p>
-                        <h2 className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
-                            Everything you need to stay on track
+                        <h2 className="mt-2 font-display text-4xl text-ink">
+                            Everything you need to keep growing
                         </h2>
-                        <p className="mt-3 text-gray-500 dark:text-gray-400">
+                        <p className="mt-3 text-ink2">
                             Designed around the way real habit-building works.
                         </p>
                     </div>
@@ -153,15 +164,15 @@ export default function Home() {
                         {features.map(({ icon, title, desc }) => (
                             <div
                                 key={title}
-                                className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800 p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                                className="rounded-bloom border border-line bg-surface p-6 transition hover:-translate-y-0.5 hover:shadow-(--bloom-card-shadow)"
                             >
-                                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
-                                    {icon}
+                                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-accent-soft/50 text-accent-deep">
+                                    <BloomIcon name={icon} size={22} />
                                 </div>
-                                <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                                <h3 className="font-display text-lg text-ink">
                                     {title}
                                 </h3>
-                                <p className="mt-1.5 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                                <p className="mt-1.5 text-sm leading-relaxed text-ink2">
                                     {desc}
                                 </p>
                             </div>
@@ -172,34 +183,40 @@ export default function Home() {
 
             {/* ── CTA ── */}
             <section className="px-6 py-20">
-                <div className="mx-auto max-w-2xl rounded-3xl bg-linear-to-br from-indigo-600 via-indigo-700 to-violet-700 px-10 py-14 text-center shadow-xl">
-                    <h2 className="text-3xl font-bold text-white">
-                        Ready to build better habits?
-                    </h2>
-                    <p className="mt-3 text-indigo-200">
-                        Join thousands of people who track their habits with
-                        HabitFlow every day.
-                    </p>
-                    <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-                        <Link
-                            href="/signup"
-                            className="rounded-xl bg-white px-6 py-3 text-sm font-semibold text-indigo-700 shadow transition hover:bg-indigo-50 active:scale-[0.98]"
-                        >
-                            Start for free
-                        </Link>
-                        <Link
-                            href="/signup"
-                            className="rounded-xl border border-white/30 bg-white/10 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/20 active:scale-[0.98]"
-                        >
-                            View demo
-                        </Link>
+                <div className="relative mx-auto max-w-2xl overflow-hidden rounded-3xl bg-accent px-10 py-14 text-center shadow-xl">
+                    <div
+                        className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full opacity-40"
+                        style={{ background: "var(--bloom-sun)" }}
+                    />
+                    <div className="relative">
+                        <h2 className="font-display text-4xl text-white">
+                            Plant something today.
+                        </h2>
+                        <p className="mx-auto mt-3 max-w-md text-white/90">
+                            Join thousands of people growing better habits with
+                            Bloom, one watered day at a time.
+                        </p>
+                        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+                            <Link
+                                href="/signup"
+                                className="rounded-full bg-white px-6 py-3 text-sm font-bold text-accent-deep shadow transition hover:bg-white/90 active:scale-[0.98]"
+                            >
+                                Start for free
+                            </Link>
+                            <Link
+                                href="/login"
+                                className="rounded-full border border-white/40 bg-white/10 px-6 py-3 text-sm font-bold text-white transition hover:bg-white/20 active:scale-[0.98]"
+                            >
+                                I already have a garden
+                            </Link>
+                        </div>
                     </div>
                 </div>
             </section>
 
             {/* ── Footer ── */}
-            <footer className="border-t border-gray-100 dark:border-gray-800 px-6 py-8 text-center text-sm text-gray-400 dark:text-gray-500">
-                © 2026 HabitFlow. Built with Next.js &amp; Tailwind CSS.
+            <footer className="border-t border-line px-6 py-8 text-center font-display text-sm italic text-muted">
+                Plant something today. ☿
             </footer>
         </div>
     );
