@@ -10,8 +10,33 @@ import {
     IconEyeClosed,
     IconEyeOpen,
     IconGoogle,
-    IconLogo,
 } from "../../components/icons/Icon";
+import Plant from "../../components/bloom/Plant";
+import BloomIcon from "../../components/bloom/BloomIcon";
+
+function Wordmark({ onDark }: { onDark?: boolean }) {
+    return (
+        <div className="flex items-center gap-2.5">
+            <span
+                className={`grid h-9 w-9 place-items-center rounded-xl ${
+                    onDark ? "bg-white/20" : "bg-accent"
+                }`}
+            >
+                <BloomIcon
+                    name="sprout"
+                    size={20}
+                    stroke="#fff"
+                    strokeWidth={2}
+                />
+            </span>
+            <span
+                className={`font-display text-xl ${onDark ? "text-white" : "text-ink"}`}
+            >
+                HabitFlow
+            </span>
+        </div>
+    );
+}
 
 export default function LoginPage() {
     const router = useRouter();
@@ -77,36 +102,55 @@ export default function LoginPage() {
     }
 
     return (
-        <main className="min-h-screen flex">
-            {/* Left branding panel */}
-            <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 bg-linear-to-br from-indigo-600 via-indigo-700 to-violet-800">
-                <div>
-                    <div className="flex items-center gap-2">
-                        <IconLogo />
-                        <span className="text-white font-bold text-xl">
-                            HabitFlow
-                        </span>
-                    </div>
+        <main className="flex min-h-screen bg-bg">
+            {/* Left branding panel — accent garden */}
+            <div className="relative hidden flex-col justify-between overflow-hidden bg-accent p-12 lg:flex lg:w-1/2">
+                <div
+                    className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full opacity-40"
+                    style={{ background: "var(--bloom-sun)" }}
+                />
+                <div className="relative">
+                    <Wordmark onDark />
                 </div>
 
-                <div>
-                    <blockquote className="text-white text-3xl font-semibold leading-snug">
+                <div className="relative">
+                    <div className="mb-8 flex items-end gap-1">
+                        <Plant
+                            streak={2}
+                            doneToday
+                            size={78}
+                            flowerColor="#fff"
+                        />
+                        <Plant
+                            streak={12}
+                            doneToday
+                            size={104}
+                            flowerColor="#fff"
+                        />
+                        <Plant
+                            streak={40}
+                            doneToday
+                            size={132}
+                            flowerColor="#fff"
+                        />
+                    </div>
+                    <blockquote className="font-display text-3xl leading-snug text-white">
                         &ldquo;We are what we repeatedly do. Excellence, then,
                         is not an act, but a habit.&rdquo;
                     </blockquote>
-                    <p className="mt-4 text-indigo-200 text-sm">— Aristotle</p>
+                    <p className="mt-4 text-sm text-white/80">— Aristotle</p>
 
                     <ul className="mt-10 space-y-3">
                         {[
                             "Track your daily habits effortlessly",
+                            "Watch your plants bloom with every streak",
                             "Visualize progress with beautiful charts",
-                            "Build streaks and stay motivated",
                         ].map((feature) => (
                             <li
                                 key={feature}
-                                className="flex items-center gap-3 text-indigo-100"
+                                className="flex items-center gap-3 text-white/90"
                             >
-                                <span className="shrink-0 w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center">
+                                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/25">
                                     <span className="text-white">
                                         <IconCheckTiny />
                                     </span>
@@ -117,34 +161,31 @@ export default function LoginPage() {
                     </ul>
                 </div>
 
-                <p className="text-indigo-300 text-xs">
+                <p className="relative text-xs text-white/70">
                     © 2026 HabitFlow. All rights reserved.
                 </p>
             </div>
 
             {/* Right form panel */}
-            <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-12 bg-white dark:bg-gray-900">
+            <div className="flex flex-1 flex-col items-center justify-center bg-bg p-6 sm:p-12">
                 {/* Mobile logo */}
-                <div className="lg:hidden flex items-center gap-2 mb-8">
-                    <IconLogo />
-                    <span className="text-gray-900 dark:text-white font-bold text-xl">
-                        HabitFlow
-                    </span>
+                <div className="mb-8 lg:hidden">
+                    <Wordmark />
                 </div>
 
                 <div className="w-full max-w-sm">
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    <h1 className="font-display text-3xl text-ink">
                         Welcome back
                     </h1>
-                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                        Sign in to continue your streak.
+                    <p className="mt-1 text-sm text-ink2">
+                        Sign in to keep your garden growing.
                     </p>
 
                     <form onSubmit={handleSubmit} className="mt-8 space-y-5">
                         <div>
                             <label
                                 htmlFor="email"
-                                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+                                className="mb-1.5 block text-sm font-medium text-ink2"
                             >
                                 Email address
                             </label>
@@ -166,30 +207,30 @@ export default function LoginPage() {
                                 onBlur={() =>
                                     setEmailError(validateEmail(email))
                                 }
-                                className={`w-full rounded-lg border px-3.5 py-2.5 text-sm text-gray-900 dark:text-gray-100 dark:bg-gray-800 dark:placeholder-gray-500 placeholder-gray-400 outline-none transition ${
+                                className={`w-full rounded-lg border bg-surface px-3.5 py-2.5 text-sm text-ink placeholder-muted outline-none transition ${
                                     emailError
-                                        ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
-                                        : "border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                                        ? "border-red-400 focus:border-red-500"
+                                        : "border-line focus:border-accent"
                                 }`}
                             />
                             {emailError && (
-                                <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">
+                                <p className="mt-1.5 text-xs text-red-500">
                                     {emailError}
                                 </p>
                             )}
                         </div>
 
                         <div>
-                            <div className="flex items-center justify-between mb-1.5">
+                            <div className="mb-1.5 flex items-center justify-between">
                                 <label
                                     htmlFor="password"
-                                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                                    className="block text-sm font-medium text-ink2"
                                 >
                                     Password
                                 </label>
                                 <Link
                                     href="#"
-                                    className="text-xs font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition"
+                                    className="text-xs font-semibold text-accent transition hover:text-accent-deep"
                                 >
                                     Forgot password?
                                 </Link>
@@ -202,12 +243,12 @@ export default function LoginPage() {
                                     required
                                     autoComplete="current-password"
                                     placeholder="Enter your password"
-                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 px-3.5 py-2.5 pr-10 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                                    className="w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 pr-10 text-sm text-ink placeholder-muted outline-none transition focus:border-accent"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword((v) => !v)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted transition hover:text-ink2"
                                     aria-label={
                                         showPassword
                                             ? "Hide password"
@@ -227,48 +268,48 @@ export default function LoginPage() {
                             <input
                                 id="remember"
                                 type="checkbox"
-                                className="h-4 w-4 cursor-pointer rounded border-gray-300 dark:border-gray-500 dark:scheme-dark text-indigo-600 accent-indigo-600"
+                                className="h-4 w-4 cursor-pointer rounded border-line accent-(--bloom-accent)"
                             />
                             <label
                                 htmlFor="remember"
-                                className="text-sm text-gray-600 dark:text-gray-400"
+                                className="text-sm text-ink2"
                             >
                                 Remember me for 30 days
                             </label>
                         </div>
 
                         {error && (
-                            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                            <p className="text-sm text-red-500">{error}</p>
                         )}
 
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full cursor-pointer rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+                            className="w-full cursor-pointer rounded-full bg-accent px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-accent-deep active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {loading ? "Signing in…" : "Sign in"}
                         </button>
                     </form>
 
                     <div className="mt-5 flex items-center gap-3">
-                        <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
-                        <span className="text-xs text-gray-400 dark:text-gray-500">or</span>
-                        <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+                        <div className="h-px flex-1 bg-line" />
+                        <span className="text-xs text-muted">or</span>
+                        <div className="h-px flex-1 bg-line" />
                     </div>
 
                     <a
                         href={`${process.env.NEXT_PUBLIC_API_URL}/auth/google`}
-                        className="mt-4 flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm transition hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-[0.98]"
+                        className="mt-4 flex w-full items-center justify-center gap-3 rounded-full border border-line bg-surface px-4 py-2.5 text-sm font-semibold text-ink2 shadow-sm transition hover:bg-surface2 active:scale-[0.98]"
                     >
                         <IconGoogle />
                         Continue with Google
                     </a>
 
-                    <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                    <p className="mt-6 text-center text-sm text-ink2">
                         Don&apos;t have an account?{" "}
                         <Link
                             href="/signup"
-                            className="font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition"
+                            className="font-bold text-accent transition hover:text-accent-deep"
                         >
                             Create one free
                         </Link>

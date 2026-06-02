@@ -9,8 +9,33 @@ import {
     IconEyeClosed,
     IconEyeOpen,
     IconGoogle,
-    IconLogo,
 } from "../../components/icons/Icon";
+import Plant from "../../components/bloom/Plant";
+import BloomIcon from "../../components/bloom/BloomIcon";
+
+function Wordmark({ onDark }: { onDark?: boolean }) {
+    return (
+        <div className="flex items-center gap-2.5">
+            <span
+                className={`grid h-9 w-9 place-items-center rounded-xl ${
+                    onDark ? "bg-white/20" : "bg-accent"
+                }`}
+            >
+                <BloomIcon
+                    name="sprout"
+                    size={20}
+                    stroke="#fff"
+                    strokeWidth={2}
+                />
+            </span>
+            <span
+                className={`font-display text-xl ${onDark ? "text-white" : "text-ink"}`}
+            >
+                HabitFlow
+            </span>
+        </div>
+    );
+}
 
 function PasswordStrengthBar({ password }: { password: string }) {
     const strength = (() => {
@@ -47,7 +72,7 @@ function PasswordStrengthBar({ password }: { password: string }) {
                 {[1, 2, 3, 4].map((i) => (
                     <div
                         key={i}
-                        className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= strength ? colors[strength] : "bg-gray-200"}`}
+                        className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= strength ? colors[strength] : "bg-line"}`}
                     />
                 ))}
             </div>
@@ -131,43 +156,62 @@ export default function SignupPage() {
     }
 
     return (
-        <main className="min-h-screen flex">
-            {/* Left branding panel */}
-            <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 bg-linear-to-br from-indigo-600 via-indigo-700 to-violet-800">
-                <div>
-                    <div className="flex items-center gap-2">
-                        <IconLogo />
-                        <span className="text-white font-bold text-xl">
-                            HabitFlow
-                        </span>
-                    </div>
+        <main className="flex min-h-screen bg-bg">
+            {/* Left branding panel — accent garden */}
+            <div className="relative hidden flex-col justify-between overflow-hidden bg-accent p-12 lg:flex lg:w-1/2">
+                <div
+                    className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full opacity-40"
+                    style={{ background: "var(--bloom-sun)" }}
+                />
+                <div className="relative">
+                    <Wordmark onDark />
                 </div>
 
-                <div>
-                    <h2 className="text-white text-4xl font-bold leading-tight">
-                        Start building better habits today.
+                <div className="relative">
+                    <div className="mb-8 flex items-end gap-1">
+                        <Plant
+                            streak={0}
+                            doneToday
+                            size={74}
+                            flowerColor="#fff"
+                        />
+                        <Plant
+                            streak={6}
+                            doneToday
+                            size={104}
+                            flowerColor="#fff"
+                        />
+                        <Plant
+                            streak={30}
+                            doneToday
+                            size={130}
+                            flowerColor="#fff"
+                        />
+                    </div>
+                    <h2 className="font-display text-4xl leading-tight text-white">
+                        Start growing better habits today.
                     </h2>
-                    <p className="mt-4 text-indigo-200 text-base leading-relaxed">
+                    <p className="mt-4 text-base leading-relaxed text-white/85">
                         Join thousands of people who use HabitFlow to build
-                        lasting routines, track their progress, and achieve
-                        their goals.
+                        lasting routines and watch their garden bloom, one day
+                        at a time.
                     </p>
 
                     <div className="mt-10 grid grid-cols-2 gap-4">
                         {[
-                            { stat: "10k+", label: "Active users" },
+                            { stat: "10k+", label: "Active gardeners" },
                             { stat: "98%", label: "Streak retention" },
-                            { stat: "50+", label: "Habit templates" },
+                            { stat: "50+", label: "Habit seeds" },
                             { stat: "Free", label: "Forever plan" },
                         ].map(({ stat, label }) => (
                             <div
                                 key={label}
-                                className="rounded-xl bg-white/10 p-4"
+                                className="rounded-2xl bg-white/15 p-4"
                             >
-                                <p className="text-white text-2xl font-bold">
+                                <p className="font-display text-2xl text-white">
                                     {stat}
                                 </p>
-                                <p className="text-indigo-200 text-sm mt-0.5">
+                                <p className="mt-0.5 text-sm text-white/80">
                                     {label}
                                 </p>
                             </div>
@@ -175,28 +219,25 @@ export default function SignupPage() {
                     </div>
                 </div>
 
-                <p className="text-indigo-300 text-xs">
+                <p className="relative text-xs text-white/70">
                     © 2026 HabitFlow. All rights reserved.
                 </p>
             </div>
 
             {/* Right form panel */}
-            <div className="flex-1 overflow-y-auto bg-white dark:bg-gray-900">
+            <div className="flex-1 overflow-y-auto bg-bg">
                 <div className="flex min-h-full flex-col items-center justify-center p-6 py-10 sm:p-12">
                     {/* Mobile logo */}
-                    <div className="lg:hidden flex items-center gap-2 mb-8">
-                        <IconLogo />
-                        <span className="text-gray-900 dark:text-white font-bold text-xl">
-                            HabitFlow
-                        </span>
+                    <div className="mb-8 lg:hidden">
+                        <Wordmark />
                     </div>
 
                     <div className="w-full max-w-sm">
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                        <h1 className="font-display text-3xl text-ink">
                             Create your account
                         </h1>
-                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                            Start tracking habits — it&apos;s free forever.
+                        <p className="mt-1 text-sm text-ink2">
+                            Plant your first seed — it&apos;s free forever.
                         </p>
 
                         <form
@@ -206,7 +247,7 @@ export default function SignupPage() {
                             <div>
                                 <label
                                     htmlFor="name"
-                                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+                                    className="mb-1.5 block text-sm font-medium text-ink2"
                                 >
                                     Full name
                                 </label>
@@ -217,14 +258,14 @@ export default function SignupPage() {
                                     required
                                     autoComplete="name"
                                     placeholder="Jane Doe"
-                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                                    className="w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm text-ink placeholder-muted outline-none transition focus:border-accent"
                                 />
                             </div>
 
                             <div>
                                 <label
                                     htmlFor="email"
-                                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+                                    className="mb-1.5 block text-sm font-medium text-ink2"
                                 >
                                     Email address
                                 </label>
@@ -246,14 +287,14 @@ export default function SignupPage() {
                                     onBlur={() =>
                                         setEmailError(validateEmail(email))
                                     }
-                                    className={`w-full rounded-lg border px-3.5 py-2.5 text-sm text-gray-900 dark:text-gray-100 dark:bg-gray-800 dark:placeholder-gray-500 placeholder-gray-400 outline-none transition ${
+                                    className={`w-full rounded-lg border bg-surface px-3.5 py-2.5 text-sm text-ink placeholder-muted outline-none transition ${
                                         emailError
-                                            ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
-                                            : "border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                                            ? "border-red-400 focus:border-red-500"
+                                            : "border-line focus:border-accent"
                                     }`}
                                 />
                                 {emailError && (
-                                    <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">
+                                    <p className="mt-1.5 text-xs text-red-500">
                                         {emailError}
                                     </p>
                                 )}
@@ -262,7 +303,7 @@ export default function SignupPage() {
                             <div>
                                 <label
                                     htmlFor="password"
-                                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+                                    className="mb-1.5 block text-sm font-medium text-ink2"
                                 >
                                     Password
                                 </label>
@@ -280,14 +321,14 @@ export default function SignupPage() {
                                         onChange={(e) =>
                                             setPassword(e.target.value)
                                         }
-                                        className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 px-3.5 py-2.5 pr-10 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                                        className="w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 pr-10 text-sm text-ink placeholder-muted outline-none transition focus:border-accent"
                                     />
                                     <button
                                         type="button"
                                         onClick={() =>
                                             setShowPassword((v) => !v)
                                         }
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted transition hover:text-ink2"
                                         aria-label={
                                             showPassword
                                                 ? "Hide password"
@@ -307,7 +348,7 @@ export default function SignupPage() {
                             <div>
                                 <label
                                     htmlFor="confirmPassword"
-                                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+                                    className="mb-1.5 block text-sm font-medium text-ink2"
                                 >
                                     Confirm password
                                 </label>
@@ -319,14 +360,14 @@ export default function SignupPage() {
                                         required
                                         autoComplete="new-password"
                                         placeholder="Re-enter your password"
-                                        className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 px-3.5 py-2.5 pr-10 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                                        className="w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 pr-10 text-sm text-ink placeholder-muted outline-none transition focus:border-accent"
                                     />
                                     <button
                                         type="button"
                                         onClick={() =>
                                             setShowConfirm((v) => !v)
                                         }
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted transition hover:text-ink2"
                                         aria-label={
                                             showConfirm
                                                 ? "Hide password"
@@ -342,31 +383,27 @@ export default function SignupPage() {
                                 </div>
                             </div>
 
-                            <div className="flex items-start gap-1">
+                            <div className="flex items-start gap-2">
                                 <input
-                                    id="remember"
+                                    id="terms"
                                     type="checkbox"
-                                    className="h-4 w-4 cursor-pointer rounded border-gray-300 dark:border-gray-500 dark:scheme-dark text-indigo-600 accent-indigo-600"
+                                    className="mt-0.5 h-4 w-4 cursor-pointer rounded border-line accent-(--bloom-accent)"
                                 />
                                 <label
-                                    htmlFor="remember"
-                                    className="text-sm text-gray-600 dark:text-gray-400"
-                                ></label>
-                                <label
                                     htmlFor="terms"
-                                    className="text-sm text-gray-600 dark:text-gray-400"
+                                    className="text-sm text-ink2"
                                 >
                                     I agree to the{" "}
                                     <Link
                                         href="#"
-                                        className="font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition"
+                                        className="font-semibold text-accent transition hover:text-accent-deep"
                                     >
                                         Terms of Service
                                     </Link>{" "}
                                     and{" "}
                                     <Link
                                         href="#"
-                                        className="font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition"
+                                        className="font-semibold text-accent transition hover:text-accent-deep"
                                     >
                                         Privacy Policy
                                     </Link>
@@ -374,15 +411,13 @@ export default function SignupPage() {
                             </div>
 
                             {error && (
-                                <p className="text-sm text-red-600 dark:text-red-400">
-                                    {error}
-                                </p>
+                                <p className="text-sm text-red-500">{error}</p>
                             )}
 
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full cursor-pointer rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+                                className="w-full cursor-pointer rounded-full bg-accent px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-accent-deep active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {loading
                                     ? "Creating account…"
@@ -391,26 +426,24 @@ export default function SignupPage() {
                         </form>
 
                         <div className="mt-5 flex items-center gap-3">
-                            <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
-                            <span className="text-xs text-gray-400 dark:text-gray-500">
-                                or
-                            </span>
-                            <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+                            <div className="h-px flex-1 bg-line" />
+                            <span className="text-xs text-muted">or</span>
+                            <div className="h-px flex-1 bg-line" />
                         </div>
 
                         <a
                             href={`${process.env.NEXT_PUBLIC_API_URL}/auth/google`}
-                            className="mt-4 flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm transition hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-[0.98]"
+                            className="mt-4 flex w-full items-center justify-center gap-3 rounded-full border border-line bg-surface px-4 py-2.5 text-sm font-semibold text-ink2 shadow-sm transition hover:bg-surface2 active:scale-[0.98]"
                         >
                             <IconGoogle />
                             Continue with Google
                         </a>
 
-                        <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                        <p className="mt-6 text-center text-sm text-ink2">
                             Already have an account?{" "}
                             <Link
                                 href="/login"
-                                className="font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition"
+                                className="font-bold text-accent transition hover:text-accent-deep"
                             >
                                 Sign in
                             </Link>
