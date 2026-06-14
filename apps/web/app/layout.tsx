@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     title: "HabitFlow | Habits that grow with you",
     description:
         "Track what matters and watch your plants bloom as your streaks stretch out.",
-    icons: { icon: "/favicon-bluebg.svg" },
+    icons: { icon: "/favicon-habitflow.svg" },
 };
 
 export default function RootLayout({
