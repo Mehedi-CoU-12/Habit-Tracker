@@ -1,0 +1,216 @@
+import { useMemo } from "react";
+import {
+    ActivityIndicator,
+    Pressable,
+    ScrollView,
+    Text,
+    View,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useBloom, useTheme } from "../../theme/ThemeProvider";
+import { useHabits, useToggleLog } from "../../api/hooks";
+import { deriveHabitStats, daysInMonth } from "../../lib/deriveStats";
+import { HabitWithStats, Tod } from "../../lib/types";
+import { dayNamesFull, monthShort } from "../../lib/date";
+import { SkyWash, Card } from "../../components/primitives";
+import { HabitRow, RoutineHeader } from "../../components/HabitRow";
+import Plant from "../../components/Plant";
+
+const ROUTINES: { tod: Tod; icon: string; label: string }[] = [
+    { tod: "morning", icon: "sun", label: "Morning" },
+    { tod: "afternoon", icon: "cloud", label: "Afternoon" },
+    { tod: "evening", icon: "moonStars", label: "Evening" },
+    { tod: "anytime", icon: "sparkle", label: "Anytime" },
+];
+
+export default function TodayScreen() {
+    const th = useTheme();
+    const { layout } = useBloom();
+    const router = useRouter();
+    const insets = useSafeAreaInsets();
+
+    const now = useMemo(() => new Date(), []);
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const dim = daysInMonth(year, month);
+
+    const { data: raw = [], isLoading, isError } = useHabits(year, month);
+    const toggle = useToggleLog(year, month);
+
+    const habits: HabitWithStats[] = useMemo(
+        () => raw.map((h) => deriveHabitStats(h, year, month, dim, now)),
+        [raw, year, month, dim, now],
+    );
+
+    const done = habits.filter((h) => h.doneToday).length;
+    const open = (id: string) =>
+        router.push({ pathname: "/habit/[id]", params: { id } });
+
+    return (
+        <View style={{ flex: 1, backgroundColor: th.bg }}>
+            <SkyWash height={300} />
+            <ScrollView
+                contentContainerStyle={{
+                    paddingTop: insets.top + 8,
+                    paddingBottom: 120,
+                }}
+                showsVerticalScrollIndicator={false}
+            >
+                {/* sun */}
+                <View
+                    style={{
+                        position: "absolute",
+                        top: insets.top + 30,
+                        right: 32,
+                        width: 54,
+                        height: 54,
+                        borderRadius: 27,
+                        backgroundColor: th.sun,
+                        opacity: 0.85,
+                    }}
+                />
+
+                <View style={{ paddingHorizontal: th.d.pad }}>
+                    <Text
+                        style={{
+                            fontSize: 12,
+                            color: th.ink2,
+                            fontFamily: th.sansBold,
+                            letterSpacing: 0.5,
+                        }}
+                    >
+                        {dayNamesFull[now.getDay()]!.toUpperCase()} ·{" "}
+                        {monthShort[month - 1]!.toUpperCase()} {now.getDate()}
+                    </Text>
+                    <Text
+                        style={{
+                            fontFamily: th.display,
+                            fontSize: 36 * th.d.font,
+                            color: th.ink,
+                            marginTop: 6,
+                        }}
+                    >
+                        Your garden, today
+                    </Text>
+                    <Text style={{ fontSize: 14, color: th.ink2, marginTop: 4 }}>
+                        {done} of {habits.length} watered ☿
+                    </Text>
+                </View>
+
+                {isLoading && (
+                    <ActivityIndicator
+                        color={th.accent}
+                        style={{ marginTop: 60 }}
+                    />
+                )}
+
+                {isError && (
+                    <Card style={{ margin: th.d.pad }}>
+                        <Text style={{ color: th.ink2, textAlign: "center" }}>
+                            Couldn&apos;t load your habits. Pull the API up and
+                            check EXPO_PUBLIC_API_URL.
+                        </Text>
+                    </Card>
+                )}
+
+                {!isLoading && !isError && habits.length === 0 && (
+                    <Card style={{ margin: th.d.pad, alignItems: "center", gap: 8 }}>
+                        <Plant streak={0} doneToday size={96} />
+                        <Text style={{ fontFamily: th.display, fontSize: 20, color: th.ink }}>
+                            Your garden is empty
+                        </Text>
+                        <Text style={{ color: th.muted, textAlign: "center" }}>
+                            Tap + to plant your first habit.
+                        </Text>
+                    </Card>
+                )}
+
+                {/* Garden grid */}
+                {layout === "garden" && habits.length > 0 && (
+                    <View
+                        style={{
+                            marginTop: 12,
+                            paddingHorizontal: 12,
+                            flexDirection: "row",
+                            flexWrap: "wrap",
+                        }}
+                    >
+                        {habits.map((h) => (
+                            <Pressable
+                                key={h.id}
+                                onPress={() => open(h.id)}
+                                style={{
+                                    width: "33.33%",
+                                    alignItems: "center",
+                                    paddingVertical: 6,
+                                }}
+                            >
+                                <Plant
+                                    streak={h.streak}
+                                    doneToday={h.doneToday}
+                                    size={84 * th.d.plant}
+                                />
+                                <Text
+                                    numberOfLines={1}
+                                    style={{
+                                        fontSize: 11.5,
+                                        fontFamily: th.sansBold,
+                                        color: th.ink,
+                                        marginTop: -2,
+                                    }}
+                                >
+                                    {h.name}
+                                </Text>
+                                <Text style={{ fontSize: 10, color: th.muted, marginTop: 2 }}>
+                                    {h.streak}d
+                                </Text>
+                            </Pressable>
+                        ))}
+                    </View>
+                )}
+
+                {/* Routine sections */}
+                <View
+                    style={{
+                        paddingHorizontal: th.d.pad,
+                        paddingTop: layout === "garden" ? 24 : 16,
+                        gap: 22,
+                    }}
+                >
+                    {ROUTINES.map(({ tod, icon, label }) => {
+                        const list = habits.filter((h) => h.tod === tod);
+                        if (list.length === 0) return null;
+                        const c = list.filter((h) => h.doneToday).length;
+                        return (
+                            <View key={tod}>
+                                <RoutineHeader
+                                    icon={icon}
+                                    label={label}
+                                    count={c}
+                                    total={list.length}
+                                />
+                                <Card pad={6}>
+                                    {list.map((h, i) => (
+                                        <HabitRow
+                                            key={h.id}
+                                            h={h}
+                                            onToggle={(id) =>
+                                                toggle.mutate({
+                                                    habitId: id,
+                                                    day: now.getDate(),
+                                                })
+                                            }
+                                            onOpen={open}
+                                            last={i === list.length - 1}
+                                        />
+                                    ))}
+                                </Card>
+                            </View>
+                        );
+                    })}
+                </View>
+            </ScrollView>
+        </View>
+    );
+}
