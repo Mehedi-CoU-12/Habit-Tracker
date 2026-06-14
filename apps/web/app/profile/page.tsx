@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchMe, updateProfile, uploadAvatar } from "../../src/lib/api";
-import { IconChevronLeftSmall, IconLogo } from "../../components/icons/Icon";
+import { IconChevronLeftSmall } from "../../components/icons/Icon";
+import BloomIcon from "../../components/bloom/BloomIcon";
 
 export default function ProfilePage() {
     const router = useRouter();
@@ -28,17 +29,27 @@ export default function ProfilePage() {
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             {/* Navbar */}
-            <header className="sticky top-0 z-40 border-b border-gray-200 dark:border-gray-700 bg-white/90 dark:bg-gray-900/90 backdrop-blur">
+            <header className="sticky top-0 z-40 border-b border-line bg-surface/90 backdrop-blur">
                 <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-3">
-                    <Link href="/dashboard" className="flex items-center gap-2">
-                        <IconLogo />
-                        <span className="text-sm font-bold text-gray-900 dark:text-white">
+                    <Link
+                        href="/dashboard"
+                        className="flex items-center gap-2.5"
+                    >
+                        <span className="grid h-9 w-9 place-items-center rounded-xl bg-accent">
+                            <BloomIcon
+                                name="sprout"
+                                size={20}
+                                stroke="#fff"
+                                strokeWidth={2}
+                            />
+                        </span>
+                        <span className="font-display text-xl text-ink">
                             HabitFlow
                         </span>
                     </Link>
                     <Link
                         href="/dashboard"
-                        className="flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition"
+                        className="flex items-center gap-1.5 text-xs font-medium text-ink2 transition hover:text-ink"
                     >
                         <IconChevronLeftSmall />
                         Back to dashboard
