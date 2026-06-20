@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
     Pressable,
     ScrollView,
@@ -6,10 +6,10 @@ import {
     TextInput,
     View,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../theme/ThemeProvider";
-import { useCreateHabit } from "../api/hooks";
+import { useCreateHabit, useHabits, useUpdateHabit } from "../api/hooks";
 import { Tod } from "../lib/types";
 import Plant from "../components/Plant";
 import Icon from "../components/Icon";
@@ -31,9 +31,17 @@ export default function AddScreen() {
     const th = useTheme();
     const insets = useSafeAreaInsets();
     const router = useRouter();
+    const { id } = useLocalSearchParams<{ id?: string }>();
+    const isEdit = !!id;
 
     const now = useMemo(() => new Date(), []);
-    const create = useCreateHabit(now.getFullYear(), now.getMonth() + 1);
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const create = useCreateHabit(year, month);
+    const update = useUpdateHabit(year, month);
+    const { data: habits = [] } = useHabits(year, month);
+    const editing = id ? habits.find((h) => h.id === id) : undefined;
+    const pending = isEdit ? update.isPending : create.isPending;
 
     const [name, setName] = useState("");
     const [verb, setVerb] = useState("");
@@ -41,19 +49,34 @@ export default function AddScreen() {
     const [tod, setTod] = useState<Tod>("morning");
     const [goal, setGoal] = useState(20);
 
+    // Pre-fill the form once the habit being edited is available from cache.
+    const hydrated = useRef(false);
+    useEffect(() => {
+        if (isEdit && editing && !hydrated.current) {
+            hydrated.current = true;
+            setName(editing.name);
+            setVerb(editing.verb ?? "");
+            setIcon(editing.icon);
+            setTod(editing.tod as Tod);
+            setGoal(editing.goal);
+        }
+    }, [isEdit, editing]);
+
     const close = () => (router.canGoBack() ? router.back() : router.replace("/"));
 
     const save = () => {
-        create.mutate(
-            {
-                name: name.trim() || "New habit",
-                goal,
-                icon,
-                tod,
-                verb: verb.trim() || undefined,
-            },
-            { onSuccess: close },
-        );
+        const input = {
+            name: name.trim() || "New habit",
+            goal,
+            icon,
+            tod,
+            verb: verb.trim() || undefined,
+        };
+        if (isEdit && id) {
+            update.mutate({ id, input }, { onSuccess: close });
+        } else {
+            create.mutate(input, { onSuccess: close });
+        }
     };
 
     return (
@@ -68,11 +91,11 @@ export default function AddScreen() {
                         <Icon name="x" size={24} stroke={th.ink} />
                     </Pressable>
                     <Text style={{ fontSize: 13, color: th.muted, fontFamily: th.sansBold, letterSpacing: 0.6 }}>
-                        NEW HABIT
+                        {isEdit ? "EDIT HABIT" : "NEW HABIT"}
                     </Text>
-                    <Pressable onPress={save} disabled={create.isPending}>
+                    <Pressable onPress={save} disabled={pending}>
                         <Text style={{ fontSize: 14, fontFamily: th.sansBold, color: th.accent }}>
-                            {create.isPending ? "…" : "Save"}
+                            {pending ? "…" : "Save"}
                         </Text>
                     </Pressable>
                 </View>
@@ -210,7 +233,15 @@ export default function AddScreen() {
                     <Pill
                         primary
                         icon="sprout"
-                        label={create.isPending ? "Planting…" : "Plant this habit"}
+                        label={
+                            isEdit
+                                ? pending
+                                    ? "Saving…"
+                                    : "Save changes"
+                                : pending
+                                  ? "Planting…"
+                                  : "Plant this habit"
+                        }
                         onPress={save}
                     />
                 </View>

@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiPost } from "./client";
+import { apiDelete, apiGet, apiPatch, apiPost } from "./client";
 import { ApiHabit, UserProfile } from "../lib/types";
 
 // ── Auth ──────────────────────────────────────────────────────────────
@@ -32,6 +32,19 @@ export function createHabit(input: {
     verb?: string;
 }) {
     return apiPost<ApiHabit>("/habits", input);
+}
+
+export function updateHabit(
+    id: string,
+    input: {
+        name?: string;
+        goal?: number;
+        icon?: string;
+        tod?: string;
+        verb?: string;
+    },
+) {
+    return apiPatch<ApiHabit>(`/habits/${id}`, input);
 }
 
 export function deleteHabit(id: string) {

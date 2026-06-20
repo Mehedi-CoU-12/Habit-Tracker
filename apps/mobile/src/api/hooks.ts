@@ -78,6 +78,21 @@ export function useCreateHabit(year: number, month: number) {
     });
 }
 
+export function useUpdateHabit(year: number, month: number) {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: ({
+            id,
+            input,
+        }: {
+            id: string;
+            input: Parameters<typeof api.updateHabit>[1];
+        }) => api.updateHabit(id, input),
+        onSuccess: () =>
+            qc.invalidateQueries({ queryKey: habitsKey(year, month) }),
+    });
+}
+
 export function useDeleteHabit(year: number, month: number) {
     const qc = useQueryClient();
     return useMutation({
