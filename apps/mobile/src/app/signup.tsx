@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../theme/ThemeProvider";
 import { useAuth } from "../api/AuthProvider";
+import { useKeyboardVisible } from "../lib/useKeyboardVisible";
 import Plant from "../components/Plant";
 import Icon from "../components/Icon";
 import { Pill } from "../components/primitives";
@@ -20,6 +21,7 @@ export default function SignupScreen() {
     const th = useTheme();
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const kbVisible = useKeyboardVisible();
     const { register } = useAuth();
 
     const [name, setName] = useState("");
@@ -58,7 +60,7 @@ export default function SignupScreen() {
     return (
         <KeyboardAvoidingView
             style={{ flex: 1, backgroundColor: th.bg }}
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
             <ScrollView
                 contentContainerStyle={{
@@ -71,11 +73,13 @@ export default function SignupScreen() {
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
             >
-                <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "flex-end", marginBottom: 8 }}>
-                    <Plant streak={0} doneToday size={70} />
-                    <Plant streak={6} doneToday size={96} />
-                    <Plant streak={30} doneToday size={114} />
-                </View>
+                {!kbVisible && (
+                    <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "flex-end", marginBottom: 8 }}>
+                        <Plant streak={0} doneToday size={70} />
+                        <Plant streak={6} doneToday size={96} />
+                        <Plant streak={30} doneToday size={114} />
+                    </View>
+                )}
 
                 <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, marginBottom: 20 }}>
                     <View style={{ width: 30, height: 30, borderRadius: 9, backgroundColor: th.accent, alignItems: "center", justifyContent: "center" }}>
