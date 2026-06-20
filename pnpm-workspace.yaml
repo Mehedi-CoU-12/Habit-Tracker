@@ -1,3 +1,6 @@
 packages:
   - "apps/*"
   - "packages/*"
+  # mobile is a standalone Expo app (npm-installed, own node_modules).
+  # Kept out of the pnpm workspace to avoid Metro/pnpm symlink issues.
+  - "!apps/mobile"
