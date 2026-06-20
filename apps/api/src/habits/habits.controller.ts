@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   Request,
@@ -12,6 +13,7 @@ import {
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { ApplyTemplateDto } from './dto/apply-template.dto.js';
 import { CreateHabitDto } from './dto/create-habit.dto.js';
+import { UpdateHabitDto } from './dto/update-habit.dto.js';
 import { ToggleLogDto } from './dto/toggle-log.dto.js';
 import { HabitsService } from './habits.service.js';
 
@@ -40,6 +42,15 @@ export class HabitsController {
     @Body() dto: CreateHabitDto,
   ) {
     return this.habitsService.createHabit(req.user.id, dto);
+  }
+
+  @Patch(':id')
+  updateHabit(
+    @Request() req: { user: { id: string } },
+    @Param('id') id: string,
+    @Body() dto: UpdateHabitDto,
+  ) {
+    return this.habitsService.updateHabit(req.user.id, id, dto);
   }
 
   @Delete(':id')

@@ -87,12 +87,20 @@ export default function DetailScreen() {
                     >
                         <Icon name="chevronLeft" size={18} stroke={th.ink} />
                     </Pressable>
-                    <Pressable
-                        onPress={confirmDelete}
-                        style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: th.surface, borderWidth: 1.5, borderColor: th.line, alignItems: "center", justifyContent: "center" }}
-                    >
-                        <Icon name="x" size={16} stroke={th.ink} />
-                    </Pressable>
+                    <View style={{ flexDirection: "row", gap: 10 }}>
+                        <Pressable
+                            onPress={() => router.push({ pathname: "/add", params: { id: h.id } })}
+                            style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: th.surface, borderWidth: 1.5, borderColor: th.line, alignItems: "center", justifyContent: "center" }}
+                        >
+                            <Icon name="pen" size={16} stroke={th.ink} />
+                        </Pressable>
+                        <Pressable
+                            onPress={confirmDelete}
+                            style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: th.surface, borderWidth: 1.5, borderColor: th.line, alignItems: "center", justifyContent: "center" }}
+                        >
+                            <Icon name="x" size={16} stroke={th.ink} />
+                        </Pressable>
+                    </View>
                 </View>
 
                 {/* hero */}

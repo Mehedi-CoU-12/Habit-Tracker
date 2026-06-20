@@ -22,6 +22,7 @@ export default function HabitRow({
     month,
     onToggle,
     onDelete,
+    onEdit,
     isEven,
 }: {
     habit: HabitWithStats;
@@ -31,6 +32,7 @@ export default function HabitRow({
     month: number;
     onToggle: (habitId: string, day: number) => void;
     onDelete: (habitId: string) => void;
+    onEdit: (habit: HabitWithStats) => void;
     isEven: boolean;
 }) {
     const [confirmDelete, setConfirmDelete] = useState(false);
@@ -83,13 +85,22 @@ export default function HabitRow({
                             </button>
                         </div>
                     ) : (
-                        <button
-                            onClick={() => setConfirmDelete(true)}
-                            className="shrink-0 cursor-pointer text-line transition-colors hover:text-red-500"
-                            aria-label={`Delete ${habit.name}`}
-                        >
-                            <IconCloseSmall />
-                        </button>
+                        <div className="flex shrink-0 items-center gap-1">
+                            <button
+                                onClick={() => onEdit(habit)}
+                                className="cursor-pointer text-line transition-colors hover:text-accent"
+                                aria-label={`Edit ${habit.name}`}
+                            >
+                                <BloomIcon name="pen" size={13} />
+                            </button>
+                            <button
+                                onClick={() => setConfirmDelete(true)}
+                                className="cursor-pointer text-line transition-colors hover:text-red-500"
+                                aria-label={`Delete ${habit.name}`}
+                            >
+                                <IconCloseSmall />
+                            </button>
+                        </div>
                     )}
                 </div>
             </td>

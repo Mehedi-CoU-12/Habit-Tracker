@@ -18,6 +18,7 @@ import { deriveHabitStats } from "../../src/lib/deriveStats";
 import {
     fetchHabits,
     createHabit,
+    updateHabit,
     deleteHabit,
     toggleLog,
     fetchMe,
@@ -29,7 +30,7 @@ import Navbar from "../../components/layout/Navbar";
 import Plant from "../../components/bloom/Plant";
 import BloomIcon from "../../components/bloom/BloomIcon";
 import { useBloom } from "../../provider/theme";
-import { ApiHabit, HabitLog } from "./types";
+import { ApiHabit, HabitLog, HabitWithStats } from "./types";
 
 const ICON_CHOICES = [
     "leaf",
@@ -53,18 +54,23 @@ const TOD_CHOICES: { v: string; label: string; icon: string }[] = [
     { v: "anytime", label: "Anytime", icon: "sparkle" },
 ];
 
-function AddHabitModal({
+function HabitModal({
+    habit,
     onClose,
-    onAdd,
+    onSubmit,
+    submitting,
 }: {
+    habit?: HabitWithStats | null;
     onClose: () => void;
-    onAdd: (input: CreateHabitInput) => void;
+    onSubmit: (input: CreateHabitInput) => void;
+    submitting?: boolean;
 }) {
-    const [name, setName] = useState("");
-    const [goal, setGoal] = useState(30);
-    const [icon, setIcon] = useState("sprout");
-    const [tod, setTod] = useState("morning");
-    const [verb, setVerb] = useState("");
+    const isEdit = !!habit;
+    const [name, setName] = useState(habit?.name ?? "");
+    const [goal, setGoal] = useState(habit?.goal ?? 30);
+    const [icon, setIcon] = useState(habit?.icon ?? "sprout");
+    const [tod, setTod] = useState<string>(habit?.tod ?? "morning");
+    const [verb, setVerb] = useState(habit?.verb ?? "");
     const [error, setError] = useState("");
 
     function handleSubmit(e: React.FormEvent) {
@@ -77,7 +83,7 @@ function AddHabitModal({
             setError("Goal must be between 1 and 31");
             return;
         }
-        onAdd({
+        onSubmit({
             name: name.trim(),
             goal,
             icon,
@@ -91,7 +97,7 @@ function AddHabitModal({
             <div className="w-full max-w-md rounded-3xl border border-line bg-bg shadow-(--bloom-card-shadow)">
                 <div className="flex items-center justify-between border-b border-line px-6 py-5">
                     <h2 className="font-display text-2xl text-ink">
-                        Plant a new habit
+                        {isEdit ? "Edit habit" : "Plant a new habit"}
                     </h2>
                     <button
                         onClick={onClose}
@@ -179,7 +185,9 @@ function AddHabitModal({
                                 min={1}
                                 max={31}
                                 value={goal}
-                                onChange={(e) => setGoal(Number(e.target.value))}
+                                onChange={(e) =>
+                                    setGoal(Number(e.target.value))
+                                }
                                 className="w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent"
                             />
                         </div>
@@ -211,15 +219,22 @@ function AddHabitModal({
                         </button>
                         <button
                             type="submit"
-                            className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-4 py-2.5 text-sm font-bold text-white transition hover:bg-accent-deep"
+                            disabled={submitting}
+                            className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-4 py-2.5 text-sm font-bold text-white transition hover:bg-accent-deep disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             <BloomIcon
-                                name="sprout"
+                                name={isEdit ? "check" : "sprout"}
                                 size={16}
                                 stroke="#fff"
                                 strokeWidth={2}
                             />
-                            Plant it
+                            {isEdit
+                                ? submitting
+                                    ? "Saving…"
+                                    : "Save changes"
+                                : submitting
+                                  ? "Planting…"
+                                  : "Plant it"}
                         </button>
                     </div>
                 </form>
@@ -237,6 +252,9 @@ export default function DashboardPage() {
     const [selectedYear, setSelectedYear] = useState(now.getFullYear());
     const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
     const [showAddModal, setShowAddModal] = useState(false);
+    const [editingHabit, setEditingHabit] = useState<HabitWithStats | null>(
+        null,
+    );
     const [showTemplatesModal, setShowTemplatesModal] = useState(false);
 
     const queryKey = ["habits", selectedYear, selectedMonth];
@@ -337,6 +355,15 @@ export default function DashboardPage() {
         },
     });
 
+    const updateMutation = useMutation({
+        mutationFn: ({ id, input }: { id: string; input: CreateHabitInput }) =>
+            updateHabit(id, input),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey });
+            setEditingHabit(null);
+        },
+    });
+
     const templateMutation = useMutation({
         mutationFn: (templateId: string) => applyTemplate(templateId),
         onSuccess: () => {
@@ -366,10 +393,29 @@ export default function DashboardPage() {
                 onSignOut={handleSignOut}
             />
 
-            {showAddModal && (
-                <AddHabitModal
-                    onClose={() => setShowAddModal(false)}
-                    onAdd={(input) => createMutation.mutate(input)}
+            {(showAddModal || editingHabit) && (
+                <HabitModal
+                    key={editingHabit?.id ?? "new"}
+                    habit={editingHabit}
+                    submitting={
+                        editingHabit
+                            ? updateMutation.isPending
+                            : createMutation.isPending
+                    }
+                    onClose={() => {
+                        setShowAddModal(false);
+                        setEditingHabit(null);
+                    }}
+                    onSubmit={(input) => {
+                        if (editingHabit) {
+                            updateMutation.mutate({
+                                id: editingHabit.id,
+                                input,
+                            });
+                        } else {
+                            createMutation.mutate(input);
+                        }
+                    }}
                 />
             )}
 
@@ -472,6 +518,7 @@ export default function DashboardPage() {
                             onDelete={(habitId) =>
                                 deleteMutation.mutate(habitId)
                             }
+                            onEdit={(habit) => setEditingHabit(habit)}
                         />
                     </div>
                 )}

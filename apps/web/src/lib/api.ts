@@ -94,11 +94,23 @@ export type CreateHabitInput = {
     verb?: string;
 };
 
-export async function createHabit(
-    input: CreateHabitInput,
-): Promise<ApiHabit> {
+export async function createHabit(input: CreateHabitInput): Promise<ApiHabit> {
     const res = await fetch(`${API_URL}/habits`, {
         method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify(input),
+    });
+    return handleResponse<ApiHabit>(res);
+}
+
+export type UpdateHabitInput = Partial<CreateHabitInput>;
+
+export async function updateHabit(
+    id: string,
+    input: UpdateHabitInput,
+): Promise<ApiHabit> {
+    const res = await fetch(`${API_URL}/habits/${id}`, {
+        method: "PATCH",
         headers: authHeaders(),
         body: JSON.stringify(input),
     });
