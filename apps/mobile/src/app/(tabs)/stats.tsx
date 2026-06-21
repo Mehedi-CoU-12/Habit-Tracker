@@ -24,7 +24,13 @@ function Heatmap() {
                     height={10}
                     rx={3}
                     fill={c.level === 0 ? th.surface2 : th.green}
-                    opacity={c.level === 0 ? (th.dark ? 0.4 : 0.5) : 0.4 + c.level * 0.16}
+                    opacity={
+                        c.level === 0
+                            ? th.dark
+                                ? 0.4
+                                : 0.5
+                            : 0.4 + c.level * 0.16
+                    }
                 />
             ))}
         </Svg>
@@ -53,7 +59,9 @@ export default function StatsScreen() {
     const byTod = (tod: Tod) => {
         const list = habits.filter((h) => h.tod === tod);
         if (!list.length) return 0;
-        return Math.round(list.reduce((s, h) => s + h.rate, 0) / list.length) / 100;
+        return (
+            Math.round(list.reduce((s, h) => s + h.rate, 0) / list.length) / 100
+        );
     };
 
     const bars = [
@@ -68,7 +76,10 @@ export default function StatsScreen() {
         <View style={{ flex: 1, backgroundColor: th.bg }}>
             <SkyWash height={140} />
             <ScrollView
-                contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 120 }}
+                contentContainerStyle={{
+                    paddingTop: insets.top + 8,
+                    paddingBottom: 120,
+                }}
                 showsVerticalScrollIndicator={false}
             >
                 <View
@@ -79,10 +90,24 @@ export default function StatsScreen() {
                         alignItems: "center",
                     }}
                 >
-                    <Text style={{ fontFamily: th.display, fontSize: 32 * th.d.font, color: th.ink }}>
+                    <Text
+                        style={{
+                            fontFamily: th.display,
+                            fontSize: 32 * th.d.font,
+                            color: th.ink,
+                        }}
+                    >
                         Insights
                     </Text>
-                    <View style={{ flexDirection: "row", gap: 3, backgroundColor: th.surface2, borderRadius: 11, padding: 3 }}>
+                    <View
+                        style={{
+                            flexDirection: "row",
+                            gap: 3,
+                            backgroundColor: th.surface2,
+                            borderRadius: 11,
+                            padding: 3,
+                        }}
+                    >
                         {["Week", "Month", "Year"].map((p) => (
                             <Pressable
                                 key={p}
@@ -91,10 +116,19 @@ export default function StatsScreen() {
                                     paddingVertical: 6,
                                     paddingHorizontal: 12,
                                     borderRadius: 8,
-                                    backgroundColor: period === p ? th.surface : "transparent",
+                                    backgroundColor:
+                                        period === p
+                                            ? th.surface
+                                            : "transparent",
                                 }}
                             >
-                                <Text style={{ fontSize: 12, fontFamily: th.sansBold, color: period === p ? th.ink : th.muted }}>
+                                <Text
+                                    style={{
+                                        fontSize: 12,
+                                        fontFamily: th.sansBold,
+                                        color: period === p ? th.ink : th.muted,
+                                    }}
+                                >
                                     {p}
                                 </Text>
                             </Pressable>
@@ -102,7 +136,13 @@ export default function StatsScreen() {
                     </View>
                 </View>
 
-                <View style={{ paddingHorizontal: th.d.pad, paddingTop: 20, gap: 16 }}>
+                <View
+                    style={{
+                        paddingHorizontal: th.d.pad,
+                        paddingTop: 20,
+                        gap: 16,
+                    }}
+                >
                     {/* hero completion */}
                     <View
                         style={{
@@ -124,25 +164,76 @@ export default function StatsScreen() {
                                 opacity: 0.4,
                             }}
                         />
-                        <Text style={{ fontSize: 11, fontFamily: th.sansBold, letterSpacing: 1, color: "rgba(255,255,255,0.9)" }}>
+                        <Text
+                            style={{
+                                fontSize: 11,
+                                fontFamily: th.sansBold,
+                                letterSpacing: 1,
+                                color: "rgba(255,255,255,0.9)",
+                            }}
+                        >
                             THIS MONTH
                         </Text>
-                        <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 16, marginTop: 8 }}>
-                            <Text style={{ fontFamily: th.display, fontSize: 64, color: "#fff", lineHeight: 64 }}>
+                        <View
+                            style={{
+                                flexDirection: "row",
+                                alignItems: "flex-end",
+                                gap: 16,
+                                marginTop: 8,
+                            }}
+                        >
+                            <Text
+                                style={{
+                                    fontFamily: th.display,
+                                    fontSize: 64,
+                                    color: "#fff",
+                                    lineHeight: 64,
+                                }}
+                            >
                                 {avgRate}
                                 <Text style={{ fontSize: 26 }}>%</Text>
                             </Text>
-                            <Text style={{ color: "rgba(255,255,255,0.9)", fontSize: 13, paddingBottom: 10 }}>
-                                avg completion{"\n"}across {habits.length} habits
+                            <Text
+                                style={{
+                                    color: "rgba(255,255,255,0.9)",
+                                    fontSize: 13,
+                                    paddingBottom: 10,
+                                }}
+                            >
+                                avg completion{"\n"}across {habits.length}{" "}
+                                habits
                             </Text>
                         </View>
                     </View>
 
                     {/* activity heatmap */}
                     <View>
-                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
-                            <Text style={{ fontFamily: th.display, fontSize: 20 * th.d.font, color: th.ink }}>Activity</Text>
-                            <Text style={{ fontSize: 11, color: th.muted, fontFamily: th.sansBold }}>6 MONTHS</Text>
+                        <View
+                            style={{
+                                flexDirection: "row",
+                                justifyContent: "space-between",
+                                alignItems: "baseline",
+                                marginBottom: 10,
+                            }}
+                        >
+                            <Text
+                                style={{
+                                    fontFamily: th.display,
+                                    fontSize: 20 * th.d.font,
+                                    color: th.ink,
+                                }}
+                            >
+                                Activity
+                            </Text>
+                            <Text
+                                style={{
+                                    fontSize: 11,
+                                    color: th.muted,
+                                    fontFamily: th.sansBold,
+                                }}
+                            >
+                                6 MONTHS
+                            </Text>
                         </View>
                         <Card pad={14}>
                             <Heatmap />
@@ -151,13 +242,42 @@ export default function StatsScreen() {
 
                     {/* by time of day */}
                     <View>
-                        <Text style={{ fontFamily: th.display, fontSize: 20 * th.d.font, color: th.ink, marginBottom: 12 }}>
+                        <Text
+                            style={{
+                                fontFamily: th.display,
+                                fontSize: 20 * th.d.font,
+                                color: th.ink,
+                                marginBottom: 12,
+                            }}
+                        >
                             By time of day
                         </Text>
-                        <View style={{ flexDirection: "row", gap: 10, alignItems: "flex-end", height: 120 }}>
+                        <View
+                            style={{
+                                flexDirection: "row",
+                                gap: 10,
+                                alignItems: "flex-end",
+                                height: 120,
+                            }}
+                        >
                             {bars.map((b, i) => (
-                                <View key={i} style={{ flex: 1, alignItems: "center", justifyContent: "flex-end", height: "100%" }}>
-                                    <Text style={{ fontSize: 13, fontFamily: th.sansBold, color: th.ink, marginBottom: 6 }}>
+                                <View
+                                    key={i}
+                                    style={{
+                                        flex: 1,
+                                        alignItems: "center",
+                                        justifyContent: "flex-end",
+                                        height: "100%",
+                                    }}
+                                >
+                                    <Text
+                                        style={{
+                                            fontSize: 13,
+                                            fontFamily: th.sansBold,
+                                            color: th.ink,
+                                            marginBottom: 6,
+                                        }}
+                                    >
                                         {Math.round(b.v * 100)}%
                                     </Text>
                                     <View
@@ -169,7 +289,14 @@ export default function StatsScreen() {
                                             borderTopRightRadius: 10,
                                         }}
                                     />
-                                    <Text style={{ fontSize: 10.5, color: th.muted, fontFamily: th.sansBold, marginTop: 8 }}>
+                                    <Text
+                                        style={{
+                                            fontSize: 10.5,
+                                            color: th.muted,
+                                            fontFamily: th.sansBold,
+                                            marginTop: 8,
+                                        }}
+                                    >
                                         {b.l}
                                     </Text>
                                 </View>
@@ -180,21 +307,74 @@ export default function StatsScreen() {
                     {/* top growers */}
                     {ranked.length > 0 && (
                         <View>
-                            <Text style={{ fontFamily: th.display, fontSize: 20 * th.d.font, color: th.ink, marginBottom: 4 }}>
+                            <Text
+                                style={{
+                                    fontFamily: th.display,
+                                    fontSize: 20 * th.d.font,
+                                    color: th.ink,
+                                    marginBottom: 4,
+                                }}
+                            >
                                 Your strongest
                             </Text>
-                            <Text style={{ fontSize: 12.5, color: th.muted, marginBottom: 14 }}>
+                            <Text
+                                style={{
+                                    fontSize: 12.5,
+                                    color: th.muted,
+                                    marginBottom: 14,
+                                }}
+                            >
                                 Ranked by completion rate this month.
                             </Text>
                             {ranked.map((h) => (
-                                <View key={h.id} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 11, borderBottomWidth: 1.5, borderBottomColor: th.line }}>
-                                    <Text style={{ width: 110, fontSize: 13.5, color: th.ink }} numberOfLines={1}>
+                                <View
+                                    key={h.id}
+                                    style={{
+                                        flexDirection: "row",
+                                        alignItems: "center",
+                                        gap: 12,
+                                        paddingVertical: 11,
+                                        borderBottomWidth: 1.5,
+                                        borderBottomColor: th.line,
+                                    }}
+                                >
+                                    <Text
+                                        style={{
+                                            width: 110,
+                                            fontSize: 13.5,
+                                            color: th.ink,
+                                        }}
+                                        numberOfLines={1}
+                                    >
                                         {h.name}
                                     </Text>
-                                    <View style={{ flex: 1, height: 8, backgroundColor: th.surface2, borderRadius: 4, overflow: "hidden" }}>
-                                        <View style={{ width: `${h.rate}%`, height: "100%", backgroundColor: th.accent, borderRadius: 4 }} />
+                                    <View
+                                        style={{
+                                            flex: 1,
+                                            height: 8,
+                                            backgroundColor: th.surface2,
+                                            borderRadius: 4,
+                                            overflow: "hidden",
+                                        }}
+                                    >
+                                        <View
+                                            style={{
+                                                width: `${h.rate}%`,
+                                                height: "100%",
+                                                backgroundColor: th.accent,
+                                                borderRadius: 4,
+                                            }}
+                                        />
                                     </View>
-                                    <Text style={{ fontSize: 12, color: th.muted, fontFamily: th.sansBold, width: 40, textAlign: "right" }}>
+                                    <Text
+                                        style={{
+                                            fontSize: 12,
+                                            color: th.muted,
+                                            fontFamily: th.sansBold,
+                                            width: 40,
+                                            textAlign: "right",
+                                        }}
+                                    >
                                         {h.rate}%
                                     </Text>
                                 </View>

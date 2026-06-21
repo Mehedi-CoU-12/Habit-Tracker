@@ -1,8 +1,4 @@
-import {
-    useMutation,
-    useQuery,
-    useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as api from "./endpoints";
 import { ApiHabit } from "../lib/types";
 
@@ -41,7 +37,10 @@ export function useToggleLog(year: number, month: number) {
                     if (h.id !== habitId) return h;
                     const idx = h.logs.findIndex((l) => l.day === day);
                     if (idx >= 0) {
-                        return { ...h, logs: h.logs.filter((_, i) => i !== idx) };
+                        return {
+                            ...h,
+                            logs: h.logs.filter((_, i) => i !== idx),
+                        };
                     }
                     return {
                         ...h,

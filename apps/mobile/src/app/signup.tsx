@@ -45,7 +45,8 @@ export default function SignupScreen() {
     const submit = async () => {
         setError("");
         if (!name.trim()) return setError("Name is required");
-        if (password.length < 8) return setError("Password must be at least 8 characters");
+        if (password.length < 8)
+            return setError("Password must be at least 8 characters");
         setLoading(true);
         try {
             await register(name.trim(), email.trim(), password);
@@ -74,30 +75,91 @@ export default function SignupScreen() {
                 keyboardShouldPersistTaps="handled"
             >
                 {!kbVisible && (
-                    <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "flex-end", marginBottom: 8 }}>
+                    <View
+                        style={{
+                            flexDirection: "row",
+                            justifyContent: "center",
+                            alignItems: "flex-end",
+                            marginBottom: 8,
+                        }}
+                    >
                         <Plant streak={0} doneToday size={70} />
                         <Plant streak={6} doneToday size={96} />
                         <Plant streak={30} doneToday size={114} />
                     </View>
                 )}
 
-                <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, marginBottom: 20 }}>
-                    <View style={{ width: 30, height: 30, borderRadius: 9, backgroundColor: th.accent, alignItems: "center", justifyContent: "center" }}>
-                        <Icon name="sprout" size={17} stroke="#fff" strokeWidth={2} />
+                <View
+                    style={{
+                        flexDirection: "row",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        gap: 8,
+                        marginBottom: 20,
+                    }}
+                >
+                    <View
+                        style={{
+                            width: 30,
+                            height: 30,
+                            borderRadius: 9,
+                            backgroundColor: th.accent,
+                            alignItems: "center",
+                            justifyContent: "center",
+                        }}
+                    >
+                        <Icon
+                            name="sprout"
+                            size={17}
+                            stroke="#fff"
+                            strokeWidth={2}
+                        />
                     </View>
-                    <Text style={{ fontFamily: th.display, fontSize: 22, color: th.ink }}>HabitFlow</Text>
+                    <Text
+                        style={{
+                            fontFamily: th.display,
+                            fontSize: 22,
+                            color: th.ink,
+                        }}
+                    >
+                        HabitFlow
+                    </Text>
                 </View>
 
-                <Text style={{ fontFamily: th.display, fontSize: 32, color: th.ink, textAlign: "center" }}>
+                <Text
+                    style={{
+                        fontFamily: th.display,
+                        fontSize: 32,
+                        color: th.ink,
+                        textAlign: "center",
+                    }}
+                >
                     Create your account
                 </Text>
-                <Text style={{ fontSize: 14, color: th.ink2, textAlign: "center", marginTop: 4, marginBottom: 24 }}>
+                <Text
+                    style={{
+                        fontSize: 14,
+                        color: th.ink2,
+                        textAlign: "center",
+                        marginTop: 4,
+                        marginBottom: 24,
+                    }}
+                >
                     Plant your first seed — it&apos;s free forever.
                 </Text>
 
                 <View style={{ gap: 14 }}>
                     <View>
-                        <Text style={{ fontSize: 13, color: th.ink2, fontFamily: th.sansBold, marginBottom: 6 }}>Full name</Text>
+                        <Text
+                            style={{
+                                fontSize: 13,
+                                color: th.ink2,
+                                fontFamily: th.sansBold,
+                                marginBottom: 6,
+                            }}
+                        >
+                            Full name
+                        </Text>
                         <TextInput
                             value={name}
                             onChangeText={setName}
@@ -107,7 +169,16 @@ export default function SignupScreen() {
                         />
                     </View>
                     <View>
-                        <Text style={{ fontSize: 13, color: th.ink2, fontFamily: th.sansBold, marginBottom: 6 }}>Email</Text>
+                        <Text
+                            style={{
+                                fontSize: 13,
+                                color: th.ink2,
+                                fontFamily: th.sansBold,
+                                marginBottom: 6,
+                            }}
+                        >
+                            Email
+                        </Text>
                         <TextInput
                             value={email}
                             onChangeText={setEmail}
@@ -119,7 +190,16 @@ export default function SignupScreen() {
                         />
                     </View>
                     <View>
-                        <Text style={{ fontSize: 13, color: th.ink2, fontFamily: th.sansBold, marginBottom: 6 }}>Password</Text>
+                        <Text
+                            style={{
+                                fontSize: 13,
+                                color: th.ink2,
+                                fontFamily: th.sansBold,
+                                marginBottom: 6,
+                            }}
+                        >
+                            Password
+                        </Text>
                         <TextInput
                             value={password}
                             onChangeText={setPassword}
@@ -130,7 +210,11 @@ export default function SignupScreen() {
                         />
                     </View>
 
-                    {error ? <Text style={{ color: "#dc2626", fontSize: 13 }}>{error}</Text> : null}
+                    {error ? (
+                        <Text style={{ color: "#dc2626", fontSize: 13 }}>
+                            {error}
+                        </Text>
+                    ) : null}
 
                     <Pill
                         primary
@@ -140,10 +224,27 @@ export default function SignupScreen() {
                     />
                 </View>
 
-                <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 24, gap: 4 }}>
-                    <Text style={{ color: th.ink2, fontSize: 14 }}>Already have an account?</Text>
+                <View
+                    style={{
+                        flexDirection: "row",
+                        justifyContent: "center",
+                        marginTop: 24,
+                        gap: 4,
+                    }}
+                >
+                    <Text style={{ color: th.ink2, fontSize: 14 }}>
+                        Already have an account?
+                    </Text>
                     <Pressable onPress={() => router.push("/login")}>
-                        <Text style={{ color: th.accent, fontFamily: th.sansBold, fontSize: 14 }}>Sign in</Text>
+                        <Text
+                            style={{
+                                color: th.accent,
+                                fontFamily: th.sansBold,
+                                fontSize: 14,
+                            }}
+                        >
+                            Sign in
+                        </Text>
                     </Pressable>
                 </View>
             </ScrollView>

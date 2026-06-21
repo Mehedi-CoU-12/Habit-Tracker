@@ -116,7 +116,9 @@ const PATHS: Record<string, (s: string, fill: string) => ReactNode> = {
             <Circle cx={17} cy={16} r={3} />
         </>
     ),
-    sparkle: () => <Path d="M12 3 l2 7 l7 2 l-7 2 l-2 7 l-2 -7 l-7 -2 l7 -2 z" />,
+    sparkle: () => (
+        <Path d="M12 3 l2 7 l7 2 l-7 2 l-2 7 l-2 -7 l-7 -2 l7 -2 z" />
+    ),
     calendar: () => (
         <>
             <Rect x={3} y={5} width={18} height={16} rx={2} />

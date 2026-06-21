@@ -39,11 +39,20 @@ export default function DetailScreen() {
     }, [id]);
     const cells = useMemo(() => buildYearData(seed), [seed]);
 
-    const goBack = () => (router.canGoBack() ? router.back() : router.replace("/"));
+    const goBack = () =>
+        router.canGoBack() ? router.back() : router.replace("/");
 
     if (!h) {
         return (
-            <View style={{ flex: 1, backgroundColor: th.bg, alignItems: "center", justifyContent: "center", gap: 16 }}>
+            <View
+                style={{
+                    flex: 1,
+                    backgroundColor: th.bg,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 16,
+                }}
+            >
                 <Text style={{ color: th.muted }}>Habit not found.</Text>
                 <Pill label="Back to garden" onPress={goBack} />
             </View>
@@ -70,33 +79,78 @@ export default function DetailScreen() {
     };
 
     const stage =
-        h.streak >= 25 ? "in full bloom" : h.streak >= 10 ? "growing well" : "sprouting";
+        h.streak >= 25
+            ? "in full bloom"
+            : h.streak >= 10
+              ? "growing well"
+              : "sprouting";
 
     return (
         <View style={{ flex: 1, backgroundColor: th.bg }}>
             <SkyWash height={340} />
             <ScrollView
-                contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 40 }}
+                contentContainerStyle={{
+                    paddingTop: insets.top + 8,
+                    paddingBottom: 40,
+                }}
                 showsVerticalScrollIndicator={false}
             >
                 {/* top bar */}
-                <View style={{ flexDirection: "row", justifyContent: "space-between", paddingHorizontal: th.d.pad }}>
+                <View
+                    style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        paddingHorizontal: th.d.pad,
+                    }}
+                >
                     <Pressable
                         onPress={goBack}
-                        style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: th.surface, borderWidth: 1.5, borderColor: th.line, alignItems: "center", justifyContent: "center" }}
+                        style={{
+                            width: 38,
+                            height: 38,
+                            borderRadius: 19,
+                            backgroundColor: th.surface,
+                            borderWidth: 1.5,
+                            borderColor: th.line,
+                            alignItems: "center",
+                            justifyContent: "center",
+                        }}
                     >
                         <Icon name="chevronLeft" size={18} stroke={th.ink} />
                     </Pressable>
                     <View style={{ flexDirection: "row", gap: 10 }}>
                         <Pressable
-                            onPress={() => router.push({ pathname: "/add", params: { id: h.id } })}
-                            style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: th.surface, borderWidth: 1.5, borderColor: th.line, alignItems: "center", justifyContent: "center" }}
+                            onPress={() =>
+                                router.push({
+                                    pathname: "/add",
+                                    params: { id: h.id },
+                                })
+                            }
+                            style={{
+                                width: 38,
+                                height: 38,
+                                borderRadius: 19,
+                                backgroundColor: th.surface,
+                                borderWidth: 1.5,
+                                borderColor: th.line,
+                                alignItems: "center",
+                                justifyContent: "center",
+                            }}
                         >
                             <Icon name="pen" size={16} stroke={th.ink} />
                         </Pressable>
                         <Pressable
                             onPress={confirmDelete}
-                            style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: th.surface, borderWidth: 1.5, borderColor: th.line, alignItems: "center", justifyContent: "center" }}
+                            style={{
+                                width: 38,
+                                height: 38,
+                                borderRadius: 19,
+                                backgroundColor: th.surface,
+                                borderWidth: 1.5,
+                                borderColor: th.line,
+                                alignItems: "center",
+                                justifyContent: "center",
+                            }}
                         >
                             <Icon name="x" size={16} stroke={th.ink} />
                         </Pressable>
@@ -106,18 +160,50 @@ export default function DetailScreen() {
                 {/* hero */}
                 <View style={{ alignItems: "center", marginTop: 8 }}>
                     <View>
-                        <Plant streak={h.streak} doneToday={h.doneToday} size={176} />
+                        <Plant
+                            streak={h.streak}
+                            doneToday={h.doneToday}
+                            size={176}
+                        />
                         <Sparkles show={sparkle} />
                     </View>
-                    <Text style={{ fontFamily: th.display, fontSize: 34 * th.d.font, color: th.ink, marginTop: 4 }}>
+                    <Text
+                        style={{
+                            fontFamily: th.display,
+                            fontSize: 34 * th.d.font,
+                            color: th.ink,
+                            marginTop: 4,
+                        }}
+                    >
                         {h.name}
                     </Text>
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6 }}>
-                        <Icon name="flame" size={14} stroke={th.accent} fill={th.accent} strokeWidth={1.2} />
-                        <Text style={{ fontFamily: th.sansBold, color: th.accent, fontSize: 13 }}>
+                    <View
+                        style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 6,
+                            marginTop: 6,
+                        }}
+                    >
+                        <Icon
+                            name="flame"
+                            size={14}
+                            stroke={th.accent}
+                            fill={th.accent}
+                            strokeWidth={1.2}
+                        />
+                        <Text
+                            style={{
+                                fontFamily: th.sansBold,
+                                color: th.accent,
+                                fontSize: 13,
+                            }}
+                        >
                             {h.streak} day streak
                         </Text>
-                        <Text style={{ color: th.muted, fontSize: 13 }}>· {stage}</Text>
+                        <Text style={{ color: th.muted, fontSize: 13 }}>
+                            · {stage}
+                        </Text>
                     </View>
                 </View>
 
@@ -132,7 +218,9 @@ export default function DetailScreen() {
                             gap: 10,
                             paddingVertical: 16,
                             borderRadius: th.d.radius,
-                            backgroundColor: h.doneToday ? th.greenSoft : th.accent,
+                            backgroundColor: h.doneToday
+                                ? th.greenSoft
+                                : th.accent,
                             borderWidth: h.doneToday ? 1.5 : 0,
                             borderColor: th.green,
                         }}
@@ -143,24 +231,59 @@ export default function DetailScreen() {
                             stroke={h.doneToday ? th.greenDeep : "#fff"}
                             strokeWidth={2.4}
                         />
-                        <Text style={{ fontFamily: th.sansBold, fontSize: 16, color: h.doneToday ? th.greenDeep : "#fff" }}>
-                            {h.doneToday ? "Done today — tap to undo" : "Mark as done today"}
+                        <Text
+                            style={{
+                                fontFamily: th.sansBold,
+                                fontSize: 16,
+                                color: h.doneToday ? th.greenDeep : "#fff",
+                            }}
+                        >
+                            {h.doneToday
+                                ? "Done today — tap to undo"
+                                : "Mark as done today"}
                         </Text>
                     </Pressable>
                 </View>
 
                 {/* stats */}
-                <View style={{ flexDirection: "row", gap: 8, marginHorizontal: th.d.pad, marginTop: 16 }}>
+                <View
+                    style={{
+                        flexDirection: "row",
+                        gap: 8,
+                        marginHorizontal: th.d.pad,
+                        marginTop: 16,
+                    }}
+                >
                     {[
                         { v: `${h.streak}`, l: "streak", c: th.accent },
                         { v: `${h.best}`, l: "best", c: th.green },
                         { v: `${h.rate}%`, l: "rate", c: th.sky },
                     ].map((s, i) => (
-                        <Card key={i} pad={14} style={{ flex: 1, alignItems: "center" }}>
-                            <Text style={{ fontFamily: th.display, fontSize: 26, color: s.c, lineHeight: 28 }}>
+                        <Card
+                            key={i}
+                            pad={14}
+                            style={{ flex: 1, alignItems: "center" }}
+                        >
+                            <Text
+                                style={{
+                                    fontFamily: th.display,
+                                    fontSize: 26,
+                                    color: s.c,
+                                    lineHeight: 28,
+                                }}
+                            >
                                 {s.v}
                             </Text>
-                            <Text style={{ fontSize: 10.5, color: th.muted, fontFamily: th.sansBold, letterSpacing: 0.6, marginTop: 6, textTransform: "uppercase" }}>
+                            <Text
+                                style={{
+                                    fontSize: 10.5,
+                                    color: th.muted,
+                                    fontFamily: th.sansBold,
+                                    letterSpacing: 0.6,
+                                    marginTop: 6,
+                                    textTransform: "uppercase",
+                                }}
+                            >
                                 {s.l}
                             </Text>
                         </Card>
@@ -169,9 +292,32 @@ export default function DetailScreen() {
 
                 {/* heatmap */}
                 <View style={{ marginHorizontal: th.d.pad, marginTop: 22 }}>
-                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
-                        <Text style={{ fontFamily: th.display, fontSize: 20 * th.d.font, color: th.ink }}>The story so far</Text>
-                        <Text style={{ fontSize: 11, color: th.muted, fontFamily: th.sansBold }}>6 MO</Text>
+                    <View
+                        style={{
+                            flexDirection: "row",
+                            justifyContent: "space-between",
+                            alignItems: "baseline",
+                            marginBottom: 10,
+                        }}
+                    >
+                        <Text
+                            style={{
+                                fontFamily: th.display,
+                                fontSize: 20 * th.d.font,
+                                color: th.ink,
+                            }}
+                        >
+                            The story so far
+                        </Text>
+                        <Text
+                            style={{
+                                fontSize: 11,
+                                color: th.muted,
+                                fontFamily: th.sansBold,
+                            }}
+                        >
+                            6 MO
+                        </Text>
                     </View>
                     <Card pad={14}>
                         <Svg viewBox="0 0 312 90" width="100%" height={90}>
@@ -183,8 +329,16 @@ export default function DetailScreen() {
                                     width={10}
                                     height={10}
                                     rx={3}
-                                    fill={c.level === 0 ? th.surface2 : th.green}
-                                    opacity={c.level === 0 ? (th.dark ? 0.4 : 0.5) : 0.4 + c.level * 0.16}
+                                    fill={
+                                        c.level === 0 ? th.surface2 : th.green
+                                    }
+                                    opacity={
+                                        c.level === 0
+                                            ? th.dark
+                                                ? 0.4
+                                                : 0.5
+                                            : 0.4 + c.level * 0.16
+                                    }
                                 />
                             ))}
                         </Svg>

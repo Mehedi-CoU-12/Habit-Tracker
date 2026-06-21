@@ -27,8 +27,15 @@ export function RoutineHeader({
                 marginBottom: 10,
             }}
         >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <Icon name={icon} size={18} stroke={th.accent} strokeWidth={1.8} />
+            <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+            >
+                <Icon
+                    name={icon}
+                    size={18}
+                    stroke={th.accent}
+                    strokeWidth={1.8}
+                />
                 <Text
                     style={{
                         fontFamily: th.display,
@@ -115,9 +122,19 @@ export function HabitRow({
                     }}
                 >
                     {h.doneToday ? (
-                        <Icon name="check" size={19} stroke="#fff" strokeWidth={2.6} />
+                        <Icon
+                            name="check"
+                            size={19}
+                            stroke="#fff"
+                            strokeWidth={2.6}
+                        />
                     ) : (
-                        <Icon name={h.icon} size={18} stroke={th.deep} strokeWidth={1.8} />
+                        <Icon
+                            name={h.icon}
+                            size={18}
+                            stroke={th.deep}
+                            strokeWidth={1.8}
+                        />
                     )}
                 </Pressable>
                 <Sparkles show={sparkle} />
@@ -139,9 +156,23 @@ export function HabitRow({
                 </Text>
             </View>
 
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                <Icon name="flame" size={13} stroke={th.accent} fill={th.accent} strokeWidth={1.2} />
-                <Text style={{ fontSize: 12, fontFamily: th.sansBold, color: th.accent }}>
+            <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+            >
+                <Icon
+                    name="flame"
+                    size={13}
+                    stroke={th.accent}
+                    fill={th.accent}
+                    strokeWidth={1.2}
+                />
+                <Text
+                    style={{
+                        fontSize: 12,
+                        fontFamily: th.sansBold,
+                        color: th.accent,
+                    }}
+                >
                     {h.streak}
                 </Text>
             </View>
