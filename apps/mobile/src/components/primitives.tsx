@@ -98,7 +98,9 @@ export function Pill({
                 style,
             ]}
         >
-            {icon ? <Icon name={icon} size={18} stroke={fg} strokeWidth={2} /> : null}
+            {icon ? (
+                <Icon name={icon} size={18} stroke={fg} strokeWidth={2} />
+            ) : null}
             <Text
                 style={[
                     { color: fg, fontFamily: th.sansBold, fontSize: 15 },

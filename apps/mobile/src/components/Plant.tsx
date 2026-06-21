@@ -19,7 +19,15 @@ export default function Plant({
 }) {
     const th = useTheme();
     const stage =
-        streak === 0 ? 0 : streak < 3 ? 1 : streak < 10 ? 2 : streak < 25 ? 3 : 4;
+        streak === 0
+            ? 0
+            : streak < 3
+              ? 1
+              : streak < 10
+                ? 2
+                : streak < 25
+                  ? 3
+                  : 4;
     const dim = doneToday ? 1 : 0.5;
     const leaf = th.green;
     const flower = flowerColor ?? th.accent;
@@ -29,8 +37,23 @@ export default function Plant({
         <Svg width={size} height={size} viewBox="0 0 100 100">
             {/* Pot */}
             <Path d="M28 78 L72 78 L68 94 L32 94 Z" fill={th.dirt} />
-            <Rect x={26} y={74} width={48} height={6} rx={2} fill={th.deep} opacity={0.85} />
-            <Ellipse cx={50} cy={76} rx={22} ry={3} fill={th.potShadow} opacity={0.4} />
+            <Rect
+                x={26}
+                y={74}
+                width={48}
+                height={6}
+                rx={2}
+                fill={th.deep}
+                opacity={0.85}
+            />
+            <Ellipse
+                cx={50}
+                cy={76}
+                rx={22}
+                ry={3}
+                fill={th.potShadow}
+                opacity={0.4}
+            />
 
             {stage === 0 && (
                 <Ellipse cx={50} cy={74} rx={6} ry={2} fill={th.potShadow} />
@@ -58,20 +81,68 @@ export default function Plant({
 
             {stage >= 1 && (
                 <G opacity={dim}>
-                    <Ellipse cx={44} cy={64} rx={6} ry={3} fill={leaf} rotation={-30} origin="44, 64" />
-                    <Ellipse cx={56} cy={62} rx={6} ry={3} fill={leaf} rotation={30} origin="56, 62" />
+                    <Ellipse
+                        cx={44}
+                        cy={64}
+                        rx={6}
+                        ry={3}
+                        fill={leaf}
+                        rotation={-30}
+                        origin="44, 64"
+                    />
+                    <Ellipse
+                        cx={56}
+                        cy={62}
+                        rx={6}
+                        ry={3}
+                        fill={leaf}
+                        rotation={30}
+                        origin="56, 62"
+                    />
                 </G>
             )}
             {stage >= 2 && (
                 <G opacity={dim}>
-                    <Ellipse cx={40} cy={56} rx={8} ry={4} fill={leaf} rotation={-25} origin="40, 56" />
-                    <Ellipse cx={60} cy={54} rx={8} ry={4} fill={leaf} rotation={25} origin="60, 54" />
+                    <Ellipse
+                        cx={40}
+                        cy={56}
+                        rx={8}
+                        ry={4}
+                        fill={leaf}
+                        rotation={-25}
+                        origin="40, 56"
+                    />
+                    <Ellipse
+                        cx={60}
+                        cy={54}
+                        rx={8}
+                        ry={4}
+                        fill={leaf}
+                        rotation={25}
+                        origin="60, 54"
+                    />
                 </G>
             )}
             {stage >= 3 && (
                 <G opacity={dim}>
-                    <Ellipse cx={38} cy={44} rx={9} ry={4.5} fill={leaf} rotation={-20} origin="38, 44" />
-                    <Ellipse cx={62} cy={42} rx={9} ry={4.5} fill={leaf} rotation={20} origin="62, 42" />
+                    <Ellipse
+                        cx={38}
+                        cy={44}
+                        rx={9}
+                        ry={4.5}
+                        fill={leaf}
+                        rotation={-20}
+                        origin="38, 44"
+                    />
+                    <Ellipse
+                        cx={62}
+                        cy={42}
+                        rx={9}
+                        ry={4.5}
+                        fill={leaf}
+                        rotation={20}
+                        origin="62, 42"
+                    />
                 </G>
             )}
             {stage >= 4 && (
