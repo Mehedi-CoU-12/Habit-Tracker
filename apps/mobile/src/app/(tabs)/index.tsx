@@ -93,7 +93,9 @@ export default function TodayScreen() {
                     >
                         Your garden, today
                     </Text>
-                    <Text style={{ fontSize: 14, color: th.ink2, marginTop: 4 }}>
+                    <Text
+                        style={{ fontSize: 14, color: th.ink2, marginTop: 4 }}
+                    >
                         {done} of {habits.length} watered ☿
                     </Text>
                 </View>
@@ -115,9 +117,21 @@ export default function TodayScreen() {
                 )}
 
                 {!isLoading && !isError && habits.length === 0 && (
-                    <Card style={{ margin: th.d.pad, alignItems: "center", gap: 8 }}>
+                    <Card
+                        style={{
+                            margin: th.d.pad,
+                            alignItems: "center",
+                            gap: 8,
+                        }}
+                    >
                         <Plant streak={0} doneToday size={96} />
-                        <Text style={{ fontFamily: th.display, fontSize: 20, color: th.ink }}>
+                        <Text
+                            style={{
+                                fontFamily: th.display,
+                                fontSize: 20,
+                                color: th.ink,
+                            }}
+                        >
                             Your garden is empty
                         </Text>
                         <Text style={{ color: th.muted, textAlign: "center" }}>
@@ -162,7 +176,13 @@ export default function TodayScreen() {
                                 >
                                     {h.name}
                                 </Text>
-                                <Text style={{ fontSize: 10, color: th.muted, marginTop: 2 }}>
+                                <Text
+                                    style={{
+                                        fontSize: 10,
+                                        color: th.muted,
+                                        marginTop: 2,
+                                    }}
+                                >
                                     {h.streak}d
                                 </Text>
                             </Pressable>

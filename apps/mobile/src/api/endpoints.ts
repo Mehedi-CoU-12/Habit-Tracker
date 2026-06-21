@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiPatch, apiPost } from "./client";
+import { apiDelete, apiGet, apiPatch, apiPost, apiUpload } from "./client";
 import { ApiHabit, UserProfile } from "../lib/types";
 
 // ── Auth ──────────────────────────────────────────────────────────────
@@ -17,6 +17,26 @@ export function signup(name: string, email: string, password: string) {
 
 export function fetchMe() {
     return apiGet<UserProfile>("/users/me");
+}
+
+/** Picked image asset, as returned by expo-image-picker. */
+export type AvatarAsset = {
+    uri: string;
+    mimeType?: string;
+    fileName?: string;
+};
+
+export function uploadAvatar(asset: AvatarAsset) {
+    const type = asset.mimeType ?? "image/jpeg";
+    const name = asset.fileName ?? `avatar.${type.split("/")[1] ?? "jpg"}`;
+    const form = new FormData();
+    // The API's FileInterceptor expects the field name "avatar".
+    form.append("avatar", {
+        uri: asset.uri,
+        name,
+        type,
+    } as unknown as Blob);
+    return apiUpload<UserProfile>("/users/me/avatar", form);
 }
 
 // ── Habits ────────────────────────────────────────────────────────────

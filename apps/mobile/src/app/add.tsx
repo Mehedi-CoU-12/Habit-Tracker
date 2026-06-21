@@ -1,11 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-    Pressable,
-    ScrollView,
-    Text,
-    TextInput,
-    View,
-} from "react-native";
+import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../theme/ThemeProvider";
@@ -16,8 +10,18 @@ import Icon from "../components/Icon";
 import { Pill } from "../components/primitives";
 
 const ICONS = [
-    "leaf", "sun", "droplet", "book", "dumbbell", "coffee",
-    "music", "pen", "moon", "cloud", "flame", "sprout",
+    "leaf",
+    "sun",
+    "droplet",
+    "book",
+    "dumbbell",
+    "coffee",
+    "music",
+    "pen",
+    "moon",
+    "cloud",
+    "flame",
+    "sprout",
 ];
 
 const WHEN: { l: string; i: string; v: Tod }[] = [
@@ -62,7 +66,8 @@ export default function AddScreen() {
         }
     }, [isEdit, editing]);
 
-    const close = () => (router.canGoBack() ? router.back() : router.replace("/"));
+    const close = () =>
+        router.canGoBack() ? router.back() : router.replace("/");
 
     const save = () => {
         const input = {
@@ -82,19 +87,43 @@ export default function AddScreen() {
     return (
         <View style={{ flex: 1, backgroundColor: th.bg }}>
             <ScrollView
-                contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 40 }}
+                contentContainerStyle={{
+                    paddingTop: insets.top + 8,
+                    paddingBottom: 40,
+                }}
                 showsVerticalScrollIndicator={false}
             >
                 {/* top bar */}
-                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: th.d.pad, marginBottom: 12 }}>
+                <View
+                    style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        paddingHorizontal: th.d.pad,
+                        marginBottom: 12,
+                    }}
+                >
                     <Pressable onPress={close}>
                         <Icon name="x" size={24} stroke={th.ink} />
                     </Pressable>
-                    <Text style={{ fontSize: 13, color: th.muted, fontFamily: th.sansBold, letterSpacing: 0.6 }}>
+                    <Text
+                        style={{
+                            fontSize: 13,
+                            color: th.muted,
+                            fontFamily: th.sansBold,
+                            letterSpacing: 0.6,
+                        }}
+                    >
                         {isEdit ? "EDIT HABIT" : "NEW HABIT"}
                     </Text>
                     <Pressable onPress={save} disabled={pending}>
-                        <Text style={{ fontSize: 14, fontFamily: th.sansBold, color: th.accent }}>
+                        <Text
+                            style={{
+                                fontSize: 14,
+                                fontFamily: th.sansBold,
+                                color: th.accent,
+                            }}
+                        >
                             {pending ? "…" : "Save"}
                         </Text>
                     </Pressable>
@@ -120,7 +149,13 @@ export default function AddScreen() {
                             paddingVertical: 4,
                         }}
                     />
-                    <View style={{ height: 2, backgroundColor: th.line, marginTop: 2 }} />
+                    <View
+                        style={{
+                            height: 2,
+                            backgroundColor: th.line,
+                            marginTop: 2,
+                        }}
+                    />
                     <TextInput
                         value={verb}
                         onChangeText={setVerb}
@@ -138,10 +173,24 @@ export default function AddScreen() {
 
                 {/* seed icons */}
                 <View style={{ paddingHorizontal: th.d.pad, marginBottom: 22 }}>
-                    <Text style={{ fontSize: 11, color: th.muted, fontFamily: th.sansBold, letterSpacing: 0.8, marginBottom: 8 }}>
+                    <Text
+                        style={{
+                            fontSize: 11,
+                            color: th.muted,
+                            fontFamily: th.sansBold,
+                            letterSpacing: 0.8,
+                            marginBottom: 8,
+                        }}
+                    >
                         SEED
                     </Text>
-                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                    <View
+                        style={{
+                            flexDirection: "row",
+                            flexWrap: "wrap",
+                            gap: 8,
+                        }}
+                    >
                         {ICONS.map((ic) => {
                             const on = icon === ic;
                             return (
@@ -154,12 +203,19 @@ export default function AddScreen() {
                                         borderRadius: 14,
                                         alignItems: "center",
                                         justifyContent: "center",
-                                        backgroundColor: on ? th.accent : th.surface,
+                                        backgroundColor: on
+                                            ? th.accent
+                                            : th.surface,
                                         borderWidth: 1.5,
                                         borderColor: on ? th.accent : th.line,
                                     }}
                                 >
-                                    <Icon name={ic} size={18} stroke={on ? "#fff" : th.ink2} strokeWidth={1.8} />
+                                    <Icon
+                                        name={ic}
+                                        size={18}
+                                        stroke={on ? "#fff" : th.ink2}
+                                        strokeWidth={1.8}
+                                    />
                                 </Pressable>
                             );
                         })}
@@ -168,7 +224,15 @@ export default function AddScreen() {
 
                 {/* when */}
                 <View style={{ paddingHorizontal: th.d.pad, marginBottom: 22 }}>
-                    <Text style={{ fontSize: 11, color: th.muted, fontFamily: th.sansBold, letterSpacing: 0.8, marginBottom: 8 }}>
+                    <Text
+                        style={{
+                            fontSize: 11,
+                            color: th.muted,
+                            fontFamily: th.sansBold,
+                            letterSpacing: 0.8,
+                            marginBottom: 8,
+                        }}
+                    >
                         WHEN
                     </Text>
                     <View style={{ flexDirection: "row", gap: 8 }}>
@@ -184,13 +248,26 @@ export default function AddScreen() {
                                         borderRadius: 16,
                                         alignItems: "center",
                                         gap: 6,
-                                        backgroundColor: on ? th.ink : th.surface,
+                                        backgroundColor: on
+                                            ? th.ink
+                                            : th.surface,
                                         borderWidth: 1.5,
                                         borderColor: on ? th.ink : th.line,
                                     }}
                                 >
-                                    <Icon name={o.i} size={18} stroke={on ? th.bg : th.ink2} strokeWidth={1.8} />
-                                    <Text style={{ fontSize: 12, fontFamily: th.sansBold, color: on ? th.bg : th.ink }}>
+                                    <Icon
+                                        name={o.i}
+                                        size={18}
+                                        stroke={on ? th.bg : th.ink2}
+                                        strokeWidth={1.8}
+                                    />
+                                    <Text
+                                        style={{
+                                            fontSize: 12,
+                                            fontFamily: th.sansBold,
+                                            color: on ? th.bg : th.ink,
+                                        }}
+                                    >
                                         {o.l}
                                     </Text>
                                 </Pressable>
@@ -201,7 +278,15 @@ export default function AddScreen() {
 
                 {/* monthly goal */}
                 <View style={{ paddingHorizontal: th.d.pad, marginBottom: 28 }}>
-                    <Text style={{ fontSize: 11, color: th.muted, fontFamily: th.sansBold, letterSpacing: 0.8, marginBottom: 8 }}>
+                    <Text
+                        style={{
+                            fontSize: 11,
+                            color: th.muted,
+                            fontFamily: th.sansBold,
+                            letterSpacing: 0.8,
+                            marginBottom: 8,
+                        }}
+                    >
                         MONTHLY GOAL
                     </Text>
                     <View
@@ -217,14 +302,47 @@ export default function AddScreen() {
                             paddingVertical: 10,
                         }}
                     >
-                        <Pressable onPress={() => setGoal((g) => Math.max(1, g - 1))} style={{ width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: th.surface2 }}>
-                            <Text style={{ fontSize: 22, color: th.ink }}>−</Text>
+                        <Pressable
+                            onPress={() => setGoal((g) => Math.max(1, g - 1))}
+                            style={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: 18,
+                                alignItems: "center",
+                                justifyContent: "center",
+                                backgroundColor: th.surface2,
+                            }}
+                        >
+                            <Text style={{ fontSize: 22, color: th.ink }}>
+                                −
+                            </Text>
                         </Pressable>
-                        <Text style={{ fontFamily: th.display, fontSize: 24, color: th.ink }}>
-                            {goal} <Text style={{ fontSize: 14, color: th.muted }}>days</Text>
+                        <Text
+                            style={{
+                                fontFamily: th.display,
+                                fontSize: 24,
+                                color: th.ink,
+                            }}
+                        >
+                            {goal}{" "}
+                            <Text style={{ fontSize: 14, color: th.muted }}>
+                                days
+                            </Text>
                         </Text>
-                        <Pressable onPress={() => setGoal((g) => Math.min(31, g + 1))} style={{ width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: th.surface2 }}>
-                            <Text style={{ fontSize: 22, color: th.ink }}>+</Text>
+                        <Pressable
+                            onPress={() => setGoal((g) => Math.min(31, g + 1))}
+                            style={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: 18,
+                                alignItems: "center",
+                                justifyContent: "center",
+                                backgroundColor: th.surface2,
+                            }}
+                        >
+                            <Text style={{ fontSize: 22, color: th.ink }}>
+                                +
+                            </Text>
                         </Pressable>
                     </View>
                 </View>

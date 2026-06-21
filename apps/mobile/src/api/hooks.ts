@@ -1,10 +1,6 @@
-import {
-    useMutation,
-    useQuery,
-    useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as api from "./endpoints";
-import { ApiHabit } from "../lib/types";
+import { ApiHabit, UserProfile } from "../lib/types";
 
 export function useMe() {
     return useQuery({
@@ -12,6 +8,14 @@ export function useMe() {
         queryFn: api.fetchMe,
         retry: false,
         staleTime: 5 * 60 * 1000,
+    });
+}
+
+export function useUploadAvatar() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: api.uploadAvatar,
+        onSuccess: (updated) => qc.setQueryData<UserProfile>(["me"], updated),
     });
 }
 
@@ -41,7 +45,10 @@ export function useToggleLog(year: number, month: number) {
                     if (h.id !== habitId) return h;
                     const idx = h.logs.findIndex((l) => l.day === day);
                     if (idx >= 0) {
-                        return { ...h, logs: h.logs.filter((_, i) => i !== idx) };
+                        return {
+                            ...h,
+                            logs: h.logs.filter((_, i) => i !== idx),
+                        };
                     }
                     return {
                         ...h,
