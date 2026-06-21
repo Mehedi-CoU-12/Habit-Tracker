@@ -23,7 +23,14 @@ const SEEDS = [
 function Dots({ active }: { active: number }) {
     const th = useTheme();
     return (
-        <View style={{ flexDirection: "row", justifyContent: "center", gap: 6, marginBottom: 16 }}>
+        <View
+            style={{
+                flexDirection: "row",
+                justifyContent: "center",
+                gap: 6,
+                marginBottom: 16,
+            }}
+        >
             {[0, 1, 2].map((i) => (
                 <View
                     key={i}
@@ -44,9 +51,16 @@ export default function Onboarding() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const [step, setStep] = useState(0);
-    const [picked, setPicked] = useState<string[]>(["moon", "droplet", "book", "moonStars"]);
+    const [picked, setPicked] = useState<string[]>([
+        "moon",
+        "droplet",
+        "book",
+        "moonStars",
+    ]);
     const toggle = (i: string) =>
-        setPicked((p) => (p.includes(i) ? p.filter((x) => x !== i) : [...p, i]));
+        setPicked((p) =>
+            p.includes(i) ? p.filter((x) => x !== i) : [...p, i],
+        );
 
     const done = () => router.replace("/");
 
@@ -71,11 +85,33 @@ export default function Onboarding() {
                 paddingHorizontal: 20,
             }}
         >
-            <Text style={{ fontFamily: th.sansBold, fontSize: 16, color: dark ? th.bg : "#fff" }}>
+            <Text
+                style={{
+                    fontFamily: th.sansBold,
+                    fontSize: 16,
+                    color: dark ? th.bg : "#fff",
+                }}
+            >
                 {label}
             </Text>
-            <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: dark ? th.accent : "rgba(255,255,255,0.25)", alignItems: "center", justifyContent: "center" }}>
-                <Icon name="arrowRight" size={18} stroke="#fff" strokeWidth={2.2} />
+            <View
+                style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 17,
+                    backgroundColor: dark
+                        ? th.accent
+                        : "rgba(255,255,255,0.25)",
+                    alignItems: "center",
+                    justifyContent: "center",
+                }}
+            >
+                <Icon
+                    name="arrowRight"
+                    size={18}
+                    stroke="#fff"
+                    strokeWidth={2.2}
+                />
             </View>
         </Pressable>
     );
@@ -85,7 +121,11 @@ export default function Onboarding() {
         return (
             <View style={{ flex: 1, backgroundColor: th.bg }}>
                 <LinearGradient
-                    colors={[hexA(th.sky, th.dark ? 0.2 : 0.33), hexA(th.accent, 0.12), th.bg]}
+                    colors={[
+                        hexA(th.sky, th.dark ? 0.2 : 0.33),
+                        hexA(th.accent, 0.12),
+                        th.bg,
+                    ]}
                     locations={[0, 0.5, 1]}
                     style={{ position: "absolute", inset: 0 }}
                 />
@@ -101,22 +141,58 @@ export default function Onboarding() {
                         opacity: 0.6,
                     }}
                 />
-                <View style={{ flex: 1, paddingHorizontal: 30, paddingTop: insets.top + 80, paddingBottom: insets.bottom + 30 }}>
-                    <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "flex-end", marginBottom: 20 }}>
+                <View
+                    style={{
+                        flex: 1,
+                        paddingHorizontal: 30,
+                        paddingTop: insets.top + 80,
+                        paddingBottom: insets.bottom + 30,
+                    }}
+                >
+                    <View
+                        style={{
+                            flexDirection: "row",
+                            justifyContent: "center",
+                            alignItems: "flex-end",
+                            marginBottom: 20,
+                        }}
+                    >
                         <Plant streak={0} doneToday size={86} />
                         <Plant streak={5} doneToday size={128} />
                         <Plant streak={40} doneToday size={146} />
                     </View>
-                    <Text style={{ fontFamily: th.display, fontSize: 44, lineHeight: 46, color: th.ink, textAlign: "center" }}>
+                    <Text
+                        style={{
+                            fontFamily: th.display,
+                            fontSize: 44,
+                            lineHeight: 46,
+                            color: th.ink,
+                            textAlign: "center",
+                        }}
+                    >
                         Habits, but they{"\n"}
                         <Text style={{ color: th.accent }}>grow with you.</Text>
                     </Text>
-                    <Text style={{ textAlign: "center", marginTop: 18, fontSize: 15.5, lineHeight: 22, color: th.ink2, paddingHorizontal: 14 }}>
-                        Track what matters. Watch your plants bloom as your streaks stretch out.
+                    <Text
+                        style={{
+                            textAlign: "center",
+                            marginTop: 18,
+                            fontSize: 15.5,
+                            lineHeight: 22,
+                            color: th.ink2,
+                            paddingHorizontal: 14,
+                        }}
+                    >
+                        Track what matters. Watch your plants bloom as your
+                        streaks stretch out.
                     </Text>
                     <View style={{ flex: 1 }} />
                     <Dots active={0} />
-                    <PrimaryButton label="Get started" onPress={() => setStep(1)} dark />
+                    <PrimaryButton
+                        label="Get started"
+                        onPress={() => setStep(1)}
+                        dark
+                    />
                 </View>
             </View>
         );
@@ -126,17 +202,51 @@ export default function Onboarding() {
     if (step === 1) {
         return (
             <View style={{ flex: 1, backgroundColor: th.bg }}>
-                <ScrollView contentContainerStyle={{ paddingTop: insets.top + 20, paddingHorizontal: 26 }}>
-                    <Text style={{ fontSize: 12, color: th.muted, fontFamily: th.sansBold, letterSpacing: 0.8 }}>
+                <ScrollView
+                    contentContainerStyle={{
+                        paddingTop: insets.top + 20,
+                        paddingHorizontal: 26,
+                    }}
+                >
+                    <Text
+                        style={{
+                            fontSize: 12,
+                            color: th.muted,
+                            fontFamily: th.sansBold,
+                            letterSpacing: 0.8,
+                        }}
+                    >
                         STEP 2 OF 3
                     </Text>
-                    <Text style={{ fontFamily: th.display, fontSize: 34, lineHeight: 36, color: th.ink, marginTop: 8 }}>
+                    <Text
+                        style={{
+                            fontFamily: th.display,
+                            fontSize: 34,
+                            lineHeight: 36,
+                            color: th.ink,
+                            marginTop: 8,
+                        }}
+                    >
                         What do you want to grow?
                     </Text>
-                    <Text style={{ fontSize: 14, color: th.ink2, lineHeight: 20, marginTop: 8, marginBottom: 20 }}>
+                    <Text
+                        style={{
+                            fontSize: 14,
+                            color: th.ink2,
+                            lineHeight: 20,
+                            marginTop: 8,
+                            marginBottom: 20,
+                        }}
+                    >
                         Pick a few seeds to start. You can add more anytime.
                     </Text>
-                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+                    <View
+                        style={{
+                            flexDirection: "row",
+                            flexWrap: "wrap",
+                            gap: 10,
+                        }}
+                    >
                         {SEEDS.map((s) => {
                             const on = picked.includes(s.i);
                             return (
@@ -153,15 +263,55 @@ export default function Onboarding() {
                                         gap: 10,
                                     }}
                                 >
-                                    <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: hexA(th.accent, 0.18), alignItems: "center", justifyContent: "center" }}>
-                                        <Icon name={s.i} size={20} stroke={th.accent} strokeWidth={1.8} />
+                                    <View
+                                        style={{
+                                            width: 40,
+                                            height: 40,
+                                            borderRadius: 12,
+                                            backgroundColor: hexA(
+                                                th.accent,
+                                                0.18,
+                                            ),
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                        }}
+                                    >
+                                        <Icon
+                                            name={s.i}
+                                            size={20}
+                                            stroke={th.accent}
+                                            strokeWidth={1.8}
+                                        />
                                     </View>
-                                    <Text style={{ fontSize: 14, fontFamily: th.sansBold, color: th.ink }}>
+                                    <Text
+                                        style={{
+                                            fontSize: 14,
+                                            fontFamily: th.sansBold,
+                                            color: th.ink,
+                                        }}
+                                    >
                                         {s.n}
                                     </Text>
                                     {on && (
-                                        <View style={{ position: "absolute", top: 12, right: 12, width: 22, height: 22, borderRadius: 11, backgroundColor: th.accent, alignItems: "center", justifyContent: "center" }}>
-                                            <Icon name="check" size={12} stroke="#fff" strokeWidth={2.6} />
+                                        <View
+                                            style={{
+                                                position: "absolute",
+                                                top: 12,
+                                                right: 12,
+                                                width: 22,
+                                                height: 22,
+                                                borderRadius: 11,
+                                                backgroundColor: th.accent,
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                            }}
+                                        >
+                                            <Icon
+                                                name="check"
+                                                size={12}
+                                                stroke="#fff"
+                                                strokeWidth={2.6}
+                                            />
                                         </View>
                                     )}
                                 </Pressable>
@@ -169,9 +319,19 @@ export default function Onboarding() {
                         })}
                     </View>
                 </ScrollView>
-                <View style={{ paddingHorizontal: 26, paddingBottom: insets.bottom + 24, paddingTop: 14 }}>
+                <View
+                    style={{
+                        paddingHorizontal: 26,
+                        paddingBottom: insets.bottom + 24,
+                        paddingTop: 14,
+                    }}
+                >
                     <Dots active={1} />
-                    <PrimaryButton label={`Continue · ${picked.length} selected`} onPress={() => setStep(2)} dark />
+                    <PrimaryButton
+                        label={`Continue · ${picked.length} selected`}
+                        onPress={() => setStep(2)}
+                        dark
+                    />
                 </View>
             </View>
         );
@@ -190,14 +350,42 @@ export default function Onboarding() {
                 locations={[0, 0.6]}
                 style={{ position: "absolute", inset: 0 }}
             />
-            <ScrollView contentContainerStyle={{ paddingTop: insets.top + 20, paddingHorizontal: 26 }}>
-                <Text style={{ fontSize: 12, color: th.muted, fontFamily: th.sansBold, letterSpacing: 0.8 }}>
+            <ScrollView
+                contentContainerStyle={{
+                    paddingTop: insets.top + 20,
+                    paddingHorizontal: 26,
+                }}
+            >
+                <Text
+                    style={{
+                        fontSize: 12,
+                        color: th.muted,
+                        fontFamily: th.sansBold,
+                        letterSpacing: 0.8,
+                    }}
+                >
                     STEP 3 OF 3
                 </Text>
-                <Text style={{ fontFamily: th.display, fontSize: 34, lineHeight: 36, color: th.ink, marginTop: 8 }}>
+                <Text
+                    style={{
+                        fontFamily: th.display,
+                        fontSize: 34,
+                        lineHeight: 36,
+                        color: th.ink,
+                        marginTop: 8,
+                    }}
+                >
                     When does your day bloom?
                 </Text>
-                <Text style={{ fontSize: 14, color: th.ink2, lineHeight: 20, marginTop: 8, marginBottom: 20 }}>
+                <Text
+                    style={{
+                        fontSize: 14,
+                        color: th.ink2,
+                        lineHeight: 20,
+                        marginTop: 8,
+                        marginBottom: 20,
+                    }}
+                >
                     We&apos;ll send a gentle nudge — never a pushy one.
                 </Text>
                 {routines.map((r, k) => (
@@ -215,20 +403,64 @@ export default function Onboarding() {
                             justifyContent: "space-between",
                         }}
                     >
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: r.on ? th.accentSoftBg : th.surface2, alignItems: "center", justifyContent: "center" }}>
-                                <Icon name={r.i} size={22} stroke={r.on ? th.accent : th.ink2} strokeWidth={1.8} />
+                        <View
+                            style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                gap: 12,
+                            }}
+                        >
+                            <View
+                                style={{
+                                    width: 44,
+                                    height: 44,
+                                    borderRadius: 22,
+                                    backgroundColor: r.on
+                                        ? th.accentSoftBg
+                                        : th.surface2,
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                }}
+                            >
+                                <Icon
+                                    name={r.i}
+                                    size={22}
+                                    stroke={r.on ? th.accent : th.ink2}
+                                    strokeWidth={1.8}
+                                />
                             </View>
                             <View>
-                                <Text style={{ fontSize: 16, fontFamily: th.sansBold, color: th.ink }}>{r.n}</Text>
-                                <Text style={{ fontSize: 12, color: th.muted, marginTop: 2 }}>{r.h}</Text>
+                                <Text
+                                    style={{
+                                        fontSize: 16,
+                                        fontFamily: th.sansBold,
+                                        color: th.ink,
+                                    }}
+                                >
+                                    {r.n}
+                                </Text>
+                                <Text
+                                    style={{
+                                        fontSize: 12,
+                                        color: th.muted,
+                                        marginTop: 2,
+                                    }}
+                                >
+                                    {r.h}
+                                </Text>
                             </View>
                         </View>
                         <Toggle on={r.on} />
                     </View>
                 ))}
             </ScrollView>
-            <View style={{ paddingHorizontal: 26, paddingBottom: insets.bottom + 24, paddingTop: 14 }}>
+            <View
+                style={{
+                    paddingHorizontal: 26,
+                    paddingBottom: insets.bottom + 24,
+                    paddingTop: 14,
+                }}
+            >
                 <Dots active={2} />
                 <Pressable
                     onPress={done}
@@ -242,8 +474,22 @@ export default function Onboarding() {
                         paddingVertical: 16,
                     }}
                 >
-                    <Text style={{ fontFamily: th.sansBold, fontSize: 15, color: "#fff" }}>Plant your garden</Text>
-                    <Icon name="sparkle" size={18} stroke="#fff" fill="#fff" strokeWidth={1.2} />
+                    <Text
+                        style={{
+                            fontFamily: th.sansBold,
+                            fontSize: 15,
+                            color: "#fff",
+                        }}
+                    >
+                        Plant your garden
+                    </Text>
+                    <Icon
+                        name="sparkle"
+                        size={18}
+                        stroke="#fff"
+                        fill="#fff"
+                        strokeWidth={1.2}
+                    />
                 </Pressable>
             </View>
         </View>
