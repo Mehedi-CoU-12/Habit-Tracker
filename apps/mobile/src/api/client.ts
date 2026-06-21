@@ -62,6 +62,19 @@ export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
     return handle<T>(res);
 }
 
+/**
+ * Multipart upload. Deliberately omits the JSON `Content-Type` so React
+ * Native can set the `multipart/form-data` boundary itself.
+ */
+export async function apiUpload<T>(path: string, form: FormData): Promise<T> {
+    const res = await fetch(`${API_URL}${path}`, {
+        method: "POST",
+        headers: await authHeaders(false),
+        body: form,
+    });
+    return handle<T>(res);
+}
+
 export async function apiPatch<T>(path: string, body?: unknown): Promise<T> {
     const res = await fetch(`${API_URL}${path}`, {
         method: "PATCH",
