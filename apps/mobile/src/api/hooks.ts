@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as api from "./endpoints";
-import { ApiHabit } from "../lib/types";
+import { ApiHabit, UserProfile } from "../lib/types";
 
 export function useMe() {
     return useQuery({
@@ -8,6 +8,14 @@ export function useMe() {
         queryFn: api.fetchMe,
         retry: false,
         staleTime: 5 * 60 * 1000,
+    });
+}
+
+export function useUploadAvatar() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: api.uploadAvatar,
+        onSuccess: (updated) => qc.setQueryData<UserProfile>(["me"], updated),
     });
 }
 
