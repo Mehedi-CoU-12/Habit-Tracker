@@ -1,11 +1,20 @@
 import { useMemo } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import {
+    ActivityIndicator,
+    Alert,
+    Image,
+    Pressable,
+    ScrollView,
+    Text,
+    View,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as ImagePicker from "expo-image-picker";
 import { useBloom, useTheme } from "../../theme/ThemeProvider";
 import { ACCENTS, AccentKey } from "../../theme/tokens";
 import { useAuth } from "../../api/AuthProvider";
-import { useMe, useHabits } from "../../api/hooks";
+import { useMe, useHabits, useUploadAvatar } from "../../api/hooks";
 import { Card, Toggle } from "../../components/primitives";
 import Icon from "../../components/Icon";
 
@@ -16,6 +25,41 @@ export default function SettingsScreen() {
     const router = useRouter();
     const { signOut } = useAuth();
     const { data: me } = useMe();
+    const uploadAvatar = useUploadAvatar();
+
+    async function pickAvatar() {
+        if (uploadAvatar.isPending) return;
+        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!perm.granted) {
+            Alert.alert(
+                "Photo access needed",
+                "Allow photo library access to change your profile picture.",
+            );
+            return;
+        }
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ["images"],
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+        });
+        if (result.canceled) return;
+        const asset = result.assets[0];
+        uploadAvatar.mutate(
+            {
+                uri: asset.uri,
+                mimeType: asset.mimeType,
+                fileName: asset.fileName ?? undefined,
+            },
+            {
+                onError: () =>
+                    Alert.alert(
+                        "Upload failed",
+                        "Could not update your picture. Please try again.",
+                    ),
+            },
+        );
+    }
 
     const now = useMemo(() => new Date(), []);
     const { data: habits = [] } = useHabits(
@@ -168,7 +212,9 @@ export default function SettingsScreen() {
                             gap: 14,
                         }}
                     >
-                        <View
+                        <Pressable
+                            onPress={pickAvatar}
+                            disabled={uploadAvatar.isPending}
                             style={{
                                 width: 56,
                                 height: 56,
@@ -176,18 +222,64 @@ export default function SettingsScreen() {
                                 backgroundColor: "#fff",
                                 alignItems: "center",
                                 justifyContent: "center",
+                                overflow: "hidden",
                             }}
                         >
-                            <Text
+                            {me?.avatarUrl ? (
+                                <Image
+                                    source={{ uri: me.avatarUrl }}
+                                    style={{ width: 56, height: 56 }}
+                                />
+                            ) : (
+                                <Text
+                                    style={{
+                                        fontFamily: th.display,
+                                        fontSize: 22,
+                                        color: th.deep,
+                                    }}
+                                >
+                                    {me?.name?.[0]?.toUpperCase() ?? "?"}
+                                </Text>
+                            )}
+                            {uploadAvatar.isPending && (
+                                <View
+                                    style={{
+                                        position: "absolute",
+                                        top: 0,
+                                        left: 0,
+                                        right: 0,
+                                        bottom: 0,
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        backgroundColor: "rgba(0,0,0,0.35)",
+                                    }}
+                                >
+                                    <ActivityIndicator color="#fff" />
+                                </View>
+                            )}
+                            <View
                                 style={{
-                                    fontFamily: th.display,
-                                    fontSize: 22,
-                                    color: th.deep,
+                                    position: "absolute",
+                                    right: 0,
+                                    bottom: 0,
+                                    width: 20,
+                                    height: 20,
+                                    borderRadius: 10,
+                                    backgroundColor: th.deep,
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    borderWidth: 1.5,
+                                    borderColor: "#fff",
                                 }}
                             >
-                                {me?.name?.[0]?.toUpperCase() ?? "?"}
-                            </Text>
-                        </View>
+                                <Icon
+                                    name="sparkle"
+                                    size={10}
+                                    stroke="#fff"
+                                    strokeWidth={2}
+                                />
+                            </View>
+                        </Pressable>
                         <View style={{ flex: 1 }}>
                             <Text
                                 style={{
