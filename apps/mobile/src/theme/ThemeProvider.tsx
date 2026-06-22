@@ -5,13 +5,7 @@ import React, {
     useMemo,
     useState,
 } from "react";
-import {
-    AccentKey,
-    Density,
-    Layout,
-    Theme,
-    makeTheme,
-} from "./tokens";
+import { AccentKey, Density, Layout, Theme, makeTheme } from "./tokens";
 import { KEYS, storage } from "../lib/storage";
 
 type BloomState = {
