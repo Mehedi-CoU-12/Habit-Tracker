@@ -12,10 +12,20 @@ export const ACCENTS: Record<
     AccentKey,
     { accent: string; soft: string; deep: string; name: string }
 > = {
-    coral: { accent: "#E87842", soft: "#FBC9A8", deep: "#B95826", name: "Coral" },
+    coral: {
+        accent: "#E87842",
+        soft: "#FBC9A8",
+        deep: "#B95826",
+        name: "Coral",
+    },
     fern: { accent: "#5DA45A", soft: "#C2E2BC", deep: "#3A6E39", name: "Fern" },
     sky: { accent: "#4E92CE", soft: "#BCD8EF", deep: "#2C6499", name: "Sky" },
-    berry: { accent: "#D2618E", soft: "#F2BFD3", deep: "#9C3A64", name: "Berry" },
+    berry: {
+        accent: "#D2618E",
+        soft: "#F2BFD3",
+        deep: "#9C3A64",
+        name: "Berry",
+    },
 };
 
 export function hexA(hex: string, a: number): string {
@@ -74,8 +84,24 @@ export function makeTheme(
 
     const d =
         density === "compact"
-            ? { gap: 8, pad: 16, cardPad: 12, rowPad: 10, radius: 16, font: 0.92, plant: 0.88 }
-            : { gap: 12, pad: 22, cardPad: 16, rowPad: 12, radius: 22, font: 1, plant: 1 };
+            ? {
+                  gap: 8,
+                  pad: 16,
+                  cardPad: 12,
+                  rowPad: 10,
+                  radius: 16,
+                  font: 0.92,
+                  plant: 0.88,
+              }
+            : {
+                  gap: 12,
+                  pad: 22,
+                  cardPad: 16,
+                  rowPad: 12,
+                  radius: 22,
+                  font: 1,
+                  plant: 1,
+              };
 
     return {
         ...base,
