@@ -24,7 +24,10 @@ async function bootstrap() {
     /^https?:\/\/(localhost|127\.0\.0\.1|(?:192\.168|10|172\.(?:1[6-9]|2\d|3[01]))\.\d+\.\d+):(3000|8081)$/;
 
   app.enableCors({
-    origin: (origin, callback) => {
+    origin: (
+      origin: string,
+      callback: (params1: any, params2: any) => void,
+    ): any => {
       // No Origin header → native apps (Expo Go / RN), curl, server-to-server.
       if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin) || devOriginPattern.test(origin)) {
