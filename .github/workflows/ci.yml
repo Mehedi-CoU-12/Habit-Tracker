@@ -1,0 +1,72 @@
+# ─────────────────────────────────────────────────────────────────────────
+#  CI  ·  Continuous Integration
+#
+#  This robot runs automatically on every push to `main` and every Pull
+#  Request that targets `main`. It installs the project once, then lints,
+#  type-checks, and builds the whole pnpm workspace (api + web + packages).
+#
+#  If any check fails, the run turns RED and you'll see it on the commit /
+#  PR — so broken code is caught before it spreads.
+# ─────────────────────────────────────────────────────────────────────────
+
+name: CI
+
+# ── WHEN should this run? ────────────────────────────────────────────────
+on:
+    push:
+        branches: [main] # every commit pushed straight to main
+    pull_request:
+        branches: [main] # every PR opened/updated against main
+
+# If you push twice in quick succession, cancel the older, now-outdated run.
+# Saves time and CI minutes — only the latest commit matters.
+concurrency:
+    group: ci-${{ github.ref }}
+    cancel-in-progress: true
+
+# Security best practice: this workflow only needs to READ your code.
+permissions:
+    contents: read
+
+jobs:
+    # A "job" runs on one fresh machine. You can add more jobs later
+    # (e.g. a separate one for the mobile app) and they run in parallel.
+    verify:
+        name: Lint · Type-check · Build
+        runs-on: ubuntu-latest # GitHub gives us a clean Linux machine each run
+
+        steps:
+            # 1. The runner starts EMPTY — first, copy your repository onto it.
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            # 2. Install pnpm. This MUST come before setup-node so that Node's
+            #    dependency cache (step 3) knows about pnpm. The pnpm version is
+            #    read automatically from the "packageManager" field in package.json.
+            - name: Install pnpm
+              uses: pnpm/action-setup@v4
+
+            # 3. Install Node.js 20 (matches your Dockerfile + engines field), and
+            #    turn on caching so repeat runs reuse downloaded packages = faster.
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: pnpm
+
+            # 4. Install dependencies EXACTLY as pinned in pnpm-lock.yaml.
+            #    --frozen-lockfile = fail if the lockfile is out of date, so CI is
+            #    100% reproducible (it never silently changes your dependencies).
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            # 5. The actual checks. Turborepo runs each one across every package
+            #    in the workspace. If ANY fails, the whole job goes red.
+            - name: Lint
+              run: pnpm run lint
+
+            - name: Type-check
+              run: pnpm run check-types
+
+            - name: Build
+              run: pnpm run build
