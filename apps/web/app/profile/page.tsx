@@ -112,6 +112,7 @@ function AvatarSection({
         },
         onError: () =>
             setError("Upload failed. Make sure Cloudinary is configured."),
+        meta: { suppressErrorToast: true },
     });
 
     function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -202,6 +203,7 @@ function ProfileSection({
             setTimeout(() => setSuccess(false), 3000);
         },
         onError: () => setError("Failed to update name."),
+        meta: { suppressErrorToast: true },
     });
 
     return (
@@ -289,6 +291,7 @@ function PasswordSection({
         },
         onError: (err: Error) =>
             setError(err.message ?? "Failed to change password."),
+        meta: { suppressErrorToast: true },
     });
 
     function handleSubmit(e: React.FormEvent) {

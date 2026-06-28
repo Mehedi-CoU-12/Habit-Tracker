@@ -36,9 +36,10 @@ async function handleResponse<T>(res: Response): Promise<T> {
     }
     if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(
-            (body as { message?: string }).message ?? "Request failed",
-        );
+        const raw = (body as { message?: string | string[] }).message;
+        // NestJS ValidationPipe returns `message` as an array of strings.
+        const message = Array.isArray(raw) ? raw.join(", ") : raw;
+        throw new Error(message ?? "Request failed");
     }
     return res.json() as Promise<T>;
 }
