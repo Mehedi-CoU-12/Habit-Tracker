@@ -39,7 +39,7 @@ export default function HabitGrid({
     year: number;
     month: number;
     onToggle: (habitId: string, day: number) => void;
-    onDelete: (habitId: string) => void;
+    onDelete: (habit: HabitWithStats) => void;
     onEdit: (habit: HabitWithStats) => void;
 }) {
     const DAYS = Array.from({ length: daysInMonth }, (_, i) => i + 1);
