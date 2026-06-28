@@ -218,3 +218,15 @@ body {
         opacity: 0;
     }
 }
+
+/* ─── Toast entrance ───────────────────────────────────────── */
+@keyframes toast-in {
+    from {
+        transform: translateY(-12px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
