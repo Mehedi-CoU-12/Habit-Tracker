@@ -25,6 +25,7 @@ import {
     applyTemplate,
     CreateHabitInput,
 } from "../../src/lib/api";
+import { toast } from "../../src/lib/toast";
 import TemplatesModal from "../../components/habits/TemplatesModal";
 import Navbar from "../../components/layout/Navbar";
 import Plant from "../../components/bloom/Plant";
@@ -352,6 +353,7 @@ export default function DashboardPage() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey });
             setShowAddModal(false);
+            toast.success("New habit planted 🌱");
         },
     });
 
@@ -361,20 +363,27 @@ export default function DashboardPage() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey });
             setEditingHabit(null);
+            toast.success("Habit updated");
         },
     });
 
     const templateMutation = useMutation({
         mutationFn: (templateId: string) => applyTemplate(templateId),
-        onSuccess: () => {
+        onSuccess: (data) => {
             queryClient.invalidateQueries({ queryKey });
             setShowTemplatesModal(false);
+            toast.success(
+                `Added ${data.created} habit${data.created === 1 ? "" : "s"}`,
+            );
         },
     });
 
     const deleteMutation = useMutation({
         mutationFn: (habitId: string) => deleteHabit(habitId),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey });
+            toast.success("Habit removed");
+        },
     });
 
     function handleSignOut() {
