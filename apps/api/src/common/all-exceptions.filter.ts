@@ -35,7 +35,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     // Always log on the server with the real error; never leak internals to
     // the client. 5xx = unexpected (log full stack), 4xx = expected (warn).
     const where = `${request?.method} ${request?.url}`;
-    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+    if (status >= (HttpStatus.INTERNAL_SERVER_ERROR as number)) {
       this.logger.error(
         `${where} -> ${status}`,
         exception instanceof Error ? exception.stack : String(exception),
