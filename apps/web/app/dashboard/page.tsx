@@ -27,6 +27,7 @@ import {
 } from "../../src/lib/api";
 import { toast } from "../../src/lib/toast";
 import TemplatesModal from "../../components/habits/TemplatesModal";
+import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import Navbar from "../../components/layout/Navbar";
 import Plant from "../../components/bloom/Plant";
 import BloomIcon from "../../components/bloom/BloomIcon";
@@ -256,6 +257,9 @@ export default function DashboardPage() {
     const [editingHabit, setEditingHabit] = useState<HabitWithStats | null>(
         null,
     );
+    const [deletingHabit, setDeletingHabit] = useState<HabitWithStats | null>(
+        null,
+    );
     const [showTemplatesModal, setShowTemplatesModal] = useState(false);
 
     const queryKey = ["habits", selectedYear, selectedMonth];
@@ -382,6 +386,7 @@ export default function DashboardPage() {
         mutationFn: (habitId: string) => deleteHabit(habitId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey });
+            setDeletingHabit(null);
             toast.success("Habit removed");
         },
     });
@@ -437,6 +442,30 @@ export default function DashboardPage() {
                     loading={templateMutation.isPending}
                 />
             )}
+
+            <ConfirmDialog
+                open={!!deletingHabit}
+                tone="danger"
+                title="Delete this habit?"
+                description={
+                    <>
+                        <span className="font-semibold text-ink">
+                            {deletingHabit?.name}
+                        </span>{" "}
+                        and all of its check-ins will be permanently removed.
+                        This can&apos;t be undone.
+                    </>
+                }
+                confirmLabel="Delete"
+                cancelLabel="Keep it"
+                loading={deleteMutation.isPending}
+                onConfirm={() => {
+                    if (deletingHabit) deleteMutation.mutate(deletingHabit.id);
+                }}
+                onClose={() => {
+                    if (!deleteMutation.isPending) setDeletingHabit(null);
+                }}
+            />
 
             <div className="mx-auto max-w-7xl space-y-6 px-6 py-8">
                 <MonthSelector
@@ -524,9 +553,7 @@ export default function DashboardPage() {
                             onToggle={(habitId, day) =>
                                 toggleMutation.mutate({ habitId, day })
                             }
-                            onDelete={(habitId) =>
-                                deleteMutation.mutate(habitId)
-                            }
+                            onDelete={(habit) => setDeletingHabit(habit)}
                             onEdit={(habit) => setEditingHabit(habit)}
                         />
                     </div>

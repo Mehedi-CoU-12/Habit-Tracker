@@ -63,7 +63,9 @@ const PATHS: Record<string, ReactElement> = {
             <path d="M12 5 v15" />
         </>
     ),
-    droplet: <path d="M12 3 c4 5 6 8 6 11 a6 6 0 0 1 -12 0 c0 -3 2 -6 6 -11z" />,
+    droplet: (
+        <path d="M12 3 c4 5 6 8 6 11 a6 6 0 0 1 -12 0 c0 -3 2 -6 6 -11z" />
+    ),
     dumbbell: (
         <>
             <rect x="2" y="9" width="3" height="6" />
@@ -137,6 +139,15 @@ const PATHS: Record<string, ReactElement> = {
         <>
             <line x1="6" y1="6" x2="18" y2="18" />
             <line x1="18" y1="6" x2="6" y2="18" />
+        </>
+    ),
+    trash: (
+        <>
+            <polyline points="4 7 20 7" />
+            <path d="M9 7 V5 a1 1 0 0 1 1 -1 h4 a1 1 0 0 1 1 1 v2" />
+            <path d="M6 7 l1 13 a1 1 0 0 0 1 1 h8 a1 1 0 0 0 1 -1 l1 -13" />
+            <line x1="10" y1="11" x2="10" y2="17" />
+            <line x1="14" y1="11" x2="14" y2="17" />
         </>
     ),
     grid3: (

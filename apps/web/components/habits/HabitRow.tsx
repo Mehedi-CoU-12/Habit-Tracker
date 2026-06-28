@@ -1,7 +1,5 @@
 // components/habits/HabitRow.tsx
-import { useState } from "react";
 import { HabitWithStats, HabitLog } from "../../app/dashboard/types";
-import { IconCloseSmall } from "../icons/Icon";
 import BloomIcon from "../bloom/BloomIcon";
 
 function isFutureDay(year: number, month: number, day: number): boolean {
@@ -31,11 +29,10 @@ export default function HabitRow({
     year: number;
     month: number;
     onToggle: (habitId: string, day: number) => void;
-    onDelete: (habitId: string) => void;
+    onDelete: (habit: HabitWithStats) => void;
     onEdit: (habit: HabitWithStats) => void;
     isEven: boolean;
 }) {
-    const [confirmDelete, setConfirmDelete] = useState(false);
     const DAYS = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
     function isChecked(day: number) {
@@ -47,7 +44,7 @@ export default function HabitRow({
     const bg = isEven ? "bg-surface" : "bg-surface2/30";
 
     return (
-        <tr className={`${bg} border-b border-line last:border-0`}>
+        <tr className={`group ${bg} border-b border-line last:border-0`}>
             {/* Habit name + delete — sticky */}
             <td className={`sticky left-0 z-10 ${bg} w-44 px-4 py-2`}>
                 <div className="flex items-center gap-2">
@@ -69,39 +66,24 @@ export default function HabitRow({
                             : habit?.name}
                     </span>
 
-                    {confirmDelete ? (
-                        <div className="flex shrink-0 items-center gap-1">
-                            <button
-                                onClick={() => onDelete(habit.id)}
-                                className="cursor-pointer rounded px-1.5 py-0.5 text-xs font-semibold text-white bg-red-500 transition-colors hover:bg-red-600"
-                            >
-                                Yes
-                            </button>
-                            <button
-                                onClick={() => setConfirmDelete(false)}
-                                className="cursor-pointer rounded px-1.5 py-0.5 text-xs font-medium text-muted transition-colors hover:text-ink"
-                            >
-                                No
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="flex shrink-0 items-center gap-1">
-                            <button
-                                onClick={() => onEdit(habit)}
-                                className="cursor-pointer text-line transition-colors hover:text-accent"
-                                aria-label={`Edit ${habit.name}`}
-                            >
-                                <BloomIcon name="pen" size={13} />
-                            </button>
-                            <button
-                                onClick={() => setConfirmDelete(true)}
-                                className="cursor-pointer text-line transition-colors hover:text-red-500"
-                                aria-label={`Delete ${habit.name}`}
-                            >
-                                <IconCloseSmall />
-                            </button>
-                        </div>
-                    )}
+                    <div className="ml-auto flex shrink-0 items-center gap-0.5 opacity-60 transition-opacity group-hover:opacity-100">
+                        <button
+                            onClick={() => onEdit(habit)}
+                            className="cursor-pointer rounded-md p-1 text-muted transition-colors hover:bg-surface2 hover:text-accent"
+                            aria-label={`Edit ${habit.name}`}
+                            title="Edit habit"
+                        >
+                            <BloomIcon name="pen" size={14} />
+                        </button>
+                        <button
+                            onClick={() => onDelete(habit)}
+                            className="cursor-pointer rounded-md p-1 text-muted transition-colors hover:bg-red-500/10 hover:text-red-500"
+                            aria-label={`Delete ${habit.name}`}
+                            title="Delete habit"
+                        >
+                            <BloomIcon name="trash" size={14} />
+                        </button>
+                    </div>
                 </div>
             </td>
 
