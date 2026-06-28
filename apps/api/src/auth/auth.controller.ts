@@ -16,6 +16,20 @@ import { AuthService } from './auth.service.js';
 import { SignupDto } from './dto/signup.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 
+/**
+ * Shape that Passport's Google strategy attaches to the request.
+ * Mirrors what `GoogleStrategy.validate()` passes to `done()`
+ * (see google.strategy.ts).
+ */
+interface GoogleAuthRequest {
+  user: {
+    googleId: string;
+    name: string;
+    email: string;
+    avatarUrl: string | null;
+  };
+}
+
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -44,7 +58,7 @@ export class AuthController {
   /** Step 2 — Google redirects here after the user consents */
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  async googleCallback(@Req() req: any, @Res() res: Response) {
+  async googleCallback(@Req() req: GoogleAuthRequest, @Res() res: Response) {
     const { accessToken } = await this.authService.googleLogin(req.user);
     const frontendUrl =
       this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:3000';

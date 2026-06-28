@@ -60,7 +60,14 @@ jobs:
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
 
-            # 5. The actual checks. Turborepo runs each one across every package
+            # 5. Generate the Prisma Client. Your schema outputs it to a
+            #    GITIGNORED folder (apps/api/generated/prisma), so it does NOT
+            #    exist on CI's clean machine. Without this step every Prisma type
+            #    resolves to `error`, and lint/build fail with ~120 false errors.
+            - name: Generate Prisma Client
+              run: pnpm --filter api exec prisma generate
+
+            # 6. The actual checks. Turborepo runs each one across every package
             #    in the workspace. If ANY fails, the whole job goes red.
             - name: Lint
               run: pnpm run lint
