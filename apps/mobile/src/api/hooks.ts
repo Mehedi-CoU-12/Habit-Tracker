@@ -51,23 +51,23 @@ export function useHabitsHistory(today: Date, monthsBack = 7): MonthHabits[] {
         () => lastNMonths(today, monthsBack),
         [today, monthsBack],
     );
-    const results = useQueries({
+    // `combine` assembles the result so useQueries returns a referentially
+    // stable value (via replaceEqualDeep) — without it useQueries hands back a
+    // fresh array every render, which would defeat the downstream heatmap memos.
+    return useQueries({
         queries: months.map(({ year, month }) => ({
             queryKey: habitsKey(year, month),
             queryFn: () => api.fetchHabits(year, month),
             retry: false,
             staleTime: 5 * 60 * 1000,
         })),
-    });
-    return useMemo(
-        () =>
+        combine: (results) =>
             months.map((m, i) => ({
                 year: m.year,
                 month: m.month,
                 habits: results[i]?.data ?? [],
             })),
-        [months, results],
-    );
+    });
 }
 
 export function useToggleLog(year: number, month: number) {
