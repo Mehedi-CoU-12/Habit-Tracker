@@ -1,41 +1,16 @@
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Rect } from "react-native-svg";
 import { useTheme } from "../../theme/ThemeProvider";
-import { hexA } from "../../theme/tokens";
-import { useHabits } from "../../api/hooks";
-import { deriveHabitStats, daysInMonth } from "../../lib/deriveStats";
-import { buildYearData } from "../../lib/date";
+import { useHabits, useHabitsHistory } from "../../api/hooks";
+import {
+    deriveHabitStats,
+    daysInMonth,
+    buildActivityCells,
+} from "../../lib/deriveStats";
 import { Tod } from "../../lib/types";
 import { SkyWash, Card } from "../../components/primitives";
-
-function Heatmap() {
-    const th = useTheme();
-    const cells = useMemo(() => buildYearData(3), []);
-    return (
-        <Svg viewBox="0 0 312 90" width="100%" height={90}>
-            {cells.map((c) => (
-                <Rect
-                    key={`${c.week}-${c.day}`}
-                    x={c.week * 12}
-                    y={c.day * 12}
-                    width={10}
-                    height={10}
-                    rx={3}
-                    fill={c.level === 0 ? th.surface2 : th.green}
-                    opacity={
-                        c.level === 0
-                            ? th.dark
-                                ? 0.4
-                                : 0.5
-                            : 0.4 + c.level * 0.16
-                    }
-                />
-            ))}
-        </Svg>
-    );
-}
+import Heatmap from "../../components/Heatmap";
 
 export default function StatsScreen() {
     const th = useTheme();
@@ -50,6 +25,12 @@ export default function StatsScreen() {
     const habits = useMemo(
         () => raw.map((h) => deriveHabitStats(h, year, month, dim, now)),
         [raw, year, month, dim, now],
+    );
+
+    const history = useHabitsHistory(now);
+    const activityCells = useMemo(
+        () => buildActivityCells(history, now),
+        [history, now],
     );
 
     const avgRate = habits.length
@@ -236,7 +217,7 @@ export default function StatsScreen() {
                             </Text>
                         </View>
                         <Card pad={14}>
-                            <Heatmap />
+                            <Heatmap cells={activityCells} />
                         </Card>
                     </View>
 
