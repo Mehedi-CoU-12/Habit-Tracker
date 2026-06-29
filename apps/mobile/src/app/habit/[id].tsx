@@ -2,14 +2,22 @@ import { useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Rect } from "react-native-svg";
 import { useTheme } from "../../theme/ThemeProvider";
-import { useHabits, useToggleLog, useDeleteHabit } from "../../api/hooks";
-import { deriveHabitStats, daysInMonth } from "../../lib/deriveStats";
-import { buildYearData } from "../../lib/date";
+import {
+    useHabits,
+    useHabitsHistory,
+    useToggleLog,
+    useDeleteHabit,
+} from "../../api/hooks";
+import {
+    deriveHabitStats,
+    daysInMonth,
+    buildHabitCells,
+} from "../../lib/deriveStats";
 import { SkyWash, Card, Pill, Sparkles } from "../../components/primitives";
 import Plant from "../../components/Plant";
 import Icon from "../../components/Icon";
+import Heatmap from "../../components/Heatmap";
 
 export default function DetailScreen() {
     const th = useTheme();
@@ -32,12 +40,11 @@ export default function DetailScreen() {
         ? deriveHabitStats(apiHabit, year, month, dim, now)
         : null;
 
-    const seed = useMemo(() => {
-        let s = 5;
-        for (const ch of id ?? "") s += ch.charCodeAt(0);
-        return s;
-    }, [id]);
-    const cells = useMemo(() => buildYearData(seed), [seed]);
+    const history = useHabitsHistory(now);
+    const cells = useMemo(
+        () => buildHabitCells(history, id ?? "", now),
+        [history, id, now],
+    );
 
     const goBack = () =>
         router.canGoBack() ? router.back() : router.replace("/");
@@ -320,28 +327,7 @@ export default function DetailScreen() {
                         </Text>
                     </View>
                     <Card pad={14}>
-                        <Svg viewBox="0 0 312 90" width="100%" height={90}>
-                            {cells.map((c) => (
-                                <Rect
-                                    key={`${c.week}-${c.day}`}
-                                    x={c.week * 12}
-                                    y={c.day * 12}
-                                    width={10}
-                                    height={10}
-                                    rx={3}
-                                    fill={
-                                        c.level === 0 ? th.surface2 : th.green
-                                    }
-                                    opacity={
-                                        c.level === 0
-                                            ? th.dark
-                                                ? 0.4
-                                                : 0.5
-                                            : 0.4 + c.level * 0.16
-                                    }
-                                />
-                            ))}
-                        </Svg>
+                        <Heatmap cells={cells} />
                     </Card>
                 </View>
             </ScrollView>
