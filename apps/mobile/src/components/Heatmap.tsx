@@ -1,3 +1,4 @@
+import { memo } from "react";
 import Svg, { Rect } from "react-native-svg";
 import { useTheme } from "../theme/ThemeProvider";
 import { HEATMAP_WEEKS, HeatCell } from "../lib/date";
@@ -9,9 +10,10 @@ const SIZE = 10; // rendered square
  * GitHub-style contribution grid for the ~6-month heatmap. Columns are weeks
  * (oldest → newest), rows are weekdays. Cells come pre-computed from
  * `buildActivityCells` / `buildHabitCells`; `level` 0 renders faint, 1–4 fill
- * with progressively stronger green.
+ * with progressively stronger green. Memoized so a stable `cells` reference
+ * skips re-rendering the 182-rect grid on unrelated parent renders.
  */
-export default function Heatmap({
+function Heatmap({
     cells,
     height = 90,
 }: {
@@ -46,3 +48,5 @@ export default function Heatmap({
         </Svg>
     );
 }
+
+export default memo(Heatmap);
