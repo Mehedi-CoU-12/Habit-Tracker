@@ -1,6 +1,14 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
+import {
+    useMutation,
+    useQueries,
+    useQuery,
+    useQueryClient,
+} from "@tanstack/react-query";
 import * as api from "./endpoints";
 import { ApiHabit, UserProfile } from "../lib/types";
+import { lastNMonths } from "../lib/date";
+import { MonthHabits } from "../lib/deriveStats";
 
 export function useMe() {
     return useQuery({
@@ -29,6 +37,37 @@ export function useHabits(year: number, month: number) {
         queryFn: () => api.fetchHabits(year, month),
         retry: false,
     });
+}
+
+/**
+ * Fetch the trailing `monthsBack` months of habit logs in parallel, reusing the
+ * per-month `habitsKey` cache so the current month is shared with `useHabits`
+ * and a completion toggle refreshes the heatmaps too. 7 months (not 6) ensures
+ * the leftmost week-column of the 26-week grid always has data. Returns one
+ * entry per month for the heatmap builders in `deriveStats`.
+ */
+export function useHabitsHistory(today: Date, monthsBack = 7): MonthHabits[] {
+    const months = useMemo(
+        () => lastNMonths(today, monthsBack),
+        [today, monthsBack],
+    );
+    const results = useQueries({
+        queries: months.map(({ year, month }) => ({
+            queryKey: habitsKey(year, month),
+            queryFn: () => api.fetchHabits(year, month),
+            retry: false,
+            staleTime: 5 * 60 * 1000,
+        })),
+    });
+    return useMemo(
+        () =>
+            months.map((m, i) => ({
+                year: m.year,
+                month: m.month,
+                habits: results[i]?.data ?? [],
+            })),
+        [months, results],
+    );
 }
 
 export function useToggleLog(year: number, month: number) {
