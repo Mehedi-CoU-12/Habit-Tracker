@@ -1,0 +1,47 @@
+# Render Blueprint — deploys the NestJS API (apps/api) from this pnpm monorepo.
+# Docs: https://render.com/docs/blueprint-spec
+#
+# The free plan spins services down after 15 min without inbound traffic.
+# KeepAliveService (apps/api/src/common/keep-alive.service.ts) pings the
+# service's own public URL (RENDER_EXTERNAL_URL, set by Render) every 10 min
+# so it never goes idle.
+
+services:
+    - type: web
+      name: habit-tracker-api
+      runtime: node
+      plan: free
+      region: singapore # change to the region closest to your users
+      rootDir: .
+      # --prod=false forces devDependencies (nest CLI, prisma CLI, typescript)
+      # to install even though NODE_ENV=production on Render.
+      buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false && pnpm --filter api exec prisma generate && pnpm --filter api build
+      # Migrations run at boot because the free plan has no preDeployCommand.
+      # prisma is invoked via its .bin path so the runtime never needs pnpm.
+      startCommand: cd apps/api && ./node_modules/.bin/prisma migrate deploy && node dist/src/main.js
+      healthCheckPath: /health
+      envVars:
+          # Pinned because root engines ">=18" would resolve to the newest
+          # Node, and Node 25+ no longer bundles corepack (used above).
+          - key: NODE_VERSION
+            value: 22.x
+          - key: DATABASE_URL
+            sync: false
+          - key: JWT_SECRET
+            generateValue: true
+          - key: FRONTEND_URL
+            sync: false
+          - key: CORS_ORIGINS
+            sync: false
+          - key: GOOGLE_CLIENT_ID
+            sync: false
+          - key: GOOGLE_CLIENT_SECRET
+            sync: false
+          - key: GOOGLE_CALLBACK_URL
+            sync: false
+          - key: CLOUDINARY_API_KEY
+            sync: false
+          - key: CLOUDINARY_API_SECRET
+            sync: false
+          - key: CLOUDINARY_CLOUD_NAME
+            sync: false

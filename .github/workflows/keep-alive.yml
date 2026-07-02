@@ -1,0 +1,27 @@
+# Backup pinger for the Render deployment. The API keeps itself awake by
+# pinging its own /health every 10 min (KeepAliveService), but a self-ping
+# can't WAKE a service that is already asleep (e.g. after a crash). This
+# external ping can.
+#
+# Setup: add a repository variable RENDER_API_URL (Settings → Secrets and
+# variables → Actions → Variables) set to the service URL, e.g.
+# https://habit-tracker-api.onrender.com — the workflow is a no-op until then.
+#
+# Note: GitHub cron is best-effort (runs may lag several minutes) and gets
+# disabled after 60 days without repo activity — hence backup, not primary.
+
+name: keep-alive
+
+on:
+    schedule:
+        - cron: "*/10 * * * *"
+    workflow_dispatch:
+
+jobs:
+    ping:
+        runs-on: ubuntu-latest
+        if: ${{ vars.RENDER_API_URL != '' }}
+        steps:
+            # --max-time 120 leaves room for a cold start (~1 min) if it did sleep.
+            - name: Ping /health
+              run: curl -fsS --retry 3 --max-time 120 "${{ vars.RENDER_API_URL }}/health"
