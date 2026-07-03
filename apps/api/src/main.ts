@@ -1,28 +1,18 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module.js';
 import { AllExceptionsFilter } from './common/all-exceptions.filter.js';
+import { isAllowedOrigin } from './common/allowed-origins.js';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  // Explicit allow-list (comma-separated CORS_ORIGINS or FRONTEND_URL) plus
-  // sensible dev defaults: the Next.js web app (3000) and the Expo web dev
-  // server (8081).
-  const allowedOrigins = (
-    process.env.CORS_ORIGINS ??
-    process.env.FRONTEND_URL ??
-    'http://localhost:3000,http://localhost:8081'
-  )
-    .split(',')
-    .map((o) => o.trim())
-    .filter(Boolean);
-
-  // Loopback/LAN origins on the common dev ports — lets the web app and the
-  // Expo web build connect from localhost or your machine's LAN IP.
-  const devOriginPattern =
-    /^https?:\/\/(localhost|127\.0\.0\.1|(?:192\.168|10|172\.(?:1[6-9]|2\d|3[01]))\.\d+\.\d+):(3000|8081)$/;
+  // Behind Render/Vercel proxies the client IP is in X-Forwarded-For; trust
+  // the first proxy hop so req.ip is the real caller (rate limiting relies on
+  // it). Adjust the hop count if you add more proxies in front.
+  app.set('trust proxy', 1);
 
   app.enableCors({
     origin: (
@@ -31,7 +21,7 @@ async function bootstrap() {
     ): any => {
       // No Origin header → native apps (Expo Go / RN), curl, server-to-server.
       if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin) || devOriginPattern.test(origin)) {
+      if (isAllowedOrigin(origin)) {
         return callback(null, true);
       }
       return callback(new Error(`Not allowed by CORS: ${origin}`), false);
@@ -40,7 +30,11 @@ async function bootstrap() {
   });
 
   app.useGlobalPipes(
-    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
   );
 
   // Turn every unhandled error (incl. Prisma) into a consistent JSON envelope

@@ -16,7 +16,7 @@ type TemplateHabit = {
   verb?: string;
 };
 
-const TEMPLATES: Record<string, TemplateHabit[]> = {
+export const TEMPLATES: Record<string, TemplateHabit[]> = {
   'morning-routine': [
     {
       name: 'Wake up early',
@@ -139,6 +139,9 @@ const TEMPLATES: Record<string, TemplateHabit[]> = {
     },
   ],
 };
+
+/** IDs of the built-in templates, used for request validation. */
+export const TEMPLATE_IDS = Object.keys(TEMPLATES);
 
 @Injectable()
 export class HabitsService {
