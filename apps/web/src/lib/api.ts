@@ -10,6 +10,16 @@ export type UserProfile = {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
 
+// Identifies this app to the API's ClientGuard so requests aren't rejected as
+// non-app traffic. Not a secret in any real sense (it ships in the browser
+// bundle) — the JWT is the real authorization; this just blocks casual
+// Postman/script calls.
+const APP_CLIENT_KEY = process.env.NEXT_PUBLIC_APP_CLIENT_KEY ?? "";
+
+function clientHeader(): Record<string, string> {
+    return APP_CLIENT_KEY ? { "x-app-client": APP_CLIENT_KEY } : {};
+}
+
 function authHeaders(): HeadersInit {
     const token =
         typeof window !== "undefined"
@@ -17,6 +27,7 @@ function authHeaders(): HeadersInit {
             : null;
     return {
         "Content-Type": "application/json",
+        ...clientHeader(),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
 }
@@ -71,7 +82,10 @@ export async function uploadAvatar(file: File): Promise<UserProfile> {
     form.append("avatar", file);
     const res = await fetch(`${API_URL}/users/me/avatar`, {
         method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: {
+            ...clientHeader(),
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: form,
     });
     return handleResponse<UserProfile>(res);
