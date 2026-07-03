@@ -31,6 +31,12 @@ services:
             sync: false
           - key: JWT_SECRET
             generateValue: true
+          # Shared secret the web/mobile clients echo back as `x-app-client`.
+          # Set the SAME value here and in the web (NEXT_PUBLIC_APP_CLIENT_KEY)
+          # / mobile (EXPO_PUBLIC_APP_CLIENT_KEY) builds — so it can't be
+          # generateValue (each side must know it). Leave unset to disable.
+          - key: APP_CLIENT_KEY
+            sync: false
           - key: FRONTEND_URL
             sync: false
           - key: CORS_ORIGINS
