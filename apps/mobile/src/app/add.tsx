@@ -139,7 +139,7 @@ export default function AddScreen() {
                     <TextInput
                         value={name}
                         onChangeText={setName}
-                        placeholder="Run outside"
+                        placeholder="Habit Name"
                         placeholderTextColor={th.muted}
                         style={{
                             fontFamily: th.display,
