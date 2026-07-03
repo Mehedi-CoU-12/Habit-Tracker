@@ -126,6 +126,31 @@ export default function SignupPage() {
         const password = formData.get("password") as string;
         const confirmPassword = formData.get("confirmPassword") as string;
 
+        if (!name || !email || !password || !confirmPassword) {
+            setError("All fields are required");
+            return;
+        }
+
+        if (name.length > 50) {
+            setError("Name must be at most 50 characters");
+            return;
+        }
+
+        if (password.length < 8) {
+            setError("Password must be at least 8 characters");
+            return;
+        }
+
+        if (password.length > 50) {
+            setError("Password must be at most 50 characters");
+            return;
+        }
+
+        if (confirmPassword.length > 50) {
+            setError("Confirm password must be at most 50 characters");
+            return;
+        }
+
         if (password !== confirmPassword) {
             setError("Passwords do not match");
             return;
