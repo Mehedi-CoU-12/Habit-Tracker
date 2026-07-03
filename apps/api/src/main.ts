@@ -47,7 +47,9 @@ async function bootstrap() {
   // so the web client can always render a meaningful toast.
   app.useGlobalFilters(new AllExceptionsFilter());
 
-  await app.listen(process.env.PORT ?? 3333);
+  // Bind to 0.0.0.0 so the container's port is reachable on hosts like Render
+  // (which inject PORT and route external traffic to it).
+  await app.listen(process.env.PORT ?? 3333, '0.0.0.0');
 }
 
 bootstrap().catch((err) => {

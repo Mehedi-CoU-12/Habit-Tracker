@@ -1,0 +1,49 @@
+# Render Blueprint for the NestJS API (apps/api).
+# Free web service. Pair with an external keep-alive pinger (see docs/deploy-render.md)
+# so the instance never spins down — both the web app and the mobile app hit it.
+services:
+    - type: web
+      name: habit-tracker-api
+      runtime: node
+      plan: free
+      region: singapore # closest Render region to Bangladesh
+      branch: main
+      # Build from the repo root so pnpm resolves the workspace, then operate on
+      # the `api` package: generate the Prisma client, compile, apply migrations.
+      buildCommand: >-
+          corepack enable &&
+          pnpm install --frozen-lockfile &&
+          pnpm --filter api exec prisma generate &&
+          pnpm --filter api build &&
+          pnpm --filter api exec prisma migrate deploy
+      startCommand: pnpm --filter api start:prod
+      healthCheckPath: /health
+      envVars:
+          - key: NODE_VERSION
+            value: "20"
+          - key: NODE_ENV
+            value: production
+          # JWT token lifetime (mirrors .env.example default).
+          - key: JWT_EXPIRE
+            value: 5d
+          # --- Secrets: set these in the Render dashboard (sync:false = not stored in repo) ---
+          - key: DATABASE_URL # Neon POOLED connection string, with ?sslmode=require
+            sync: false
+          - key: JWT_SECRET
+            sync: false
+          - key: FRONTEND_URL # your Vercel web URL, e.g. https://your-app.vercel.app
+            sync: false
+          - key: CORS_ORIGINS # comma-separated allowed web origins (mobile sends none)
+            sync: false
+          - key: GOOGLE_CLIENT_ID
+            sync: false
+          - key: GOOGLE_CLIENT_SECRET
+            sync: false
+          - key: GOOGLE_CALLBACK_URL # https://<service>.onrender.com/auth/google/callback
+            sync: false
+          - key: CLOUDINARY_CLOUD_NAME
+            sync: false
+          - key: CLOUDINARY_API_KEY
+            sync: false
+          - key: CLOUDINARY_API_SECRET
+            sync: false

@@ -9,4 +9,11 @@ export class AppController {
   getHello(): string {
     return this.appService.getHello();
   }
+
+  // Lightweight liveness probe (no DB hit) for Render's health check and the
+  // external keep-alive pinger that stops the free instance from sleeping.
+  @Get('health')
+  getHealth(): { status: string } {
+    return { status: 'ok' };
+  }
 }
