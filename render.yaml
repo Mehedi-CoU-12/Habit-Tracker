@@ -23,6 +23,8 @@ services:
       envVars:
           # Pinned because root engines ">=18" would resolve to the newest
           # Node, and Node 25+ no longer bundles corepack (used above).
+          # The root .node-version file carries the same pin for services
+          # created outside this blueprint; this env var wins when set.
           - key: NODE_VERSION
             value: 22.x
           - key: DATABASE_URL
