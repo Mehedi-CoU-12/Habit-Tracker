@@ -217,12 +217,12 @@ Order rationale: schema first (everything depends on it), **API enforcement befo
 
 ### Phase 1 — Data model & bootstrap (apps/api)
 
-- [ ] Add `Role`, `AccountStatus` enums + `User` fields + `Payment` model to `schema.prisma`
-- [ ] `prisma migrate dev --create-only` → append `UPDATE "User" SET "status" = 'ACTIVE';` → apply locally
-- [ ] Add `payment` getter to `PrismaService`
-- [ ] `pnpm --filter api add -D tsx` (script runner — see §4)
-- [ ] `scripts/promote-admin.ts` (PrismaPg adapter construction per §4) + verify against local DB
-- [ ] Regenerate client; typecheck passes
+- [x] Add `Role`, `AccountStatus` enums + `User` fields + `Payment` model to `schema.prisma`
+- [x] Migration `20260703050000_add_roles_status_payments` (generated via `prisma migrate diff`, backfill appended) → applied via `migrate deploy`; all 6 pre-existing users verified `ACTIVE`
+- [x] Add `payment` getter to `PrismaService`
+- [x] `pnpm --filter api add -D tsx` (script runner — see §4)
+- [x] `scripts/promote-admin.ts` (PrismaPg adapter construction per §4) — plumbing verified against the DB (bogus email → clean "not found" exit)
+- [x] Regenerate client; `nest build` passes
 
 ### Phase 2 — Guard core (apps/api) ← the security boundary
 
