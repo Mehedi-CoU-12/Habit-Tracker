@@ -48,6 +48,7 @@ export default function LoginPage() {
 
     function validateEmail(value: string): string {
         if (!value) return "Email is required";
+        if (value.length > 50) return "Email must be at most 50 characters";
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
             return "Enter a valid email address";
         return "";
@@ -76,6 +77,16 @@ export default function LoginPage() {
 
         const formData = new FormData(event.currentTarget);
         const password = formData.get("password") as string;
+
+        if (!password) {
+            setError("Password is required");
+            return;
+        }
+
+        if (password.length > 50) {
+            setError("Password must be at most 50 characters");
+            return;
+        }
 
         setLoading(true);
         try {
