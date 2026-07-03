@@ -26,6 +26,8 @@ export class UsersService {
         name: true,
         email: true,
         avatarUrl: true,
+        role: true,
+        status: true,
         createdAt: true,
       },
     });

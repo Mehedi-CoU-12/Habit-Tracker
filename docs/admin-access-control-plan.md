@@ -226,14 +226,14 @@ Order rationale: schema first (everything depends on it), **API enforcement befo
 
 ### Phase 2 — Guard core (apps/api) ← the security boundary
 
-- [ ] `JwtStrategy.validate()` → DB lookup, attach `{ id, email, role, status }`, 401 on missing user
-- [ ] `@Public()`, `@AllowInactive()`, `@Roles()` decorators; `StatusGuard`, `RolesGuard`; `JwtAuthGuard` respects `@Public`
-- [ ] Register all three as global `APP_GUARD`s; remove now-redundant class-level `@UseGuards`
-- [ ] Mark routes per the §5.1 table (don't forget `GET /health` — keep-alive depends on it)
-- [ ] `AllExceptionsFilter`: pass through `code`; gate errors use `ACCOUNT_PENDING`/`ACCOUNT_SUSPENDED`
-- [ ] Add `role`/`status` to `/users/me` and to the signup/login `user` payloads
-- [ ] Google callback: redirect with `#token=` fragment instead of `?token=` query param (§5.1; pairs with the Phase 4 web change — both ship in the same merge)
-- [ ] Verify matrix rows 1–4 (§9) locally with curl; exercise rows 5–6 by flipping `status` directly in the DB (Prisma Studio/psql) — the admin endpoint arrives in Phase 3, and DB-flipping actually tests the D2 "same token unblocks" property more purely
+- [x] `JwtStrategy.validate()` → DB lookup, attach `{ id, email, role, status }`, 401 on missing user
+- [x] `@Public()`, `@AllowInactive()`, `@Roles()` decorators; `StatusGuard`, `RolesGuard`; `JwtAuthGuard` respects `@Public`
+- [x] Registered as global `APP_GUARD`s after ClientGuard/ThrottlerGuard (order: Client → Throttle → Jwt → Status → Roles); removed class-level `@UseGuards`
+- [x] Mark routes per the §5.1 table (`@Public` on App/Auth controllers, `@AllowInactive` on `GET /users/me`; health verified reachable unauthenticated)
+- [x] `AllExceptionsFilter`: pass through `code`; gate errors use `ACCOUNT_PENDING`/`ACCOUNT_SUSPENDED`
+- [x] Add `role`/`status` to `/users/me` and to the signup/login `user` payloads
+- [x] Google callback: redirect with `#token=` fragment instead of `?token=` query param (§5.1; pairs with the Phase 4 web change — both ship in the same merge)
+- [x] Verified live (2026-07-03): matrix rows 1–4 via curl against a local boot; rows 5–6 via DB status flips — approve/suspend/delete all take effect on the same token's next request; test user removed afterwards
 
 ### Phase 3 — Admin API (apps/api)
 

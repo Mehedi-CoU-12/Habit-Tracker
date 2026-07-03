@@ -8,16 +8,14 @@ import {
   Post,
   Query,
   Request,
-  UseGuards,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { ApplyTemplateDto } from './dto/apply-template.dto.js';
 import { CreateHabitDto } from './dto/create-habit.dto.js';
 import { UpdateHabitDto } from './dto/update-habit.dto.js';
 import { ToggleLogDto } from './dto/toggle-log.dto.js';
 import { HabitsService } from './habits.service.js';
 
-@UseGuards(JwtAuthGuard)
+// Auth comes from the global guard stack (app.module.ts) — no @UseGuards.
 @Controller('habits')
 export class HabitsController {
   constructor(private readonly habitsService: HabitsService) {}
