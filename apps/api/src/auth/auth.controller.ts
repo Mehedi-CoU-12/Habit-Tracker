@@ -11,10 +11,12 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
+import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { AuthService } from './auth.service.js';
 import { SignupDto } from './dto/signup.dto.js';
 import { LoginDto } from './dto/login.dto.js';
+import { SkipClientGuard } from '../common/skip-client-guard.decorator.js';
 
 /**
  * Shape that Passport's Google strategy attaches to the request.
@@ -37,11 +39,15 @@ export class AuthController {
     private readonly config: ConfigService,
   ) {}
 
+  // Tighter limit than the global default: credential endpoints are the prime
+  // brute-force target, so cap at 10 attempts/minute per IP.
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @Post('signup')
   signup(@Body() dto: SignupDto) {
     return this.authService.signup(dto);
   }
 
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   login(@Body() dto: LoginDto) {
@@ -49,6 +55,7 @@ export class AuthController {
   }
 
   /** Step 1 — redirect the browser to Google */
+  @SkipClientGuard()
   @Get('google')
   @UseGuards(AuthGuard('google'))
   googleAuth() {
@@ -56,6 +63,7 @@ export class AuthController {
   }
 
   /** Step 2 — Google redirects here after the user consents */
+  @SkipClientGuard()
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async googleCallback(@Req() req: GoogleAuthRequest, @Res() res: Response) {

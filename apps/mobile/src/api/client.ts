@@ -23,10 +23,17 @@ export class ApiError extends Error {
     }
 }
 
+// Identifies this app to the API's ClientGuard. The mobile app sends no
+// Origin header, so this is how the API recognises it as legitimate (rather
+// than an arbitrary tool like Postman). Not a hard secret — it ships in the
+// app bundle; the JWT remains the real authorization.
+const APP_CLIENT_KEY = process.env.EXPO_PUBLIC_APP_CLIENT_KEY ?? "";
+
 async function authHeaders(json = true): Promise<Record<string, string>> {
     const token = await storage.get(KEYS.token);
     return {
         ...(json ? { "Content-Type": "application/json" } : {}),
+        ...(APP_CLIENT_KEY ? { "x-app-client": APP_CLIENT_KEY } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
 }

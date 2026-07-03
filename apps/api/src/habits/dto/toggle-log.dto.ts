@@ -1,10 +1,13 @@
-import { IsString, IsInt, Min, Max } from 'class-validator';
+import { IsString, IsInt, Min, Max, IsNotEmpty } from 'class-validator';
 
 export class ToggleLogDto {
   @IsString()
+  @IsNotEmpty()
   habitId: string;
 
   @IsInt()
+  @Min(2000)
+  @Max(2100)
   year: number;
 
   @IsInt()

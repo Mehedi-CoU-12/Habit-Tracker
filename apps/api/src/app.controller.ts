@@ -1,7 +1,10 @@
 import { Controller, Get } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { AppService } from './app.service.js';
+import { SkipClientGuard } from './common/skip-client-guard.decorator.js';
 
 @Controller()
+@SkipClientGuard()
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
@@ -11,6 +14,7 @@ export class AppController {
   }
 
   @Get('health')
+  @SkipThrottle()
   getHealth() {
     return {
       status: 'ok',
