@@ -6,20 +6,22 @@ import {
   Post,
   Request,
   UploadedFile,
-  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { AllowInactive } from '../auth/allow-inactive.decorator.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { UsersService } from './users.service.js';
 
-@UseGuards(JwtAuthGuard)
+// Auth comes from the global guard stack (app.module.ts) — no @UseGuards.
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  // @AllowInactive: PENDING/SUSPENDED accounts poll this to learn their
+  // status and to notice the moment an admin activates them.
+  @AllowInactive()
   @Get('me')
   getMe(@Request() req: { user: { id: string } }) {
     return this.usersService.getMe(req.user.id);

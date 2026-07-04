@@ -7,16 +7,50 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
+enum AccountStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
 model User {
-  id        String     @id @default(cuid())
-  name      String
-  email     String     @unique
-  password  String?
-  googleId  String?    @unique
-  avatarUrl String?
-  habits    Habit[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id              String        @id @default(cuid())
+  name            String
+  email           String        @unique
+  password        String?
+  googleId        String?       @unique
+  avatarUrl       String?
+  role            Role          @default(USER)
+  status          AccountStatus @default(PENDING)
+  statusChangedAt DateTime?
+  statusChangedBy String?
+  statusNote      String?
+  habits          Habit[]
+  payments        Payment[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Payment {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount       Int
+  currency     String   @default("BDT")
+  method       String   @default("CASH")
+  note         String?
+  recordedById String
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Habit {

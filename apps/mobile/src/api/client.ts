@@ -17,10 +17,30 @@ export const API_URL =
 
 export class ApiError extends Error {
     status: number;
-    constructor(message: string, status: number) {
+    /** Machine-readable discriminator, e.g. ACCOUNT_PENDING / ACCOUNT_SUSPENDED. */
+    code?: string;
+    constructor(message: string, status: number, code?: string) {
         super(message);
         this.status = status;
+        this.code = code;
     }
+}
+
+/**
+ * Central auth events, registered by AuthProvider. Most screens swallow query
+ * errors silently, so the gate cannot depend on per-screen handling — these
+ * fire from `handle()` for every response instead.
+ */
+type GateEvents = {
+    /** 401 — the token is dead (expired, or the account was deleted). */
+    onUnauthorized?: () => void;
+    /** 403 ACCOUNT_* — the account was gated (e.g. suspended) mid-session. */
+    onAccountGated?: () => void;
+};
+const gateEvents: GateEvents = {};
+
+export function registerGateEvents(events: GateEvents) {
+    Object.assign(gateEvents, events);
 }
 
 // Identifies this app to the API's ClientGuard. The mobile app sends no
@@ -41,13 +61,23 @@ async function authHeaders(json = true): Promise<Record<string, string>> {
 async function handle<T>(res: Response): Promise<T> {
     if (!res.ok) {
         let message = "Request failed";
+        let code: string | undefined;
         try {
             const body = await res.json();
             message = (body as { message?: string }).message ?? message;
+            code = (body as { code?: string }).code;
         } catch {
             /* non-json error body */
         }
-        throw new ApiError(message, res.status);
+        if (res.status === 401) {
+            gateEvents.onUnauthorized?.();
+        } else if (
+            res.status === 403 &&
+            (code === "ACCOUNT_PENDING" || code === "ACCOUNT_SUSPENDED")
+        ) {
+            gateEvents.onAccountGated?.();
+        }
+        throw new ApiError(message, res.status, code);
     }
     if (res.status === 204) return undefined as T;
     return (await res.json()) as T;

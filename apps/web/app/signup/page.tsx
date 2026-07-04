@@ -108,7 +108,8 @@ export default function SignupPage() {
     });
 
     useEffect(() => {
-        if (me) router.replace("/dashboard");
+        if (me)
+            router.replace(me.status === "ACTIVE" ? "/dashboard" : "/pending");
     }, [me, router]);
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -172,7 +173,10 @@ export default function SignupPage() {
                 return;
             }
             localStorage.setItem("accessToken", data.accessToken);
-            router.push("/dashboard");
+            // New signups start PENDING — straight to the waiting screen.
+            router.push(
+                data.user?.status === "ACTIVE" ? "/dashboard" : "/pending",
+            );
         } catch {
             setError("Network error. Please try again.");
         } finally {
