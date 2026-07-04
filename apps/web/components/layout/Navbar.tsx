@@ -13,7 +13,12 @@ import {
 import BloomIcon from "../bloom/BloomIcon";
 import TweaksMenu from "../bloom/TweaksMenu";
 
-type Me = { name: string; email: string; avatarUrl?: string | null };
+type Me = {
+    name: string;
+    email: string;
+    avatarUrl?: string | null;
+    role?: "USER" | "ADMIN";
+};
 
 type PublicProps = {
     variant: "public";
@@ -152,6 +157,21 @@ export default function Navbar(props: NavbarProps) {
                                             <IconUserSmall />
                                             Profile &amp; settings
                                         </Link>
+                                        {props.me?.role === "ADMIN" && (
+                                            <Link
+                                                href="/admin"
+                                                onClick={() =>
+                                                    setShowUserMenu(false)
+                                                }
+                                                className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-xs text-ink2 transition hover:bg-surface2"
+                                            >
+                                                <BloomIcon
+                                                    name="chart"
+                                                    size={14}
+                                                />
+                                                Admin dashboard
+                                            </Link>
+                                        )}
                                         <button
                                             onClick={() => {
                                                 setShowUserMenu(false);
