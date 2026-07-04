@@ -5,9 +5,11 @@
 
 > **Headline:** Everything the product needs already exists _except_ access control: today, **anyone who signs up (email or Google) gets a working 7-day token instantly**, tokens are never re-checked against the database, and only 2 of 4 controllers have any guard at all. The plan adds two fields (`role`, `status`) and flips the API from "opt-in guards" to "locked by default", then builds the admin surface on top. The API is the only real enforcement point — both clients keep tokens in local storage with purely client-side redirects, so client checks are UX, not security.
 
+
 ---
 
 ## 1. Requirements → features
+
 
 | Your requirement                                                            | Feature in this plan                                                                                                                        |
 | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -237,32 +239,33 @@ Order rationale: schema first (everything depends on it), **API enforcement befo
 
 ### Phase 3 — Admin API (apps/api)
 
-- [ ] `AdminModule` with the 7 endpoints from §5.2, `@Roles(ADMIN)` class-level
-- [ ] Pagination helper (`skip`/`take`, clamp, `{ items, total, page, pageSize }`)
-- [ ] Stats queries (`count`/`groupBy` on `User`, `HabitLog` — logs carry `userId` directly)
-- [ ] Status-change rules: reject self, reject other admins
-- [ ] Verify matrix rows 7–9 with curl
+- [x] `AdminModule` with the 7 endpoints from §5.2, `@Roles(ADMIN)` class-level (`HabitsService` exported from `HabitsModule` for D7 reuse)
+- [x] Pagination helper (`src/common/pagination.ts` — `skip`/`take`, clamp ≤ 100, `{ items, total, page, pageSize }`)
+- [x] Stats queries (`count`/`groupBy` on `User`, `HabitLog`; signups bucketed into 7 zero-filled day buckets)
+- [x] Status-change rules: reject self (400), reject other admins (403) — shared by PATCH status and DELETE
+- [x] Verified live (2026-07-04) against a local boot: row 7 (ACTIVE USER → `/admin/stats` 403), row 8 (own status 400; other admin 403 for PATCH and DELETE), row 9 (`/admin/users/:id/habits` byte-identical to the user's own `GET /habits`); plus approve-with-payment (row 5: same token unblocks on the next request), pageSize=1000 clamps to 100, delete cascades and kills the victim's token (401). Test users removed afterwards.
 
 ### Phase 4 — Web gate (apps/web)
 
-- [ ] `UserProfile` + `role`/`status`; `/pending` page with polling (no 401-allowlist entry — §6.1)
-- [ ] `handleResponse`: 403 `ACCOUNT_*` → `/pending` (401 behavior unchanged: expired pending sessions belong on `/login`)
-- [ ] Status-aware routing in login / signup / the three `if (me)` redirects
-- [ ] `auth/callback`: parse `#token=` fragment (query fallback), `history.replaceState` scrub, fetch `/users/me`, route on status
+- [x] `UserProfile` + `role`/`status`; `/pending` page with 30 s polling + "Check again" + sign-out + suspended variant (no 401-allowlist entry — §6.1)
+- [x] `handleResponse`: 403 `ACCOUNT_*` → `/pending` (401 behavior unchanged: expired pending sessions belong on `/login`)
+- [x] Status-aware routing in login / signup (submit handlers route on the response's `user.status`) and the three `if (me)` redirects (`/`, `/login`, `/signup`)
+- [x] `auth/callback`: parse `#token=` fragment (query fallback), `history.replaceState` scrub, fetch `/users/me`, route on status (StrictMode-safe: falls back to the just-stored token on effect re-run)
 
 ### Phase 5 — Web admin dashboard (apps/web)
 
-- [ ] `/admin` layout + Navbar "Admin" entry
-- [ ] Overview page (stat cards, signups chart, status donut)
-- [ ] Users table: filters, search, pagination, Approve-with-payment / Suspend / Reactivate actions
-- [ ] User detail: progress view reusing dashboard components + payments panel
+- [x] `/admin` layout (client-side role check, Overview/Users tabs, "← My garden") + Navbar avatar-menu "Admin dashboard" entry for admins
+- [x] Overview page (Pending ⚠ / Active / Signups this week / Active today stat cards, 7-day signups line chart, status donut — status palette validated for both themes)
+- [x] Users table: Pending-first status tabs with counts, debounced name/email search, pagination, Approve-with-optional-payment (`PaymentDialog` → POST payment, then PATCH status) / Suspend / Reactivate / Delete via `ConfirmDialog`; admin rows are action-less
+- [x] User detail: profile header (status stamps, total paid, actions), `MonthSelector` + `deriveStats` + `DailyLineChart`/`DonutChart`/`WeeklyOverview`/`TopHabits`/`HabitGrid` over the `/admin/users/:id/habits` payload (read-only), payments panel + "Record payment"
+- [x] Also: `PATCH /users/me` and avatar-upload responses now include `role`/`status` (the profile page writes them into the `["me"]` cache — dropping them would un-admin the navbar until refetch). `next build` passes.
 
 ### Phase 6 — Mobile gate (apps/mobile)
 
-- [ ] Types + `pending.tsx` + AuthGate status branch (on `data.status`, with the §7 error semantics)
-- [ ] 401 → `signOut()` handling (mobile currently has none — expired tokens must land on `/login`, not `/pending`)
-- [ ] `ApiError.code` + hoist/expose `QueryClient` + central 403 `["me"]` invalidation (§7 plumbing)
-- [ ] Signup → `/pending` routing
+- [x] Types + `pending.tsx` (pull-to-refresh + "Check again" + sign-out + suspended variant) + AuthGate status branch keyed on `useMe` **data** (splash only while the fetch is in flight; a network failure falls through to the current screen — offline users are never bounced to `/pending`)
+- [x] 401 → `signOut()` centrally via the api client's gate events (guarded on a present token so failed login attempts don't fire it) — expired tokens land on `/login`, not `/pending`
+- [x] `ApiError.code` + `QueryClient` hoisted to module scope (`src/api/queryClient.ts`) + central 403 `ACCOUNT_*` → invalidate `["me"]` (covers "admin suspends while the app is open")
+- [x] Signup → `/pending` routing (skips onboarding); login also routes on the response's `user.status`. `tsc --noEmit` passes.
 
 ### Phase 7 — Ship & verify
 
