@@ -45,8 +45,12 @@ export default function LoginScreen() {
         setError("");
         setLoading(true);
         try {
-            await signIn(email.trim(), password);
-            router.replace("/");
+            const res = await signIn(email.trim(), password);
+            // Not-yet-approved (or suspended) accounts can log in but wait on
+            // the pending screen instead of the app.
+            router.replace(
+                res.user.status === "ACTIVE" ? "/" : "/pending",
+            );
         } catch (e) {
             setError(e instanceof Error ? e.message : "Login failed");
         } finally {

@@ -26,6 +26,8 @@ export class UsersService {
         name: true,
         email: true,
         avatarUrl: true,
+        role: true,
+        status: true,
         createdAt: true,
       },
     });
@@ -59,11 +61,15 @@ export class UsersService {
     const updated = await this.prisma.user.update({
       where: { id: userId },
       data,
+      // Same shape as GET /users/me — the web client writes this straight
+      // into its cached profile, so role/status must not be dropped.
       select: {
         id: true,
         name: true,
         email: true,
         avatarUrl: true,
+        role: true,
+        status: true,
         createdAt: true,
       },
     });
@@ -91,6 +97,8 @@ export class UsersService {
         name: true,
         email: true,
         avatarUrl: true,
+        role: true,
+        status: true,
         createdAt: true,
       },
     });

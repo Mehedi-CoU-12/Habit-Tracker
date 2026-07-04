@@ -60,7 +60,8 @@ export default function Home() {
     });
 
     useEffect(() => {
-        if (me) router.replace("/dashboard");
+        if (me)
+            router.replace(me.status === "ACTIVE" ? "/dashboard" : "/pending");
     }, [me, router]);
 
     return (

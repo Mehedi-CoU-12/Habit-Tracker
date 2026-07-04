@@ -1,10 +1,18 @@
 import { apiDelete, apiGet, apiPatch, apiPost, apiUpload } from "./client";
-import { ApiHabit, UserProfile } from "../lib/types";
+import { AccountStatus, ApiHabit, UserProfile, UserRole } from "../lib/types";
 
 // ── Auth ──────────────────────────────────────────────────────────────
 export type AuthResult = {
     accessToken: string;
-    user: { id: string; name: string; email: string };
+    user: {
+        id: string;
+        name: string;
+        email: string;
+        avatarUrl: string | null;
+        role: UserRole;
+        // New signups start PENDING — the auth screens route on this.
+        status: AccountStatus;
+    };
 };
 
 export function login(email: string, password: string) {

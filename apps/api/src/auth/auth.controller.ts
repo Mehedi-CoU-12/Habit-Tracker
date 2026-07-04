@@ -17,6 +17,7 @@ import { AuthService } from './auth.service.js';
 import { SignupDto } from './dto/signup.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 import { SkipClientGuard } from '../common/skip-client-guard.decorator.js';
+import { Public } from './public.decorator.js';
 
 /**
  * Shape that Passport's Google strategy attaches to the request.
@@ -32,7 +33,10 @@ interface GoogleAuthRequest {
   };
 }
 
+// @Public: these are the routes that *issue* tokens — the global JwtAuthGuard
+// must not demand one here. Google's redirects also run without our JWT.
 @Controller('auth')
+@Public()
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
@@ -70,6 +74,8 @@ export class AuthController {
     const { accessToken } = await this.authService.googleLogin(req.user);
     const frontendUrl =
       this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:3000';
-    res.redirect(`${frontendUrl}/auth/callback?token=${accessToken}`);
+    // Fragment (#) instead of query (?): fragments never leave the browser,
+    // so the token stays out of server/proxy request logs.
+    res.redirect(`${frontendUrl}/auth/callback#token=${accessToken}`);
   }
 }

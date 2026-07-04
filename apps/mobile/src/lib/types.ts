@@ -40,10 +40,15 @@ export type HabitWithStats = {
     doneToday: boolean;
 };
 
+export type UserRole = "USER" | "ADMIN";
+export type AccountStatus = "PENDING" | "ACTIVE" | "SUSPENDED";
+
 export type UserProfile = {
     id: string;
     name: string;
     email: string;
     avatarUrl: string | null;
+    role: UserRole;
+    status: AccountStatus;
     createdAt: string;
 };

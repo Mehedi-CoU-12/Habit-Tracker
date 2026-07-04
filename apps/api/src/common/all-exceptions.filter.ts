@@ -13,6 +13,9 @@ type ErrorShape = {
   status: number;
   message: string | string[];
   error: string;
+  // Optional machine-readable discriminator (e.g. ACCOUNT_PENDING) so
+  // clients can branch on the reason without parsing human text.
+  code?: string;
 };
 
 /**
@@ -30,7 +33,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
-    const { status, message, error } = this.normalize(exception);
+    const { status, message, error, code } = this.normalize(exception);
 
     // Always log on the server with the real error; never leak internals to
     // the client. 5xx = unexpected (log full stack), 4xx = expected (warn).
@@ -49,6 +52,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       statusCode: status,
       error,
       message,
+      ...(code ? { code } : {}),
     });
   }
 
@@ -59,11 +63,16 @@ export class AllExceptionsFilter implements ExceptionFilter {
       if (typeof res === 'string') {
         return { status, message: res, error: exception.name };
       }
-      const body = res as { message?: string | string[]; error?: string };
+      const body = res as {
+        message?: string | string[];
+        error?: string;
+        code?: string;
+      };
       return {
         status,
         message: body.message ?? exception.message,
         error: body.error ?? exception.name,
+        code: body.code,
       };
     }
 
