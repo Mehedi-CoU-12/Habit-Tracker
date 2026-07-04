@@ -13,6 +13,7 @@ import { StatusGuard } from './auth/status.guard.js';
 import { RolesGuard } from './auth/roles.guard.js';
 import { HabitsModule } from './habits/habits.module.js';
 import { UsersModule } from './users/users.module.js';
+import { AdminModule } from './admin/admin.module.js';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { UsersModule } from './users/users.module.js';
     AuthModule,
     HabitsModule,
     UsersModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [
