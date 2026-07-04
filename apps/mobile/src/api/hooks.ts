@@ -10,12 +10,15 @@ import { ApiHabit, UserProfile } from "../lib/types";
 import { lastNMonths } from "../lib/date";
 import { MonthHabits } from "../lib/deriveStats";
 
-export function useMe() {
+export function useMe(enabled = true) {
     return useQuery({
         queryKey: ["me"],
         queryFn: api.fetchMe,
         retry: false,
         staleTime: 5 * 60 * 1000,
+        // The AuthGate disables this until a token exists, so signed-out
+        // visitors don't fire a guaranteed-401 request on the login screen.
+        enabled,
     });
 }
 

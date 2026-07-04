@@ -49,8 +49,12 @@ export default function SignupScreen() {
             return setError("Password must be at least 8 characters");
         setLoading(true);
         try {
-            await register(name.trim(), email.trim(), password);
-            router.replace("/onboarding");
+            const res = await register(name.trim(), email.trim(), password);
+            // New accounts start PENDING → straight to the waiting screen
+            // (skipping onboarding; it's cosmetic anyway).
+            router.replace(
+                res.user.status === "ACTIVE" ? "/onboarding" : "/pending",
+            );
         } catch (e) {
             setError(e instanceof Error ? e.message : "Signup failed");
         } finally {

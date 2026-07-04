@@ -3,17 +3,25 @@ import React, {
     useCallback,
     useContext,
     useEffect,
+    useRef,
     useState,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { KEYS, storage } from "../lib/storage";
+import { registerGateEvents } from "./client";
 import * as api from "./endpoints";
 
 type AuthState = {
     ready: boolean; // finished reading persisted token
     token: string | null;
-    signIn: (email: string, password: string) => Promise<void>;
-    register: (name: string, email: string, password: string) => Promise<void>;
+    // Both resolve with the API's response so the auth screens can route on
+    // `user.status` (new signups start PENDING).
+    signIn: (email: string, password: string) => Promise<api.AuthResult>;
+    register: (
+        name: string,
+        email: string,
+        password: string,
+    ) => Promise<api.AuthResult>;
     signOut: () => Promise<void>;
 };
 
@@ -40,6 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         async (email: string, password: string) => {
             const res = await api.login(email, password);
             await persistToken(res.accessToken);
+            return res;
         },
         [persistToken],
     );
@@ -48,6 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         async (name: string, email: string, password: string) => {
             const res = await api.signup(name, email, password);
             await persistToken(res.accessToken);
+            return res;
         },
         [persistToken],
     );
@@ -57,6 +67,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setToken(null);
         queryClient.clear();
     }, [queryClient]);
+
+    // Central auth plumbing: most screens swallow query errors silently, so
+    // the api client reports 401/403 here instead of relying on per-screen
+    // handling.
+    const tokenRef = useRef(token);
+    tokenRef.current = token;
+    useEffect(() => {
+        registerGateEvents({
+            // Dead token (expired, or account deleted) → sign out so the
+            // AuthGate lands on /login — NOT the pending screen. Guarded on
+            // a present token so a failed login attempt doesn't fire it.
+            onUnauthorized: () => {
+                if (tokenRef.current) void signOut();
+            },
+            // Account gated mid-session (e.g. admin suspends while the app
+            // is open) → refetch the profile so the AuthGate reacts.
+            onAccountGated: () => {
+                void queryClient.invalidateQueries({ queryKey: ["me"] });
+            },
+        });
+    }, [signOut, queryClient]);
 
     return (
         <Ctx.Provider value={{ ready, token, signIn, register, signOut }}>

@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { View } from "react-native";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
 import { Caprasimo_400Regular } from "@expo-google-fonts/caprasimo";
 import {
@@ -17,23 +17,67 @@ import { JetBrainsMono_500Medium } from "@expo-google-fonts/jetbrains-mono";
 
 import { ThemeProvider, useTheme } from "../theme/ThemeProvider";
 import { AuthProvider, useAuth } from "../api/AuthProvider";
+import { useMe } from "../api/hooks";
+import { queryClient } from "../api/queryClient";
 
-/** Redirects between the auth screens and the app based on token presence. */
+/**
+ * Redirects between the auth screens, the pending screen and the app.
+ * Token presence decides login vs app; the account status from /users/me
+ * (the one endpoint gated accounts may call) decides app vs /pending.
+ */
 function AuthGate() {
+    const th = useTheme();
     const { ready, token } = useAuth();
     const segments = useSegments();
     const router = useRouter();
+
+    // Keyed on DATA, deliberately not on "anything other than ACTIVE":
+    // while the profile loads — or on a network failure — we stay put rather
+    // than bounce an offline user to /pending. A 401 here (dead token) fires
+    // the api client's onUnauthorized → signOut → the !token branch below.
+    const { data: me, isLoading } = useMe(ready && !!token);
 
     useEffect(() => {
         if (!ready) return;
         const top = segments[0];
         const inAuth = top === "login" || top === "signup";
-        if (!token && !inAuth) {
-            router.replace("/login");
-        } else if (token && inAuth) {
+        const onPending = top === "pending";
+
+        if (!token) {
+            if (!inAuth) router.replace("/login");
+            return;
+        }
+        if (inAuth) {
+            router.replace("/");
+            return;
+        }
+        if (!me) return;
+        if (me.status !== "ACTIVE" && !onPending) {
+            router.replace("/pending");
+        } else if (me.status === "ACTIVE" && onPending) {
             router.replace("/");
         }
-    }, [ready, token, segments, router]);
+    }, [ready, token, me, segments, router]);
+
+    // Splash while a signed-in session's status is still unknown, so a gated
+    // account never flashes the tabs before the redirect lands. Only while
+    // the fetch is in flight — a network failure falls through to the
+    // current screen instead of stranding an offline user here.
+    if (ready && token && !me && isLoading) {
+        return (
+            <View
+                style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 10,
+                    backgroundColor: th.bg,
+                }}
+            />
+        );
+    }
 
     return null;
 }
@@ -58,13 +102,6 @@ function RootStack() {
 }
 
 export default function RootLayout() {
-    const [client] = useState(
-        () =>
-            new QueryClient({
-                defaultOptions: { queries: { staleTime: 60 * 1000 } },
-            }),
-    );
-
     const [loaded] = useFonts({
         Caprasimo_400Regular,
         Manrope_400Regular,
@@ -79,7 +116,7 @@ export default function RootLayout() {
 
     return (
         <SafeAreaProvider>
-            <QueryClientProvider client={client}>
+            <QueryClientProvider client={queryClient}>
                 <ThemeProvider>
                     <AuthProvider>
                         <RootStack />
