@@ -1,0 +1,91 @@
+# ─────────────────────────────────────────────────────────────────────────
+#  MIGRATE  ·  Apply Prisma migrations to the LIVE database
+#
+#  This robot runs `prisma migrate deploy` against your production Neon
+#  database. `deploy` is the production-safe command: it only applies
+#  migration files that already exist in apps/api/prisma/migrations/ and
+#  have not run yet. It NEVER creates new migrations, never prompts, and
+#  never resets/drops data.
+#
+#  It runs two ways:
+#    1. Manually  — click "Run workflow" in the Actions tab (workflow_dispatch)
+#    2. On push   — automatically when you push migration changes to `main`
+#
+#  The database URL is read from an encrypted GitHub SECRET named
+#  DATABASE_URL — it is NEVER written into this file or the repo.
+#  Add it at:  Settings → Secrets and variables → Actions → New repository secret
+# ─────────────────────────────────────────────────────────────────────────
+
+name: Migrate DB
+
+# ── WHEN should this run? ────────────────────────────────────────────────
+on:
+    # 1. A manual "Run workflow" button in the Actions tab. Safest for prod —
+    #    you decide exactly when migrations hit the live database.
+    workflow_dispatch:
+
+    # 2. Automatically, but ONLY when the migration files (or schema) change
+    #    on main. Ordinary code pushes won't trigger a needless DB run.
+    push:
+        branches: [main]
+        paths:
+            - "apps/api/prisma/migrations/**"
+            - "apps/api/prisma/schema.prisma"
+
+# Never let two migration runs execute at the same time against the same DB.
+# A second run waits for the first to finish instead of racing it.
+concurrency:
+    group: migrate-production
+    cancel-in-progress: false
+
+# This workflow only needs to READ your code (the DB write goes over the
+# network using the secret, not via any GitHub token).
+permissions:
+    contents: read
+
+jobs:
+    migrate:
+        name: prisma migrate deploy
+        runs-on: ubuntu-latest
+
+        # Binds this job to a GitHub "Environment" called production. Optional
+        # but recommended: in Settings → Environments you can require a manual
+        # approval before the job runs, and scope the DATABASE_URL secret to it.
+        environment: production
+
+        # Prisma reads the connection string from this env var. It is injected
+        # from the encrypted secret for the length of the job only.
+        env:
+            DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+        steps:
+            # 1. Copy the repository onto the fresh runner.
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            # 2. Install pnpm (version comes from "packageManager" in package.json).
+            #    Must come before setup-node so Node's cache knows about pnpm.
+            - name: Install pnpm
+              uses: pnpm/action-setup@v4
+
+            # 3. Install Node (version read from .node-version = 22) with caching.
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version-file: .node-version
+                  cache: pnpm
+
+            # 4. Install dependencies exactly as pinned. We only need the Prisma
+            #    CLI (a devDependency of the api package) to be present.
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            # 5. Show what will be applied — purely informational, so a failure
+            #    here (exit 1 when migrations are pending) must not stop the job.
+            - name: Migration status (before)
+              continue-on-error: true
+              run: pnpm --filter api exec prisma migrate status
+
+            # 6. Apply the pending migrations to the live database.
+            - name: Apply migrations
+              run: pnpm --filter api exec prisma migrate deploy
