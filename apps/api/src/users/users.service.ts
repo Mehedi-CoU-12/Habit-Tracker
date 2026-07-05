@@ -54,9 +54,19 @@ export class UsersService {
         throw new UnauthorizedException('Current password is incorrect');
     }
 
-    const data: { name?: string; password?: string } = {};
+    const data: {
+      name?: string;
+      password?: string;
+      tokenVersion?: { increment: number };
+    } = {};
     if (dto.name) data.name = dto.name;
-    if (dto.newPassword) data.password = await bcrypt.hash(dto.newPassword, 10);
+    if (dto.newPassword) {
+      data.password = await bcrypt.hash(dto.newPassword, 10);
+      // Changing the password revokes every existing session (this device
+      // included) — the next request fails the tokenVersion check and the
+      // client is sent back to sign in with the new password.
+      data.tokenVersion = { increment: 1 };
+    }
 
     const updated = await this.prisma.user.update({
       where: { id: userId },

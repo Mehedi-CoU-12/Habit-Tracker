@@ -9,6 +9,26 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { SignupDto } from './dto/signup.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 
+// Refresh tokens outlive the short access token (see auth.module.ts, 15m).
+// Both are signed with JWT_SECRET and told apart by the `type` claim: a
+// refresh token can never authorize a normal request (JwtStrategy rejects
+// type !== 'access') and an access token can never be refreshed (refresh()
+// requires type === 'refresh').
+const REFRESH_TOKEN_TTL = '30d';
+
+/** The fields every token embeds — id, email (access only), and the version. */
+type TokenUser = { id: string; email: string; tokenVersion: number };
+
+/** Minimal shape returned to clients alongside the tokens. */
+type PublicUser = {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl: string | null;
+  role: 'USER' | 'ADMIN';
+  status: 'PENDING' | 'ACTIVE' | 'SUSPENDED';
+};
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -29,18 +49,7 @@ export class AuthService {
       data: { name: dto.name, email: dto.email, password: hashed },
     });
 
-    const token = this.signToken(user.id, user.email);
-    return {
-      accessToken: token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        avatarUrl: user.avatarUrl,
-        role: user.role,
-        status: user.status,
-      },
-    };
+    return { ...this.issueTokens(user), user: this.publicUser(user) };
   }
 
   async login(dto: LoginDto) {
@@ -57,18 +66,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const token = this.signToken(user.id, user.email);
-    return {
-      accessToken: token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        avatarUrl: user.avatarUrl,
-        role: user.role,
-        status: user.status,
-      },
-    };
+    return { ...this.issueTokens(user), user: this.publicUser(user) };
   }
 
   async googleLogin(googleUser: {
@@ -103,10 +101,83 @@ export class AuthService {
       });
     }
 
-    return { accessToken: this.signToken(user.id, user.email) };
+    return this.issueTokens(user);
   }
 
-  private signToken(userId: string, email: string): string {
-    return this.jwt.sign({ sub: userId, email });
+  /**
+   * Exchange a valid refresh token for a fresh access+refresh pair (sliding
+   * expiry). Rejects if the token isn't a refresh token, the user is gone, or
+   * its tokenVersion has been bumped since (sign-out / password change) — in
+   * which case the client must sign in again.
+   */
+  async refresh(refreshToken: string) {
+    let payload: { sub: string; tokenVersion: number; type?: string };
+    try {
+      payload = this.jwt.verify(refreshToken);
+    } catch {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+    if (payload.type !== 'refresh') {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: { id: true, email: true, tokenVersion: true },
+    });
+    if (!user || user.tokenVersion !== payload.tokenVersion) {
+      throw new UnauthorizedException('Session expired, please sign in again');
+    }
+
+    return this.issueTokens(user);
+  }
+
+  /**
+   * Sign out of ALL sessions: bumping tokenVersion invalidates every access
+   * and refresh token this user currently holds. Idempotent — an invalid or
+   * expired token simply has nothing to revoke, so it still returns success
+   * (the client clears its local tokens regardless).
+   */
+  async logout(refreshToken: string) {
+    try {
+      const payload = this.jwt.verify<{ sub: string; type?: string }>(
+        refreshToken,
+      );
+      if (payload.type === 'refresh') {
+        // updateMany (not update) so a since-deleted user is a no-op, not a throw.
+        await this.prisma.user.updateMany({
+          where: { id: payload.sub },
+          data: { tokenVersion: { increment: 1 } },
+        });
+      }
+    } catch {
+      /* unverifiable token — nothing to revoke */
+    }
+    return { success: true };
+  }
+
+  private issueTokens(user: TokenUser) {
+    const accessToken = this.jwt.sign({
+      sub: user.id,
+      email: user.email,
+      tokenVersion: user.tokenVersion,
+      type: 'access',
+    });
+    const refreshToken = this.jwt.sign(
+      { sub: user.id, tokenVersion: user.tokenVersion, type: 'refresh' },
+      { expiresIn: REFRESH_TOKEN_TTL },
+    );
+    return { accessToken, refreshToken };
+  }
+
+  private publicUser(user: PublicUser): PublicUser {
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      avatarUrl: user.avatarUrl,
+      role: user.role,
+      status: user.status,
+    };
   }
 }
