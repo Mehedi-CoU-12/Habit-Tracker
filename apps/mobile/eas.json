@@ -17,7 +17,8 @@
                 "buildType": "apk"
             },
             "env": {
-                "EXPO_PUBLIC_API_URL": "https://habit-tracker-api-7wzo.onrender.com"
+                "EXPO_PUBLIC_API_URL": "https://habit-tracker-api-7wzo.onrender.com",
+                "EXPO_PUBLIC_APP_CLIENT_KEY": "28e75cbd5e3c52751da30d065aecac9211216a5fe7c20794"
             }
         },
         "production": {
