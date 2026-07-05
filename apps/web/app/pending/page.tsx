@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchMe } from "../../src/lib/api";
+import { fetchMe, logout } from "../../src/lib/api";
 import Plant from "../../components/bloom/Plant";
 import BloomIcon from "../../components/bloom/BloomIcon";
 
@@ -40,8 +40,8 @@ export default function PendingPage() {
         if (me?.status === "ACTIVE") router.replace("/dashboard");
     }, [me, router]);
 
-    function handleSignOut() {
-        localStorage.removeItem("accessToken");
+    async function handleSignOut() {
+        await logout(); // revoke server-side (all sessions) + clear local tokens
         queryClient.removeQueries({ queryKey: ["me"] });
         router.push("/");
     }

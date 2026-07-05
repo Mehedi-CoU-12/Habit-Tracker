@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchMe } from "../../src/lib/api";
+import { fetchMe, setTokens } from "../../src/lib/api";
 import {
     IconEyeClosed,
     IconEyeOpen,
@@ -172,7 +172,7 @@ export default function SignupPage() {
                 setError(data.message ?? "Signup failed");
                 return;
             }
-            localStorage.setItem("accessToken", data.accessToken);
+            setTokens(data.accessToken, data.refreshToken);
             // New signups start PENDING — straight to the waiting screen.
             router.push(
                 data.user?.status === "ACTIVE" ? "/dashboard" : "/pending",
