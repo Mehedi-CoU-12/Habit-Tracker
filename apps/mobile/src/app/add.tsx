@@ -145,7 +145,10 @@ export default function AddScreen() {
                             fontFamily: th.display,
                             fontSize: 30,
                             color: th.ink,
-                            textAlign: "center",
+                            // Android places the caret on the right when an
+                            // empty TextInput is center-aligned; only center
+                            // once there's text so typing always starts left.
+                            textAlign: name ? "center" : "left",
                             paddingVertical: 4,
                         }}
                     />
@@ -165,7 +168,7 @@ export default function AddScreen() {
                             fontFamily: th.sans,
                             fontSize: 13,
                             color: th.ink2,
-                            textAlign: "center",
+                            textAlign: verb ? "center" : "left",
                             marginTop: 10,
                         }}
                     />

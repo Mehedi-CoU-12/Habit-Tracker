@@ -165,9 +165,9 @@ const PATHS: Record<string, (s: string, fill: string) => ReactNode> = {
     ),
     sprout: () => (
         <>
-            <Path d="M12 21 v-8" />
-            <Path d="M12 13 c-4 0 -6 -2 -6 -5 c3 0 6 2 6 5z" />
-            <Path d="M12 13 c4 0 6 -3 6 -7 c-3 0 -6 3 -6 7z" />
+            <Path d="M12 19.5 v-8" />
+            <Path d="M12 11.5 c-4 0 -6 -2 -6 -5 c3 0 6 2 6 5z" />
+            <Path d="M12 11.5 c4 0 6 -3 6 -7 c-3 0 -6 3 -6 7z" />
         </>
     ),
 };
