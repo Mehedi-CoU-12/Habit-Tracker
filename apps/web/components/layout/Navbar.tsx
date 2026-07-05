@@ -34,9 +34,9 @@ type DashboardProps = {
 
 type NavbarProps = PublicProps | DashboardProps;
 
-function Wordmark({ small }: { small?: boolean }) {
+function Wordmark({ small, home }: { small?: boolean; home: string }) {
     return (
-        <Link href="/" className="flex items-center gap-2.5">
+        <Link href={home} className="flex items-center gap-2.5">
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-accent">
                 <BloomIcon
                     name="sprout"
@@ -65,7 +65,12 @@ export default function Navbar(props: NavbarProps) {
                     isDashboard ? "py-3" : "py-4"
                 }`}
             >
-                <Wordmark small={isDashboard} />
+                {/* In-app the logo is a "home" affordance → dashboard. On the
+                    public site it points at the marketing landing page. */}
+                <Wordmark
+                    small={isDashboard}
+                    home={isDashboard ? "/dashboard" : "/"}
+                />
 
                 <div className="flex items-center gap-2">
                     {isDashboard ? (
