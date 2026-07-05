@@ -39,31 +39,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
     }, []);
 
-    const persistToken = useCallback(async (t: string) => {
-        await storage.set(KEYS.token, t);
-        setToken(t);
-    }, []);
+    const persistTokens = useCallback(
+        async (accessToken: string, refreshToken: string) => {
+            await storage.set(KEYS.token, accessToken);
+            await storage.set(KEYS.refreshToken, refreshToken);
+            setToken(accessToken);
+        },
+        [],
+    );
 
     const signIn = useCallback(
         async (email: string, password: string) => {
             const res = await api.login(email, password);
-            await persistToken(res.accessToken);
+            await persistTokens(res.accessToken, res.refreshToken);
             return res;
         },
-        [persistToken],
+        [persistTokens],
     );
 
     const register = useCallback(
         async (name: string, email: string, password: string) => {
             const res = await api.signup(name, email, password);
-            await persistToken(res.accessToken);
+            await persistTokens(res.accessToken, res.refreshToken);
             return res;
         },
-        [persistToken],
+        [persistTokens],
     );
 
     const signOut = useCallback(async () => {
+        // Best-effort server-side revocation (bumps tokenVersion, killing every
+        // session) before dropping the local tokens.
+        const refreshToken = await storage.get(KEYS.refreshToken);
+        if (refreshToken) {
+            try {
+                await api.logout(refreshToken);
+            } catch {
+                /* offline / already invalid — local clear below still signs out */
+            }
+        }
         await storage.remove(KEYS.token);
+        await storage.remove(KEYS.refreshToken);
         setToken(null);
         queryClient.clear();
     }, [queryClient]);

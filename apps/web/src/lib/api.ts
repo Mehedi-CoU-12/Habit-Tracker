@@ -21,30 +21,124 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
 // Postman/script calls.
 const APP_CLIENT_KEY = process.env.NEXT_PUBLIC_APP_CLIENT_KEY ?? "";
 
+// ── Token storage ───────────────────────────────────────────────────────
+// Both tokens live in localStorage (a cross-site web↔API topology rules out
+// httpOnly cookies — see the CSP note in next.config.js). The access token is
+// short-lived (~15m); the refresh token silently mints a new one so the user
+// isn't bounced to login every few minutes.
+const ACCESS_KEY = "accessToken";
+const REFRESH_KEY = "refreshToken";
+
+function getAccessToken(): string | null {
+    return typeof window !== "undefined"
+        ? localStorage.getItem(ACCESS_KEY)
+        : null;
+}
+
+function getRefreshToken(): string | null {
+    return typeof window !== "undefined"
+        ? localStorage.getItem(REFRESH_KEY)
+        : null;
+}
+
+/** Persist the token pair after login/signup/OAuth or a refresh. */
+export function setTokens(accessToken: string, refreshToken?: string | null) {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(ACCESS_KEY, accessToken);
+    if (refreshToken) localStorage.setItem(REFRESH_KEY, refreshToken);
+}
+
+/** Drop both tokens (dead session / sign-out). */
+export function clearTokens() {
+    if (typeof window === "undefined") return;
+    localStorage.removeItem(ACCESS_KEY);
+    localStorage.removeItem(REFRESH_KEY);
+}
+
 function clientHeader(): Record<string, string> {
     return APP_CLIENT_KEY ? { "x-app-client": APP_CLIENT_KEY } : {};
 }
 
-function authHeaders(): HeadersInit {
-    const token =
-        typeof window !== "undefined"
-            ? localStorage.getItem("accessToken")
-            : null;
-    return {
-        "Content-Type": "application/json",
-        ...clientHeader(),
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    };
+// ── Silent refresh ──────────────────────────────────────────────────────
+// A single in-flight refresh is shared across all callers: several requests
+// 401-ing at once trigger exactly one /auth/refresh, then all retry with the
+// fresh token. Resolves to the new access token, or null if refresh failed
+// (in which case the tokens have been cleared and the caller should give up).
+let refreshInFlight: Promise<string | null> | null = null;
+
+function refreshTokens(): Promise<string | null> {
+    if (refreshInFlight) return refreshInFlight;
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) return Promise.resolve(null);
+
+    refreshInFlight = (async () => {
+        try {
+            const res = await fetch(`${API_URL}/auth/refresh`, {
+                method: "POST",
+                headers: {
+                    ...clientHeader(),
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ refreshToken }),
+            });
+            if (!res.ok) {
+                // Refresh token is dead (expired or revoked) — nothing left to
+                // do but sign in again.
+                clearTokens();
+                return null;
+            }
+            const data = (await res.json()) as {
+                accessToken: string;
+                refreshToken: string;
+            };
+            setTokens(data.accessToken, data.refreshToken);
+            return data.accessToken;
+        } catch {
+            // Network error — leave tokens in place so the next request can retry.
+            return null;
+        } finally {
+            refreshInFlight = null;
+        }
+    })();
+    return refreshInFlight;
+}
+
+/**
+ * fetch() wrapper that attaches the client key + bearer token and, on a 401,
+ * transparently refreshes the access token and retries the request once.
+ */
+async function authedFetch(
+    path: string,
+    init: RequestInit = {},
+    isRetry = false,
+): Promise<Response> {
+    const token = getAccessToken();
+    const res = await fetch(`${API_URL}${path}`, {
+        ...init,
+        headers: {
+            ...clientHeader(),
+            ...(init.headers as Record<string, string> | undefined),
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+    });
+
+    if (res.status === 401 && !isRetry && getRefreshToken()) {
+        const newToken = await refreshTokens();
+        if (newToken) return authedFetch(path, init, true);
+    }
+    return res;
 }
 
 async function handleResponse<T>(res: Response): Promise<T> {
     if (res.status === 401) {
+        // Reached here only after a refresh attempt already failed (or there was
+        // no refresh token): the session is truly dead.
         if (typeof window !== "undefined") {
             const isAuthPage = ["/", "/login", "/signup"].includes(
                 window.location.pathname,
             );
             if (!isAuthPage) {
-                localStorage.removeItem("accessToken");
+                clearTokens();
                 window.location.href = "/login";
             }
         }
@@ -72,8 +166,30 @@ async function handleResponse<T>(res: Response): Promise<T> {
     return res.json() as Promise<T>;
 }
 
+const JSON_HEADERS = { "Content-Type": "application/json" };
+
+/**
+ * Sign out of all sessions. Best-effort server revocation (bumps tokenVersion
+ * so every device's tokens die), then always clears local tokens.
+ */
+export async function logout(): Promise<void> {
+    const refreshToken = getRefreshToken();
+    if (refreshToken) {
+        try {
+            await fetch(`${API_URL}/auth/logout`, {
+                method: "POST",
+                headers: { ...clientHeader(), ...JSON_HEADERS },
+                body: JSON.stringify({ refreshToken }),
+            });
+        } catch {
+            /* offline — local clear below still signs the user out here */
+        }
+    }
+    clearTokens();
+}
+
 export async function fetchMe(): Promise<UserProfile> {
-    const res = await fetch(`${API_URL}/users/me`, { headers: authHeaders() });
+    const res = await authedFetch(`/users/me`);
     return handleResponse<UserProfile>(res);
 }
 
@@ -82,27 +198,20 @@ export async function updateProfile(data: {
     currentPassword?: string;
     newPassword?: string;
 }): Promise<UserProfile> {
-    const res = await fetch(`${API_URL}/users/me`, {
+    const res = await authedFetch(`/users/me`, {
         method: "PATCH",
-        headers: authHeaders(),
+        headers: JSON_HEADERS,
         body: JSON.stringify(data),
     });
     return handleResponse<UserProfile>(res);
 }
 
 export async function uploadAvatar(file: File): Promise<UserProfile> {
-    const token =
-        typeof window !== "undefined"
-            ? localStorage.getItem("accessToken")
-            : null;
     const form = new FormData();
     form.append("avatar", file);
-    const res = await fetch(`${API_URL}/users/me/avatar`, {
+    // No Content-Type header — the browser sets the multipart boundary.
+    const res = await authedFetch(`/users/me/avatar`, {
         method: "POST",
-        headers: {
-            ...clientHeader(),
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: form,
     });
     return handleResponse<UserProfile>(res);
@@ -112,9 +221,7 @@ export async function fetchHabits(
     year: number,
     month: number,
 ): Promise<ApiHabit[]> {
-    const res = await fetch(`${API_URL}/habits?year=${year}&month=${month}`, {
-        headers: authHeaders(),
-    });
+    const res = await authedFetch(`/habits?year=${year}&month=${month}`);
     return handleResponse<ApiHabit[]>(res);
 }
 
@@ -127,9 +234,9 @@ export type CreateHabitInput = {
 };
 
 export async function createHabit(input: CreateHabitInput): Promise<ApiHabit> {
-    const res = await fetch(`${API_URL}/habits`, {
+    const res = await authedFetch(`/habits`, {
         method: "POST",
-        headers: authHeaders(),
+        headers: JSON_HEADERS,
         body: JSON.stringify(input),
     });
     return handleResponse<ApiHabit>(res);
@@ -141,28 +248,25 @@ export async function updateHabit(
     id: string,
     input: UpdateHabitInput,
 ): Promise<ApiHabit> {
-    const res = await fetch(`${API_URL}/habits/${id}`, {
+    const res = await authedFetch(`/habits/${id}`, {
         method: "PATCH",
-        headers: authHeaders(),
+        headers: JSON_HEADERS,
         body: JSON.stringify(input),
     });
     return handleResponse<ApiHabit>(res);
 }
 
 export async function deleteHabit(id: string): Promise<void> {
-    const res = await fetch(`${API_URL}/habits/${id}`, {
-        method: "DELETE",
-        headers: authHeaders(),
-    });
+    const res = await authedFetch(`/habits/${id}`, { method: "DELETE" });
     return handleResponse<void>(res);
 }
 
 export async function applyTemplate(
     templateId: string,
 ): Promise<{ created: number }> {
-    const res = await fetch(`${API_URL}/habits/apply-template`, {
+    const res = await authedFetch(`/habits/apply-template`, {
         method: "POST",
-        headers: authHeaders(),
+        headers: JSON_HEADERS,
         body: JSON.stringify({ templateId }),
     });
     return handleResponse<{ created: number }>(res);
@@ -174,9 +278,9 @@ export async function toggleLog(
     month: number,
     day: number,
 ): Promise<{ completed: boolean }> {
-    const res = await fetch(`${API_URL}/habits/logs/toggle`, {
+    const res = await authedFetch(`/habits/logs/toggle`, {
         method: "POST",
-        headers: authHeaders(),
+        headers: JSON_HEADERS,
         body: JSON.stringify({ habitId, year, month, day }),
     });
     return handleResponse<{ completed: boolean }>(res);
@@ -239,9 +343,7 @@ export type AdminUsersPage = {
 };
 
 export async function fetchAdminStats(): Promise<AdminStats> {
-    const res = await fetch(`${API_URL}/admin/stats`, {
-        headers: authHeaders(),
-    });
+    const res = await authedFetch(`/admin/stats`);
     return handleResponse<AdminStats>(res);
 }
 
@@ -254,16 +356,12 @@ export async function fetchAdminUsers(
     if (filter.page) params.set("page", String(filter.page));
     if (filter.pageSize) params.set("pageSize", String(filter.pageSize));
     const qs = params.toString();
-    const res = await fetch(`${API_URL}/admin/users${qs ? `?${qs}` : ""}`, {
-        headers: authHeaders(),
-    });
+    const res = await authedFetch(`/admin/users${qs ? `?${qs}` : ""}`);
     return handleResponse<AdminUsersPage>(res);
 }
 
 export async function fetchAdminUser(id: string): Promise<AdminUserDetail> {
-    const res = await fetch(`${API_URL}/admin/users/${id}`, {
-        headers: authHeaders(),
-    });
+    const res = await authedFetch(`/admin/users/${id}`);
     return handleResponse<AdminUserDetail>(res);
 }
 
@@ -274,9 +372,8 @@ export async function fetchAdminUserHabits(
     year: number,
     month: number,
 ): Promise<ApiHabit[]> {
-    const res = await fetch(
-        `${API_URL}/admin/users/${id}/habits?year=${year}&month=${month}`,
-        { headers: authHeaders() },
+    const res = await authedFetch(
+        `/admin/users/${id}/habits?year=${year}&month=${month}`,
     );
     return handleResponse<ApiHabit[]>(res);
 }
@@ -286,9 +383,9 @@ export async function updateAdminUserStatus(
     status: AccountStatus,
     note?: string,
 ): Promise<AdminUserRow> {
-    const res = await fetch(`${API_URL}/admin/users/${id}/status`, {
+    const res = await authedFetch(`/admin/users/${id}/status`, {
         method: "PATCH",
-        headers: authHeaders(),
+        headers: JSON_HEADERS,
         body: JSON.stringify({ status, ...(note ? { note } : {}) }),
     });
     return handleResponse<AdminUserRow>(res);
@@ -299,9 +396,9 @@ export async function recordAdminPayment(
     amount: number,
     note?: string,
 ): Promise<AdminPayment> {
-    const res = await fetch(`${API_URL}/admin/users/${id}/payments`, {
+    const res = await authedFetch(`/admin/users/${id}/payments`, {
         method: "POST",
-        headers: authHeaders(),
+        headers: JSON_HEADERS,
         body: JSON.stringify({ amount, ...(note ? { note } : {}) }),
     });
     return handleResponse<AdminPayment>(res);
@@ -310,9 +407,6 @@ export async function recordAdminPayment(
 export async function deleteAdminUser(
     id: string,
 ): Promise<{ id: string; deleted: boolean }> {
-    const res = await fetch(`${API_URL}/admin/users/${id}`, {
-        method: "DELETE",
-        headers: authHeaders(),
-    });
+    const res = await authedFetch(`/admin/users/${id}`, { method: "DELETE" });
     return handleResponse<{ id: string; deleted: boolean }>(res);
 }

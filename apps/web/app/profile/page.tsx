@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchMe, updateProfile, uploadAvatar } from "../../src/lib/api";
+import { fetchMe, updateProfile, uploadAvatar, logout } from "../../src/lib/api";
 import { IconChevronLeftSmall } from "../../components/icons/Icon";
 import BloomIcon from "../../components/bloom/BloomIcon";
 
@@ -375,8 +375,8 @@ function DangerSection({
     router: ReturnType<typeof useRouter>;
     queryClient: ReturnType<typeof useQueryClient>;
 }) {
-    function handleSignOut() {
-        localStorage.removeItem("accessToken");
+    async function handleSignOut() {
+        await logout(); // revoke server-side (all sessions) + clear local tokens
         queryClient.removeQueries({ queryKey: ["me"] });
         router.push("/");
     }

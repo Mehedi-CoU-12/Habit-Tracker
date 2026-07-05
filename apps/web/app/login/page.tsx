@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchMe } from "../../src/lib/api";
+import { fetchMe, setTokens } from "../../src/lib/api";
 import {
     IconCheckTiny,
     IconEyeClosed,
@@ -104,7 +104,7 @@ export default function LoginPage() {
                 setError(data.message ?? "Login failed");
                 return;
             }
-            localStorage.setItem("accessToken", data.accessToken);
+            setTokens(data.accessToken, data.refreshToken);
             // PENDING/SUSPENDED accounts can log in but land on the waiting
             // screen instead of the dashboard (§6.1).
             router.push(

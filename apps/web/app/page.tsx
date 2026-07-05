@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { fetchMe } from "../src/lib/api";
@@ -52,17 +52,41 @@ const stats = [
 export default function Home() {
     const router = useRouter();
 
-    const { data: me } = useQuery({
+    // The token lives in localStorage, so a signed-in visitor can only be
+    // detected on the client. Starts false so SSR + first hydration render the
+    // marketing page (correct for logged-out visitors and crawlers); the effect
+    // then flips it if a session exists. Gating the /users/me query on it also
+    // spares logged-out visitors a pointless 401 on every landing-page load.
+    const [hasToken, setHasToken] = useState(false);
+
+    const { data: me, isError } = useQuery({
         queryKey: ["me"],
         queryFn: fetchMe,
         retry: false,
         staleTime: Infinity,
+        enabled: hasToken,
     });
+
+    useEffect(() => {
+        setHasToken(!!localStorage.getItem("accessToken"));
+    }, []);
 
     useEffect(() => {
         if (me)
             router.replace(me.status === "ACTIVE" ? "/dashboard" : "/pending");
     }, [me, router]);
+
+    // A signed-in visitor who reaches "/" (bookmark, typed URL, sign-out race)
+    // gets a lightweight splash instead of a flash of the marketing page while
+    // we resolve where to send them. A dead/expired token makes the query error
+    // (isError) — fall through to the marketing page rather than spin forever.
+    if (hasToken && !isError) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-bg">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-line border-t-accent" />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-bg">

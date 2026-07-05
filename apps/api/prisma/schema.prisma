@@ -30,6 +30,10 @@ model User {
   statusChangedAt DateTime?
   statusChangedBy String?
   statusNote      String?
+  // Bumped to revoke every outstanding token for this user at once (sign-out,
+  // password change). Embedded in each JWT; JwtStrategy rejects a token whose
+  // version no longer matches. See auth.service.ts / jwt.strategy.ts.
+  tokenVersion    Int           @default(0)
   habits          Habit[]
   payments        Payment[]
   createdAt       DateTime      @default(now())
