@@ -4,6 +4,9 @@ import { AccountStatus, ApiHabit, UserProfile, UserRole } from "../lib/types";
 // ── Auth ──────────────────────────────────────────────────────────────
 export type AuthResult = {
     accessToken: string;
+    // Long-lived token the client exchanges for a fresh access token; stored
+    // alongside the access token in secure storage (see AuthProvider).
+    refreshToken: string;
     user: {
         id: string;
         name: string;
@@ -21,6 +24,11 @@ export function login(email: string, password: string) {
 
 export function signup(name: string, email: string, password: string) {
     return apiPost<AuthResult>("/auth/signup", { name, email, password });
+}
+
+/** Revoke all sessions server-side (bumps tokenVersion). Idempotent. */
+export function logout(refreshToken: string) {
+    return apiPost<{ success: boolean }>("/auth/logout", { refreshToken });
 }
 
 export function fetchMe() {
