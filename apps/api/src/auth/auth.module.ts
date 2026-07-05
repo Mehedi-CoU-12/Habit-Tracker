@@ -14,7 +14,11 @@ import { GoogleStrategy } from './google.strategy.js';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.get<string>('JWT_SECRET'),
-        signOptions: { expiresIn: '7d' },
+        // Short-lived access token — the default for jwt.sign(). Refresh
+        // tokens override this with a longer TTL (auth.service.ts). Kept short
+        // so a leaked access token is only useful for minutes; sign-out /
+        // password change revoke instantly via tokenVersion regardless.
+        signOptions: { expiresIn: '15m' },
       }),
     }),
   ],
