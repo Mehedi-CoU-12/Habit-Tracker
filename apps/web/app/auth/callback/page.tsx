@@ -2,26 +2,24 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { fetchMe } from "../../../src/lib/api";
+import { fetchMe, setTokens } from "../../../src/lib/api";
 
 export default function AuthCallbackPage() {
     const router = useRouter();
 
     useEffect(() => {
-        // The API redirects with the token in the URL fragment so it never
-        // reaches server/proxy logs. Query param kept as a fallback for one
+        // The API redirects with the tokens in the URL fragment so they never
+        // reach server/proxy logs. Query param kept as a fallback for one
         // release (older API deploys).
-        const fromHash = new URLSearchParams(
-            window.location.hash.slice(1),
-        ).get("token");
-        const fromQuery = new URLSearchParams(window.location.search).get(
-            "token",
-        );
-        const token = fromHash ?? fromQuery;
+        const hash = new URLSearchParams(window.location.hash.slice(1));
+        const token =
+            hash.get("token") ??
+            new URLSearchParams(window.location.search).get("token");
+        const refresh = hash.get("refresh");
 
         if (token) {
-            localStorage.setItem("accessToken", token);
-            // Scrub the token from the address bar and browser history.
+            setTokens(token, refresh);
+            // Scrub the tokens from the address bar and browser history.
             window.history.replaceState(null, "", window.location.pathname);
         }
 
