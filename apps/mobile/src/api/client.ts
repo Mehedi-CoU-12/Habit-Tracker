@@ -58,6 +58,73 @@ async function authHeaders(json = true): Promise<Record<string, string>> {
     };
 }
 
+// ── Silent refresh ──────────────────────────────────────────────────────
+// The access token is short-lived (~15m); a longer-lived refresh token mints
+// a new one so the user isn't signed out mid-session. A single in-flight
+// refresh is shared, so several requests 401-ing at once trigger exactly one
+// /auth/refresh. Resolves to the new access token, or null if refresh failed.
+let refreshInFlight: Promise<string | null> | null = null;
+
+function attemptRefresh(): Promise<string | null> {
+    if (refreshInFlight) return refreshInFlight;
+    refreshInFlight = (async () => {
+        const refreshToken = await storage.get(KEYS.refreshToken);
+        if (!refreshToken) return null;
+        try {
+            const res = await fetch(`${API_URL}/auth/refresh`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(APP_CLIENT_KEY ? { "x-app-client": APP_CLIENT_KEY } : {}),
+                },
+                body: JSON.stringify({ refreshToken }),
+            });
+            if (!res.ok) {
+                // Refresh token dead (expired or revoked) — drop it; the 401
+                // that follows drives the sign-out via handle().
+                await storage.remove(KEYS.refreshToken);
+                return null;
+            }
+            const data = (await res.json()) as {
+                accessToken: string;
+                refreshToken: string;
+            };
+            await storage.set(KEYS.token, data.accessToken);
+            if (data.refreshToken)
+                await storage.set(KEYS.refreshToken, data.refreshToken);
+            return data.accessToken;
+        } catch {
+            // Network error — keep tokens so the next request can retry.
+            return null;
+        } finally {
+            refreshInFlight = null;
+        }
+    })();
+    return refreshInFlight;
+}
+
+/**
+ * fetch() with the auth headers attached, retried once through a silent token
+ * refresh on a 401. authHeaders() re-reads the (now-refreshed) token, so the
+ * retry carries the new bearer.
+ */
+async function send(
+    path: string,
+    init: RequestInit,
+    json: boolean,
+    isRetry = false,
+): Promise<Response> {
+    const res = await fetch(`${API_URL}${path}`, {
+        ...init,
+        headers: await authHeaders(json),
+    });
+    if (res.status === 401 && !isRetry) {
+        const newToken = await attemptRefresh();
+        if (newToken) return send(path, init, json, true);
+    }
+    return res;
+}
+
 async function handle<T>(res: Response): Promise<T> {
     if (!res.ok) {
         let message = "Request failed";
@@ -84,19 +151,17 @@ async function handle<T>(res: Response): Promise<T> {
 }
 
 export async function apiGet<T>(path: string): Promise<T> {
-    const res = await fetch(`${API_URL}${path}`, {
-        headers: await authHeaders(false),
-    });
-    return handle<T>(res);
+    return handle<T>(await send(path, {}, false));
 }
 
 export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
-    const res = await fetch(`${API_URL}${path}`, {
-        method: "POST",
-        headers: await authHeaders(),
-        body: body ? JSON.stringify(body) : undefined,
-    });
-    return handle<T>(res);
+    return handle<T>(
+        await send(
+            path,
+            { method: "POST", body: body ? JSON.stringify(body) : undefined },
+            true,
+        ),
+    );
 }
 
 /**
@@ -104,27 +169,19 @@ export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
  * Native can set the `multipart/form-data` boundary itself.
  */
 export async function apiUpload<T>(path: string, form: FormData): Promise<T> {
-    const res = await fetch(`${API_URL}${path}`, {
-        method: "POST",
-        headers: await authHeaders(false),
-        body: form,
-    });
-    return handle<T>(res);
+    return handle<T>(await send(path, { method: "POST", body: form }, false));
 }
 
 export async function apiPatch<T>(path: string, body?: unknown): Promise<T> {
-    const res = await fetch(`${API_URL}${path}`, {
-        method: "PATCH",
-        headers: await authHeaders(),
-        body: body ? JSON.stringify(body) : undefined,
-    });
-    return handle<T>(res);
+    return handle<T>(
+        await send(
+            path,
+            { method: "PATCH", body: body ? JSON.stringify(body) : undefined },
+            true,
+        ),
+    );
 }
 
 export async function apiDelete<T>(path: string): Promise<T> {
-    const res = await fetch(`${API_URL}${path}`, {
-        method: "DELETE",
-        headers: await authHeaders(false),
-    });
-    return handle<T>(res);
+    return handle<T>(await send(path, { method: "DELETE" }, false));
 }

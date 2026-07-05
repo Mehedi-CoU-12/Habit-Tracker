@@ -15,6 +15,7 @@ import {
     toggleLog,
     fetchMe,
     applyTemplate,
+    logout,
     CreateHabitInput,
 } from "../../src/lib/api";
 import { toast } from "../../src/lib/toast";
@@ -172,8 +173,8 @@ export function useDashboard() {
         },
     });
 
-    function handleSignOut() {
-        localStorage.removeItem("accessToken");
+    async function handleSignOut() {
+        await logout(); // revoke server-side (all sessions) + clear local tokens
         queryClient.removeQueries({ queryKey: ["me"] });
         router.push("/");
     }

@@ -30,6 +30,7 @@ export const storage = {
 
 export const KEYS = {
     token: "habitflow.token",
+    refreshToken: "habitflow.refreshToken",
     prefs: "habitflow.prefs",
     onboarded: "habitflow.onboarded",
 } as const;
