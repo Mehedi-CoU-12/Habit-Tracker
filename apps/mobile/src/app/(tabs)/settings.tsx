@@ -15,6 +15,7 @@ import { useBloom, useTheme } from "../../theme/ThemeProvider";
 import { ACCENTS, AccentKey } from "../../theme/tokens";
 import { useAuth } from "../../api/AuthProvider";
 import { useMe, useHabits, useUploadAvatar } from "../../api/hooks";
+import { useOnline } from "../../offline/hooks";
 import { Card, Toggle } from "../../components/primitives";
 import Icon from "../../components/Icon";
 
@@ -26,9 +27,19 @@ export default function SettingsScreen() {
     const { signOut } = useAuth();
     const { data: me } = useMe();
     const uploadAvatar = useUploadAvatar();
+    const online = useOnline();
 
     async function pickAvatar() {
         if (uploadAvatar.isPending) return;
+        // Avatar upload is a server-only action (multipart, no offline queue) —
+        // block it while offline rather than fail silently.
+        if (!online) {
+            Alert.alert(
+                "You're offline",
+                "Changing your profile picture needs a connection. Try again once you're back online.",
+            );
+            return;
+        }
         const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!perm.granted) {
             Alert.alert(
