@@ -1,0 +1,12 @@
+{
+    "permissions": {
+        "allow": [
+            "Bash(npx prisma *)",
+            "Bash(npx expo *)",
+            "Bash(npm install *)",
+            "Bash(git commit -m 'feat\\(api\\): idempotent habit log + create for offline sync' -m 'Add PUT /habits/logs \\(setLog\\): sets an absolute completion state for a *)",
+            "Bash(git commit -m 'feat\\(mobile\\): offline-first data layer' -m 'Reads: persist the React Query cache to AsyncStorage \\(PersistQueryClient *)",
+            "Bash(git commit -m 'feat\\(mobile\\): offline UI indicators and sync triggers' -m 'Add OfflineBar showing offline / syncing / retrying state. Swap *)"
+        ]
+    }
+}
