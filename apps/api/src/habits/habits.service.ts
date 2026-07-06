@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateHabitDto } from './dto/create-habit.dto.js';
 import { UpdateHabitDto } from './dto/update-habit.dto.js';
 import { ToggleLogDto } from './dto/toggle-log.dto.js';
+import { SetLogDto } from './dto/set-log.dto.js';
 
 type TemplateHabit = {
   name: string;
@@ -157,9 +158,23 @@ export class HabitsService {
     });
   }
 
-  createHabit(userId: string, dto: CreateHabitDto) {
+  async createHabit(userId: string, dto: CreateHabitDto) {
+    // A client-supplied id makes create idempotent: the mobile app generates the
+    // id up front (so an offline-created habit has a stable id its queued logs
+    // can reference) and the sync worker may resend the same create on retry.
+    // Replaying it must not create a duplicate.
+    if (dto.id) {
+      const existing = await this.prisma.habit.findUnique({
+        where: { id: dto.id },
+      });
+      if (existing) {
+        if (existing.userId !== userId) throw new ForbiddenException();
+        return existing; // already created by an earlier (successful) attempt
+      }
+    }
     return this.prisma.habit.create({
       data: {
+        ...(dto.id ? { id: dto.id } : {}),
         userId,
         name: dto.name,
         goal: dto.goal,
@@ -237,5 +252,31 @@ export class HabitsService {
       data: { habitId, userId, year, month, day },
     });
     return { completed: true };
+  }
+
+  async setLog(userId: string, dto: SetLogDto) {
+    const { habitId, year, month, day, completed } = dto;
+
+    const habit = await this.prisma.habit.findUnique({
+      where: { id: habitId },
+    });
+    if (!habit) throw new NotFoundException('Habit not found');
+    if (habit.userId !== userId) throw new ForbiddenException();
+
+    const where = { habitId_year_month_day: { habitId, year, month, day } };
+    if (completed) {
+      // upsert (not create) so a replayed "done" is a no-op, never a duplicate.
+      await this.prisma.habitLog.upsert({
+        where,
+        create: { habitId, userId, year, month, day },
+        update: {},
+      });
+    } else {
+      // deleteMany (not delete) so clearing an already-absent cell is a no-op.
+      await this.prisma.habitLog.deleteMany({
+        where: { habitId, year, month, day },
+      });
+    }
+    return { completed };
   }
 }
