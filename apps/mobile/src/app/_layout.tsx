@@ -3,7 +3,7 @@ import { View } from "react-native";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { useFonts } from "expo-font";
 import { Caprasimo_400Regular } from "@expo-google-fonts/caprasimo";
 import {
@@ -18,7 +18,9 @@ import { JetBrainsMono_500Medium } from "@expo-google-fonts/jetbrains-mono";
 import { ThemeProvider, useTheme } from "../theme/ThemeProvider";
 import { AuthProvider, useAuth } from "../api/AuthProvider";
 import { useMe } from "../api/hooks";
-import { queryClient } from "../api/queryClient";
+import { persistOptions, queryClient } from "../api/queryClient";
+import { startSync } from "../offline/sync";
+import OfflineBar from "../components/OfflineBar";
 
 /**
  * Redirects between the auth screens, the pending screen and the app.
@@ -84,10 +86,15 @@ function AuthGate() {
 
 function RootStack() {
     const th = useTheme();
+    // Wire the offline sync triggers once (reconnect / foreground / startup).
+    useEffect(() => {
+        startSync();
+    }, []);
     return (
         <View style={{ flex: 1, backgroundColor: th.bg }}>
             <StatusBar style={th.dark ? "light" : "dark"} />
             <AuthGate />
+            <OfflineBar />
             <Stack
                 screenOptions={{
                     headerShown: false,
@@ -116,13 +123,16 @@ export default function RootLayout() {
 
     return (
         <SafeAreaProvider>
-            <QueryClientProvider client={queryClient}>
+            <PersistQueryClientProvider
+                client={queryClient}
+                persistOptions={persistOptions}
+            >
                 <ThemeProvider>
                     <AuthProvider>
                         <RootStack />
                     </AuthProvider>
                 </ThemeProvider>
-            </QueryClientProvider>
+            </PersistQueryClientProvider>
         </SafeAreaProvider>
     );
 }
