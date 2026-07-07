@@ -23,6 +23,14 @@ const trim = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() : value;
 
 export class CreateHabitDto {
+  // Optional client-generated id (mobile offline create). When present the
+  // server adopts it as the primary key, which makes create idempotent on
+  // retry. Bounded so it can't be abused as an arbitrary blob.
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  id?: string;
+
   @IsString()
   @Transform(trim)
   @IsNotEmpty()

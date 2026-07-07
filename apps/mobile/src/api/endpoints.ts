@@ -1,4 +1,11 @@
-import { apiDelete, apiGet, apiPatch, apiPost, apiUpload } from "./client";
+import {
+    apiDelete,
+    apiGet,
+    apiPatch,
+    apiPost,
+    apiPut,
+    apiUpload,
+} from "./client";
 import { AccountStatus, ApiHabit, UserProfile, UserRole } from "../lib/types";
 
 // ── Auth ──────────────────────────────────────────────────────────────
@@ -61,6 +68,9 @@ export function fetchHabits(year: number, month: number) {
 }
 
 export function createHabit(input: {
+    // Optional client-generated id — supplied by the offline outbox so the
+    // create is idempotent and the habit keeps a stable id from birth.
+    id?: string;
     name: string;
     goal: number;
     icon?: string;
@@ -98,6 +108,26 @@ export function toggleLog(
         year,
         month,
         day,
+    });
+}
+
+/**
+ * Idempotent absolute form of toggleLog — sets the (habit, date) completion to
+ * an explicit boolean. The offline sync worker uses this so replays converge.
+ */
+export function setLog(
+    habitId: string,
+    year: number,
+    month: number,
+    day: number,
+    completed: boolean,
+) {
+    return apiPut<{ completed: boolean }>("/habits/logs", {
+        habitId,
+        year,
+        month,
+        day,
+        completed,
     });
 }
 
