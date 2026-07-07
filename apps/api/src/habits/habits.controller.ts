@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   Request,
 } from '@nestjs/common';
@@ -13,6 +14,7 @@ import { ApplyTemplateDto } from './dto/apply-template.dto.js';
 import { CreateHabitDto } from './dto/create-habit.dto.js';
 import { UpdateHabitDto } from './dto/update-habit.dto.js';
 import { ToggleLogDto } from './dto/toggle-log.dto.js';
+import { SetLogDto } from './dto/set-log.dto.js';
 import { HabitsService } from './habits.service.js';
 
 // Auth comes from the global guard stack (app.module.ts) — no @UseGuards.
@@ -73,5 +75,13 @@ export class HabitsController {
     @Body() dto: ToggleLogDto,
   ) {
     return this.habitsService.toggleLog(req.user.id, dto);
+  }
+
+  // Idempotent counterpart of logs/toggle — the mobile offline sync uses this so
+  // replayed writes converge instead of flipping state. PUT because it sets an
+  // absolute state for the (habit, date) cell.
+  @Put('logs')
+  setLog(@Request() req: { user: { id: string } }, @Body() dto: SetLogDto) {
+    return this.habitsService.setLog(req.user.id, dto);
   }
 }

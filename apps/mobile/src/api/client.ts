@@ -62,28 +62,48 @@ async function authHeaders(json = true): Promise<Record<string, string>> {
 // The access token is short-lived (~15m); a longer-lived refresh token mints
 // a new one so the user isn't signed out mid-session. A single in-flight
 // refresh is shared, so several requests 401-ing at once trigger exactly one
-// /auth/refresh. Resolves to the new access token, or null if refresh failed.
-let refreshInFlight: Promise<string | null> | null = null;
+// /auth/refresh.
+//
+// The result is a discriminated outcome, NOT a nullable token, because "the
+// refresh failed" has two very different meanings that must not be conflated:
+//   - "dead":    the server rejected the refresh token (expired/revoked) — the
+//                session is genuinely over and the user must sign in again.
+//   - "offline": we could not reach the server (network/transport error) — the
+//                session is still valid; fail this one request and retry later.
+// Treating an "offline" failure as "dead" would sign the user out on a flaky
+// connection (and, via signOut()'s server logout, revoke a still-valid token).
+type RefreshResult =
+    | { status: "ok"; token: string }
+    | { status: "dead" }
+    | { status: "offline" };
 
-function attemptRefresh(): Promise<string | null> {
+let refreshInFlight: Promise<RefreshResult> | null = null;
+
+function attemptRefresh(): Promise<RefreshResult> {
     if (refreshInFlight) return refreshInFlight;
     refreshInFlight = (async () => {
         const refreshToken = await storage.get(KEYS.refreshToken);
-        if (!refreshToken) return null;
+        if (!refreshToken) return { status: "dead" };
         try {
             const res = await fetch(`${API_URL}/auth/refresh`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    ...(APP_CLIENT_KEY ? { "x-app-client": APP_CLIENT_KEY } : {}),
+                    ...(APP_CLIENT_KEY
+                        ? { "x-app-client": APP_CLIENT_KEY }
+                        : {}),
                 },
                 body: JSON.stringify({ refreshToken }),
             });
-            if (!res.ok) {
-                // Refresh token dead (expired or revoked) — drop it; the 401
-                // that follows drives the sign-out via handle().
+            if (res.status === 401 || res.status === 403) {
+                // Server rejected the refresh token (expired or revoked) — drop
+                // it; the caller signs out.
                 await storage.remove(KEYS.refreshToken);
-                return null;
+                return { status: "dead" };
+            }
+            if (!res.ok) {
+                // 5xx / unexpected — treat as transient; keep tokens and retry.
+                return { status: "offline" };
             }
             const data = (await res.json()) as {
                 accessToken: string;
@@ -92,10 +112,10 @@ function attemptRefresh(): Promise<string | null> {
             await storage.set(KEYS.token, data.accessToken);
             if (data.refreshToken)
                 await storage.set(KEYS.refreshToken, data.refreshToken);
-            return data.accessToken;
+            return { status: "ok", token: data.accessToken };
         } catch {
-            // Network error — keep tokens so the next request can retry.
-            return null;
+            // Network error — keep tokens so a later request can retry.
+            return { status: "offline" };
         } finally {
             refreshInFlight = null;
         }
@@ -119,8 +139,15 @@ async function send(
         headers: await authHeaders(json),
     });
     if (res.status === 401 && !isRetry) {
-        const newToken = await attemptRefresh();
-        if (newToken) return send(path, init, json, true);
+        const refreshed = await attemptRefresh();
+        if (refreshed.status === "ok") return send(path, init, json, true);
+        if (refreshed.status === "offline") {
+            // Could not reach the server to refresh — do NOT let this 401 reach
+            // handle(), which would sign the user out. Surface a network-style
+            // error the query can retry once connectivity returns.
+            throw new ApiError("Network error during token refresh", 0);
+        }
+        // "dead": fall through and return the 401 so handle() signs out.
     }
     return res;
 }
@@ -177,6 +204,16 @@ export async function apiPatch<T>(path: string, body?: unknown): Promise<T> {
         await send(
             path,
             { method: "PATCH", body: body ? JSON.stringify(body) : undefined },
+            true,
+        ),
+    );
+}
+
+export async function apiPut<T>(path: string, body?: unknown): Promise<T> {
+    return handle<T>(
+        await send(
+            path,
+            { method: "PUT", body: body ? JSON.stringify(body) : undefined },
             true,
         ),
     );
