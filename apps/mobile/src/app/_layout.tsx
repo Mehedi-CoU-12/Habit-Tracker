@@ -21,6 +21,7 @@ import { useMe } from "../api/hooks";
 import { persistOptions, queryClient } from "../api/queryClient";
 import { startSync } from "../offline/sync";
 import OfflineBar from "../components/OfflineBar";
+import SyncPill from "../components/SyncPill";
 
 /**
  * Redirects between the auth screens, the pending screen and the app.
@@ -95,6 +96,7 @@ function RootStack() {
             <StatusBar style={th.dark ? "light" : "dark"} />
             <AuthGate />
             <OfflineBar />
+            <SyncPill />
             <Stack
                 screenOptions={{
                     headerShown: false,
