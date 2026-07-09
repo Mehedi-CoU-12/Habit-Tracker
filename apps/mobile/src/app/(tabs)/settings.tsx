@@ -3,6 +3,7 @@ import {
     ActivityIndicator,
     Alert,
     Image,
+    Linking,
     Pressable,
     ScrollView,
     Text,
@@ -16,8 +17,36 @@ import { ACCENTS, AccentKey } from "../../theme/tokens";
 import { useAuth } from "../../api/AuthProvider";
 import { useMe, useHabits, useUploadAvatar } from "../../api/hooks";
 import { useOnline } from "../../offline/hooks";
+import {
+    requestPermission,
+    syncReminders,
+    useReminderPrefs,
+} from "../../notifications";
+import {
+    setEnabled,
+    setOverride,
+    setQuietHours,
+    toggleHabitTime,
+} from "../../notifications/store";
+import {
+    PRESET_TIMES,
+    TOD_DEFAULT_TIME,
+    effectiveReminder,
+} from "../../notifications/types";
+import type { Tod } from "../../lib/types";
 import { Card, Toggle } from "../../components/primitives";
 import Icon from "../../components/Icon";
+
+const TODS: Tod[] = ["morning", "afternoon", "evening", "anytime"];
+const asTod = (t: string): Tod => (TODS.includes(t as Tod) ? (t as Tod) : "anytime");
+
+/** "08:00" → "8:00 AM" for display. */
+function fmtTime(t: string): string {
+    const [h, m] = t.split(":").map(Number);
+    const ampm = h < 12 ? "AM" : "PM";
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
+}
 
 export default function SettingsScreen() {
     const th = useTheme();
@@ -77,6 +106,39 @@ export default function SettingsScreen() {
         now.getFullYear(),
         now.getMonth() + 1,
     );
+
+    const reminders = useReminderPrefs();
+    const enabledCount = reminders.enabled
+        ? habits.filter(
+              (h) => effectiveReminder(h.id, asTod(h.tod), reminders).enabled,
+          ).length
+        : 0;
+
+    async function toggleReminders() {
+        if (reminders.enabled) {
+            await setEnabled(false);
+            void syncReminders();
+            return;
+        }
+        // Ask for permission only here — an explicit opt-in, never on launch.
+        const ok = await requestPermission();
+        if (!ok) {
+            Alert.alert(
+                "Notifications are off",
+                "Turn on notifications for HabitFlow in your device settings to get habit reminders.",
+                [
+                    { text: "Not now", style: "cancel" },
+                    {
+                        text: "Open settings",
+                        onPress: () => Linking.openSettings(),
+                    },
+                ],
+            );
+            return;
+        }
+        await setEnabled(true);
+        void syncReminders();
+    }
 
     const Section = ({
         title,
@@ -450,16 +512,171 @@ export default function SettingsScreen() {
                     <Row
                         first
                         icon="bell"
-                        label="Morning nudge"
-                        hint="7:00am · daily"
-                        right={<Toggle on />}
+                        label="Habit reminders"
+                        hint={
+                            reminders.enabled
+                                ? `On · ${enabledCount} habit${enabledCount === 1 ? "" : "s"}`
+                                : "Off · get nudged for what's still pending"
+                        }
+                        right={
+                            <Toggle
+                                on={reminders.enabled}
+                                onPress={toggleReminders}
+                            />
+                        }
                     />
-                    <Row
-                        icon="moonStars"
-                        label="Wind down"
-                        hint="9:30pm · daily"
-                        right={<Toggle on />}
-                    />
+                    {reminders.enabled && (
+                        <Row
+                            icon="moonStars"
+                            label="Quiet hours"
+                            hint="10:00 PM – 7:00 AM silenced"
+                            right={
+                                <Toggle
+                                    on={reminders.quietHours}
+                                    onPress={() => {
+                                        void setQuietHours(
+                                            !reminders.quietHours,
+                                        ).then(syncReminders);
+                                    }}
+                                />
+                            }
+                        />
+                    )}
+                    {reminders.enabled && habits.length === 0 && (
+                        <Row
+                            icon="sprout"
+                            label="No habits yet"
+                            hint="Add a habit to set a reminder"
+                        />
+                    )}
+                    {reminders.enabled &&
+                        habits.map((h) => {
+                            const eff = effectiveReminder(
+                                h.id,
+                                asTod(h.tod),
+                                reminders,
+                            );
+                            return (
+                                <View
+                                    key={h.id}
+                                    style={{
+                                        borderTopWidth: 1.5,
+                                        borderTopColor: th.bg,
+                                        paddingVertical: 12,
+                                        paddingHorizontal: 16,
+                                    }}
+                                >
+                                    <View
+                                        style={{
+                                            flexDirection: "row",
+                                            alignItems: "center",
+                                            gap: 12,
+                                        }}
+                                    >
+                                        <Icon
+                                            name={h.icon || "sprout"}
+                                            size={18}
+                                            stroke={th.ink2}
+                                            strokeWidth={1.7}
+                                        />
+                                        <View style={{ flex: 1 }}>
+                                            <Text
+                                                style={{
+                                                    fontSize: 14.5,
+                                                    color: th.ink,
+                                                    fontFamily: th.sans,
+                                                }}
+                                                numberOfLines={1}
+                                            >
+                                                {h.name}
+                                            </Text>
+                                            <Text
+                                                style={{
+                                                    fontSize: 12,
+                                                    color: th.muted,
+                                                    marginTop: 2,
+                                                }}
+                                            >
+                                                {eff.enabled
+                                                    ? eff.times
+                                                          .map(fmtTime)
+                                                          .join(" · ")
+                                                    : "No reminder"}
+                                            </Text>
+                                        </View>
+                                        <Toggle
+                                            on={eff.enabled}
+                                            onPress={() => {
+                                                const patch = eff.enabled
+                                                    ? { enabled: false }
+                                                    : {
+                                                          enabled: true,
+                                                          times: [
+                                                              TOD_DEFAULT_TIME[
+                                                                  asTod(h.tod)
+                                                              ],
+                                                          ],
+                                                      };
+                                                void setOverride(
+                                                    h.id,
+                                                    patch,
+                                                ).then(syncReminders);
+                                            }}
+                                        />
+                                    </View>
+                                    {eff.enabled && (
+                                        <View
+                                            style={{
+                                                flexDirection: "row",
+                                                flexWrap: "wrap",
+                                                gap: 6,
+                                                marginTop: 10,
+                                                marginLeft: 30,
+                                            }}
+                                        >
+                                            {PRESET_TIMES.map((p) => {
+                                                const on = eff.times.includes(
+                                                    p.time,
+                                                );
+                                                return (
+                                                    <Pressable
+                                                        key={p.time}
+                                                        onPress={() => {
+                                                            void toggleHabitTime(
+                                                                h.id,
+                                                                p.time,
+                                                                eff.times,
+                                                            ).then(syncReminders);
+                                                        }}
+                                                        style={{
+                                                            paddingVertical: 5,
+                                                            paddingHorizontal: 11,
+                                                            borderRadius: 14,
+                                                            backgroundColor: on
+                                                                ? th.accent
+                                                                : th.surface2,
+                                                        }}
+                                                    >
+                                                        <Text
+                                                            style={{
+                                                                fontSize: 12,
+                                                                fontFamily:
+                                                                    th.sansBold,
+                                                                color: on
+                                                                    ? "#fff"
+                                                                    : th.ink2,
+                                                            }}
+                                                        >
+                                                            {p.label}
+                                                        </Text>
+                                                    </Pressable>
+                                                );
+                                            })}
+                                        </View>
+                                    )}
+                                </View>
+                            );
+                        })}
                 </Section>
 
                 <Section title="DATA">

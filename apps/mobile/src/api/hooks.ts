@@ -12,6 +12,7 @@ import { MonthHabits } from "../lib/deriveStats";
 import { newId } from "../offline/ids";
 import { enqueue, type HabitPatch } from "../offline/outbox";
 import { runSync } from "../offline/sync";
+import { syncReminders } from "../notifications";
 
 // Strip undefined keys so a merged patch / optimistic spread never blanks a
 // field that wasn't actually edited.
@@ -146,6 +147,8 @@ export function useToggleLog(year: number, month: number) {
                 completed,
             });
             void runSync();
+            // A completion (or un-completion) changes what still needs a nudge.
+            void syncReminders();
             return { completed };
         },
     });
@@ -195,6 +198,8 @@ export function useCreateHabit(_year: number, _month: number) {
                 },
             });
             void runSync();
+            // New habit → it should start getting reminders (tod default time).
+            void syncReminders();
             return optimistic;
         },
     });
@@ -219,6 +224,8 @@ export function useUpdateHabit(_year: number, _month: number) {
             );
             await enqueue({ kind: "habit.update", id, patch });
             void runSync();
+            // Name/tod change → reminder copy or default time may shift.
+            void syncReminders();
         },
     });
 }
@@ -232,6 +239,8 @@ export function useDeleteHabit(_year: number, _month: number) {
             );
             await enqueue({ kind: "habit.delete", id });
             void runSync();
+            // Deleted habit → drop its pending reminders.
+            void syncReminders();
         },
     });
 }
