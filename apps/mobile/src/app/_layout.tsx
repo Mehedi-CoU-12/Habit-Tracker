@@ -20,7 +20,9 @@ import { AuthProvider, useAuth } from "../api/AuthProvider";
 import { useMe } from "../api/hooks";
 import { persistOptions, queryClient } from "../api/queryClient";
 import { startSync } from "../offline/sync";
+import { startReminders } from "../notifications";
 import OfflineBar from "../components/OfflineBar";
+import SyncPill from "../components/SyncPill";
 
 /**
  * Redirects between the auth screens, the pending screen and the app.
@@ -86,15 +88,18 @@ function AuthGate() {
 
 function RootStack() {
     const th = useTheme();
-    // Wire the offline sync triggers once (reconnect / foreground / startup).
+    // Wire the offline sync + reminder triggers once (reconnect / foreground /
+    // startup for sync; foreground / actions / startup for reminders).
     useEffect(() => {
         startSync();
+        startReminders();
     }, []);
     return (
         <View style={{ flex: 1, backgroundColor: th.bg }}>
             <StatusBar style={th.dark ? "light" : "dark"} />
             <AuthGate />
             <OfflineBar />
+            <SyncPill />
             <Stack
                 screenOptions={{
                     headerShown: false,
