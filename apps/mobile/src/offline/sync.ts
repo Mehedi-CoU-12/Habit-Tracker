@@ -6,6 +6,7 @@ import { queryClient } from "../api/queryClient";
 import {
     getOps,
     loadOutbox,
+    markInFlight,
     removeOp,
     subscribe as subscribeOutbox,
     type Op,
@@ -73,52 +74,86 @@ function isPermanent(err: unknown): boolean {
 let draining = false;
 let retryTimer: ReturnType<typeof setTimeout> | null = null;
 let backoff = 0;
+// True once a drain was skipped because we were offline; the next successful
+// drain then reconciles once (offline writes may need server-side truth).
+let wasOffline = false;
+// A reconcile is owed — set when we drop a permanent op (its optimistic write
+// is now wrong) or recover from offline. Deliberately NOT set for steady-state
+// online writes: those already match the server, so reconciling after each one
+// would fire a full multi-month refetch per write and could clobber a newer
+// optimistic toggle mid-flight (visible flicker).
+let pendingReconcile = false;
 
 /**
  * Drain the outbox FIFO. Single-flight; only runs while online. A synced op is
  * removed; a permanently-failed op is dropped so it can't wedge the queue; a
  * transient failure stops the drain (preserving order) and schedules a backoff
- * retry. After making progress it reconciles against the server.
+ * retry. Reconciles against the server only when it's actually needed.
  */
 export async function runSync(): Promise<void> {
     if (draining) return;
-    if (!onlineManager.isOnline()) return;
+    if (!onlineManager.isOnline()) {
+        wasOffline = true;
+        return;
+    }
     await loadOutbox();
     if (getOps().length === 0) {
         setStatus("idle");
+        // A previous drain may have owed a reconcile (permanent drop / offline
+        // recovery) but exited on a transient error before running it.
+        if (pendingReconcile) {
+            pendingReconcile = false;
+            await reconcile();
+        }
         return;
     }
 
     draining = true;
     setStatus("syncing");
-    let progressed = false;
+    if (wasOffline) {
+        pendingReconcile = true;
+        wasOffline = false;
+    }
     try {
         while (onlineManager.isOnline()) {
             const ops = getOps();
             if (ops.length === 0) break;
             const op = ops[0];
+            // Pin the op so a concurrent enqueue can't mutate/cancel it while
+            // its request body is already serialized and on the wire.
+            markInFlight(op.key);
             try {
                 await dispatch(op);
                 await removeOp(op.key);
-                progressed = true;
             } catch (err) {
                 if (isPermanent(err)) {
                     await removeOp(op.key);
-                    progressed = true;
+                    pendingReconcile = true;
                     continue;
                 }
                 setStatus("error");
                 scheduleRetry();
                 return;
+            } finally {
+                markInFlight(null);
             }
         }
         setStatus("idle");
         backoff = 0;
+        // Clear a stale backoff timer so a later failure gets a fresh 5s retry
+        // rather than waiting out the previous (possibly 60s) backoff.
+        if (retryTimer) {
+            clearTimeout(retryTimer);
+            retryTimer = null;
+        }
     } finally {
         draining = false;
     }
 
-    if (progressed) await reconcile();
+    if (pendingReconcile) {
+        pendingReconcile = false;
+        await reconcile();
+    }
 }
 
 function scheduleRetry() {
@@ -136,6 +171,23 @@ async function reconcile(): Promise<void> {
     // (queries stay paused), so it's safe to always call.
     await queryClient.invalidateQueries({ queryKey: ["habits"] });
     await queryClient.invalidateQueries({ queryKey: ["me"] });
+}
+
+/**
+ * Reset the worker's in-memory state — called on sign-out so a queued retry
+ * timer or partial drain from the previous session can't run against the next
+ * account. The durable queue is cleared separately via clearOutbox().
+ */
+export function resetSync(): void {
+    if (retryTimer) {
+        clearTimeout(retryTimer);
+        retryTimer = null;
+    }
+    draining = false;
+    backoff = 0;
+    wasOffline = false;
+    pendingReconcile = false;
+    setStatus("idle");
 }
 
 let started = false;

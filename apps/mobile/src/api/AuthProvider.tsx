@@ -9,6 +9,9 @@ import React, {
 import { useQueryClient } from "@tanstack/react-query";
 import { KEYS, storage } from "../lib/storage";
 import { registerGateEvents } from "./client";
+import { persister } from "./queryClient";
+import { clearOutbox } from "../offline/outbox";
+import { resetSync } from "../offline/sync";
 import * as api from "./endpoints";
 
 type AuthState = {
@@ -66,9 +69,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         [persistTokens],
     );
 
+    // Drop all of THIS device's local state (tokens, write queue, caches) so
+    // nothing replays or leaks into the next account signed in here. Does NOT
+    // touch the server — see signOut() for the revoking variant.
+    const clearLocalSession = useCallback(async () => {
+        await storage.remove(KEYS.token);
+        await storage.remove(KEYS.refreshToken);
+        resetSync();
+        await clearOutbox();
+        setToken(null);
+        queryClient.clear();
+        await persister.removeClient();
+    }, [queryClient]);
+
     const signOut = useCallback(async () => {
-        // Best-effort server-side revocation (bumps tokenVersion, killing every
-        // session) before dropping the local tokens.
+        // Explicit, user-initiated sign-out: revoke every session server-side
+        // (bumps tokenVersion) before dropping the local tokens.
         const refreshToken = await storage.get(KEYS.refreshToken);
         if (refreshToken) {
             try {
@@ -77,11 +93,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 /* offline / already invalid — local clear below still signs out */
             }
         }
-        await storage.remove(KEYS.token);
-        await storage.remove(KEYS.refreshToken);
-        setToken(null);
-        queryClient.clear();
-    }, [queryClient]);
+        await clearLocalSession();
+    }, [clearLocalSession]);
 
     // Central auth plumbing: most screens swallow query errors silently, so
     // the api client reports 401/403 here instead of relying on per-screen
@@ -90,11 +103,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     tokenRef.current = token;
     useEffect(() => {
         registerGateEvents({
-            // Dead token (expired, or account deleted) → sign out so the
-            // AuthGate lands on /login — NOT the pending screen. Guarded on
-            // a present token so a failed login attempt doesn't fire it.
+            // Dead token (expired, or account deleted) → clear LOCAL session so
+            // the AuthGate lands on /login. Deliberately does NOT call
+            // api.logout: the server already rejected this token (nothing to
+            // revoke), and if this were a false positive — e.g. a transient
+            // refresh hiccup on reconnect — revoking would needlessly bump
+            // tokenVersion and kill a still-valid session on every device.
+            // Guarded on a present token so a failed login attempt doesn't fire.
             onUnauthorized: () => {
-                if (tokenRef.current) void signOut();
+                if (tokenRef.current) void clearLocalSession();
             },
             // Account gated mid-session (e.g. admin suspends while the app
             // is open) → refetch the profile so the AuthGate reacts.
@@ -102,7 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 void queryClient.invalidateQueries({ queryKey: ["me"] });
             },
         });
-    }, [signOut, queryClient]);
+    }, [clearLocalSession, queryClient]);
 
     return (
         <Ctx.Provider value={{ ready, token, signIn, register, signOut }}>

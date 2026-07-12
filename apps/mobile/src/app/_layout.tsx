@@ -4,6 +4,7 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { useIsRestoring } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
 import { Caprasimo_400Regular } from "@expo-google-fonts/caprasimo";
 import {
@@ -34,6 +35,8 @@ function AuthGate() {
     const { ready, token } = useAuth();
     const segments = useSegments();
     const router = useRouter();
+    // True while the persisted query cache is rehydrating from AsyncStorage.
+    const isRestoring = useIsRestoring();
 
     // Keyed on DATA, deliberately not on "anything other than ACTIVE":
     // while the profile loads — or on a network failure — we stay put rather
@@ -64,10 +67,12 @@ function AuthGate() {
     }, [ready, token, me, segments, router]);
 
     // Splash while a signed-in session's status is still unknown, so a gated
-    // account never flashes the tabs before the redirect lands. Only while
-    // the fetch is in flight — a network failure falls through to the
-    // current screen instead of stranding an offline user here.
-    if (ready && token && !me && isLoading) {
+    // account never flashes the tabs before the redirect lands, and while the
+    // persisted cache is still restoring, so an offline cold start doesn't
+    // flash an empty garden before the last-known habits rehydrate. Only while
+    // the fetch is in flight (or restore is running) — a network failure falls
+    // through to the current screen instead of stranding an offline user here.
+    if (ready && token && (isRestoring || (!me && isLoading))) {
         return (
             <View
                 style={{

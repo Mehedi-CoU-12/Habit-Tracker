@@ -6,11 +6,20 @@ import * as SecureStore from "expo-secure-store";
  */
 export const storage = {
     async get(key: string): Promise<string | null> {
-        try {
-            return await SecureStore.getItemAsync(key);
-        } catch {
-            return null;
+        // getItemAsync returns null for an absent key WITHOUT throwing; it only
+        // throws on a real read error (e.g. the keystore not being ready right
+        // after a resume). Retry those transient throws so a temporary failure
+        // is never mistaken for "no token" — otherwise a reconnect right after
+        // wake could read the refresh token as absent and sign the user out.
+        for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+                return await SecureStore.getItemAsync(key);
+            } catch {
+                if (attempt === 2) return null;
+                await new Promise((r) => setTimeout(r, 60));
+            }
         }
+        return null;
     },
     async set(key: string, value: string): Promise<void> {
         try {

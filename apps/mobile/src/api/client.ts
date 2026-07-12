@@ -83,7 +83,14 @@ function attemptRefresh(): Promise<RefreshResult> {
     if (refreshInFlight) return refreshInFlight;
     refreshInFlight = (async () => {
         const refreshToken = await storage.get(KEYS.refreshToken);
-        if (!refreshToken) return { status: "dead" };
+        // No refresh token to send. This is NOT proof the session is dead: a
+        // present access token with a missing refresh token is an anomaly that,
+        // right after a resume/reconnect, almost always means a transient
+        // secure-store read (not a real sign-out). Treat it as transient so we
+        // don't strand a valid session on the login screen. A genuinely revoked
+        // /expired token still signs the user out via the explicit 401/403
+        // branch below.
+        if (!refreshToken) return { status: "offline" };
         try {
             const res = await fetch(`${API_URL}/auth/refresh`, {
                 method: "POST",

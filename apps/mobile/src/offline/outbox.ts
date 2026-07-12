@@ -56,6 +56,10 @@ type State = { ops: Op[]; counter: number };
 
 let state: State = { ops: [], counter: 0 };
 let loaded = false;
+// Key of the op the sync worker is currently dispatching. Its request body is
+// already serialized and in flight, so coalescing must never mutate, fold into,
+// or cancel it — doing so silently drops the folded write (see enqueue).
+let inFlightKey: string | null = null;
 const listeners = new Set<() => void>();
 
 function notify() {
@@ -78,16 +82,34 @@ async function persist() {
     await AsyncStorage.setItem(KEY, JSON.stringify(state));
 }
 
-/** Load the persisted queue once at startup. Safe to call repeatedly. */
+/**
+ * Load the persisted queue once. Safe to call repeatedly. Runs under the same
+ * lock as enqueue/removeOp (with a double-check) so an early write on cold start
+ * can't compute off the empty default and clobber the on-disk queue.
+ */
 export async function loadOutbox(): Promise<void> {
     if (loaded) return;
-    try {
-        const raw = await AsyncStorage.getItem(KEY);
-        if (raw) state = JSON.parse(raw) as State;
-    } catch {
-        /* corrupt payload — start clean rather than wedge the app */
-    }
-    loaded = true;
+    await withLock(async () => {
+        if (loaded) return;
+        try {
+            const raw = await AsyncStorage.getItem(KEY);
+            const parsed = raw ? (JSON.parse(raw) as unknown) : null;
+            // Adopt the stored value ONLY if it's a well-formed State. A valid-
+            // JSON-but-wrong-shape payload would otherwise yield NaN keys (a
+            // single removeOp would then drop every op) or throw in the drain.
+            if (
+                parsed !== null &&
+                typeof parsed === "object" &&
+                Array.isArray((parsed as State).ops) &&
+                typeof (parsed as State).counter === "number"
+            ) {
+                state = parsed as State;
+            }
+        } catch {
+            /* corrupt payload — start clean rather than wedge the app */
+        }
+        loaded = true;
+    });
     notify();
 }
 
@@ -132,14 +154,21 @@ function touchesHabit(o: Op, id: string): boolean {
  *  - habit.delete drops all pending work for that habit; if the habit was
  *    created offline and never synced, the create is dropped too (net no-op).
  */
-export function enqueue(input: NewOp): Promise<void> {
+export async function enqueue(input: NewOp): Promise<void> {
+    // Ensure the persisted queue is loaded before we compute off it, or the
+    // first write on cold start would overwrite it with just this one op.
+    await loadOutbox();
     return withLock(async () => {
         let ops = state.ops.slice();
 
         switch (input.kind) {
             case "log.set": {
+                // Supersede any earlier queued write for this cell, but keep an
+                // in-flight one (its request is already sent); the new op wins
+                // on the next drain and the idempotent setLog converges.
                 ops = ops.filter(
                     (o) =>
+                        o.key === inFlightKey ||
                         !(
                             o.kind === "log.set" &&
                             o.habitId === input.habitId &&
@@ -152,16 +181,24 @@ export function enqueue(input: NewOp): Promise<void> {
                 break;
             }
             case "habit.update": {
+                // Fold into a pending create/update ONLY if it isn't in flight —
+                // folding into an in-flight op mutates it after its body was
+                // serialized, so the edit would never reach the server.
                 const create = ops.find(
                     (o) =>
-                        o.kind === "habit.create" && o.payload.id === input.id,
+                        o.kind === "habit.create" &&
+                        o.payload.id === input.id &&
+                        o.key !== inFlightKey,
                 );
                 if (create && create.kind === "habit.create") {
                     create.payload = { ...create.payload, ...input.patch };
                     break;
                 }
                 const existing = ops.find(
-                    (o) => o.kind === "habit.update" && o.id === input.id,
+                    (o) =>
+                        o.kind === "habit.update" &&
+                        o.id === input.id &&
+                        o.key !== inFlightKey,
                 );
                 if (existing && existing.kind === "habit.update") {
                     existing.patch = { ...existing.patch, ...input.patch };
@@ -171,12 +208,20 @@ export function enqueue(input: NewOp): Promise<void> {
                 break;
             }
             case "habit.delete": {
+                // create+delete cancel out only if the create is still queued
+                // AND not already dispatching. If its create is in flight the
+                // server will have the habit, so a real delete must be sent.
                 const bornOffline = ops.some(
                     (o) =>
-                        o.kind === "habit.create" && o.payload.id === input.id,
+                        o.kind === "habit.create" &&
+                        o.payload.id === input.id &&
+                        o.key !== inFlightKey,
                 );
-                ops = ops.filter((o) => !touchesHabit(o, input.id));
-                // If it never reached the server, create+delete cancel out.
+                // Drop this habit's other pending work, but never the op that is
+                // mid-dispatch (removing it can't recall the in-flight request).
+                ops = ops.filter(
+                    (o) => o.key === inFlightKey || !touchesHabit(o, input.id),
+                );
                 if (!bornOffline) {
                     ops.push({ ...input, key: nextKey(), ts: Date.now() });
                 }
@@ -188,17 +233,54 @@ export function enqueue(input: NewOp): Promise<void> {
             }
         }
 
+        const prev = state.ops;
         state.ops = ops;
+        try {
+            await persist();
+        } catch (err) {
+            // Persist failed (e.g. storage full) — roll back so memory matches
+            // disk, then surface the error instead of silently losing the write.
+            state.ops = prev;
+            throw err;
+        } finally {
+            notify();
+        }
+    });
+}
+
+/** Remove a synced (or permanently-failed) op by key. */
+export async function removeOp(key: string): Promise<void> {
+    await loadOutbox();
+    return withLock(async () => {
+        state.ops = state.ops.filter((o) => o.key !== key);
         await persist();
         notify();
     });
 }
 
-/** Remove a synced (or permanently-failed) op by key. */
-export function removeOp(key: string): Promise<void> {
+/**
+ * Mark which op is currently mid-dispatch (or null when none). Coalescing in
+ * enqueue treats the in-flight op as immutable, since its request body is
+ * already serialized and on the wire.
+ */
+export function markInFlight(key: string | null): void {
+    inFlightKey = key;
+}
+
+/**
+ * Wipe the queue — called on sign-out so one user's pending writes can never
+ * replay under the next account signed in on this device.
+ */
+export async function clearOutbox(): Promise<void> {
     return withLock(async () => {
-        state.ops = state.ops.filter((o) => o.key !== key);
-        await persist();
+        state = { ops: [], counter: 0 };
+        inFlightKey = null;
+        loaded = true;
+        try {
+            await AsyncStorage.removeItem(KEY);
+        } catch {
+            /* best-effort — the in-memory queue is already empty */
+        }
         notify();
     });
 }

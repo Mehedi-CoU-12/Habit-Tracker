@@ -10,6 +10,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBloom, useTheme } from "../../theme/ThemeProvider";
 import { useHabits, useToggleLog } from "../../api/hooks";
+import { useOnline } from "../../offline/hooks";
 import { deriveHabitStats, daysInMonth } from "../../lib/deriveStats";
 import { HabitWithStats, Tod } from "../../lib/types";
 import { dayNamesFull, monthShort } from "../../lib/date";
@@ -36,6 +37,7 @@ export default function TodayScreen() {
     const dim = daysInMonth(year, month);
 
     const { data: raw = [], isLoading, isError } = useHabits(year, month);
+    const online = useOnline();
     const toggle = useToggleLog(year, month);
 
     const habits: HabitWithStats[] = useMemo(
@@ -107,7 +109,11 @@ export default function TodayScreen() {
                     />
                 )}
 
-                {isError && (
+                {/* Only a genuine online failure is an API error. While offline
+                    the query is paused (not failed), so this must be gated on
+                    `online` — otherwise a cold-start-offline error would show
+                    "pull the API up" instead of the offline state below. */}
+                {isError && online && (
                     <Card style={{ margin: th.d.pad }}>
                         <Text style={{ color: th.ink2, textAlign: "center" }}>
                             Couldn&apos;t load your habits. Pull the API up and
@@ -116,7 +122,35 @@ export default function TodayScreen() {
                     </Card>
                 )}
 
-                {!isLoading && !isError && habits.length === 0 && (
+                {/* Offline with nothing cached yet — reassure rather than showing
+                    the API error or a misleading "garden is empty". */}
+                {!online && !isLoading && habits.length === 0 && (
+                    <Card
+                        style={{
+                            margin: th.d.pad,
+                            alignItems: "center",
+                            gap: 8,
+                        }}
+                    >
+                        <Plant streak={0} doneToday size={96} />
+                        <Text
+                            style={{
+                                fontFamily: th.display,
+                                fontSize: 20,
+                                color: th.ink,
+                            }}
+                        >
+                            You&apos;re offline
+                        </Text>
+                        <Text style={{ color: th.muted, textAlign: "center" }}>
+                            Your habits will appear here once you reconnect.
+                            Anything you change now is saved on this device and
+                            syncs automatically.
+                        </Text>
+                    </Card>
+                )}
+
+                {online && !isLoading && !isError && habits.length === 0 && (
                     <Card
                         style={{
                             margin: th.d.pad,
