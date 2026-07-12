@@ -9,6 +9,13 @@ import Navbar from "../components/layout/Navbar";
 import Plant from "../components/bloom/Plant";
 import BloomIcon from "../components/bloom/BloomIcon";
 
+// Direct download for the Android app, served as a GitHub Release asset. The
+// `latest` path always resolves to the newest release, so publishing a new
+// release with the same file name (HabitFlow.apk) updates this link
+// automatically — no web redeploy needed.
+const ANDROID_APK_URL =
+    "https://github.com/Mehedi-CoU-12/Habit-Tracker/releases/latest/download/HabitFlow.apk";
+
 const features = [
     {
         icon: "check",
@@ -167,6 +174,51 @@ export default function Home() {
                             <p className="mt-1 text-sm text-muted">{label}</p>
                         </div>
                     ))}
+                </div>
+            </section>
+
+            {/* ── Get the app ── */}
+            <section className="px-6 py-16">
+                <div className="mx-auto flex max-w-4xl flex-col items-center gap-8 rounded-3xl border border-line bg-surface px-8 py-12 text-center shadow-sm sm:flex-row sm:justify-between sm:text-left">
+                    <div>
+                        <p className="text-xs font-bold uppercase tracking-widest text-accent">
+                            On the go
+                        </p>
+                        <h2 className="mt-2 font-display text-3xl text-ink">
+                            Take your garden anywhere
+                        </h2>
+                        <p className="mt-2 max-w-md text-ink2">
+                            Install HabitFlow on your Android phone to check in,
+                            get reminders, and keep your streaks growing — even
+                            offline.
+                        </p>
+                    </div>
+                    <div className="flex flex-col items-center gap-2">
+                        <a
+                            href={ANDROID_APK_URL}
+                            className="inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-bold text-white shadow-md transition hover:bg-accent-deep active:scale-[0.98]"
+                        >
+                            <svg
+                                width={18}
+                                height={18}
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth={2.2}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                aria-hidden="true"
+                            >
+                                <path d="M12 3v12" />
+                                <path d="m7 12 5 5 5-5" />
+                                <path d="M5 21h14" />
+                            </svg>
+                            Download for Android
+                        </a>
+                        <span className="text-xs text-muted">
+                            Android APK · Free
+                        </span>
+                    </div>
                 </div>
             </section>
 
