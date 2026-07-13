@@ -4,6 +4,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { CacheService } from '../redis/cache.service.js';
+import { cacheKeys, TTL } from '../redis/cache-keys.js';
 import { CreateHabitDto } from './dto/create-habit.dto.js';
 import { UpdateHabitDto } from './dto/update-habit.dto.js';
 import { ToggleLogDto } from './dto/toggle-log.dto.js';
@@ -146,16 +148,34 @@ export const TEMPLATE_IDS = Object.keys(TEMPLATES);
 
 @Injectable()
 export class HabitsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
 
+  // Cached per (user, month) under the user's habits version — any habit or
+  // log mutation bumps the version (see invalidateHabits), which invalidates
+  // every cached month at once. Serves the user's own GET /habits and the
+  // admin's GET /admin/users/:id/habits alike.
   getHabitsWithLogs(userId: string, year: number, month: number) {
-    return this.prisma.habit.findMany({
-      where: { userId },
-      include: {
-        logs: { where: { year, month } },
-      },
-      orderBy: { createdAt: 'asc' },
-    });
+    return this.cache.getOrSetVersioned(
+      cacheKeys.habitsVersion(userId),
+      cacheKeys.habitsMonth(year, month),
+      TTL.habits,
+      () =>
+        this.prisma.habit.findMany({
+          where: { userId },
+          include: {
+            logs: { where: { year, month } },
+          },
+          orderBy: { createdAt: 'asc' },
+        }),
+    );
+  }
+
+  /** Drop every cached month of this user's habit data. */
+  invalidateHabits(userId: string) {
+    return this.cache.bumpVersion(cacheKeys.habitsVersion(userId));
   }
 
   async createHabit(userId: string, dto: CreateHabitDto) {
@@ -172,7 +192,7 @@ export class HabitsService {
         return existing; // already created by an earlier (successful) attempt
       }
     }
-    return this.prisma.habit.create({
+    const habit = await this.prisma.habit.create({
       data: {
         ...(dto.id ? { id: dto.id } : {}),
         userId,
@@ -183,6 +203,8 @@ export class HabitsService {
         ...(dto.verb ? { verb: dto.verb } : {}),
       },
     });
+    await this.invalidateHabits(userId);
+    return habit;
   }
 
   async updateHabit(userId: string, habitId: string, dto: UpdateHabitDto) {
@@ -191,7 +213,7 @@ export class HabitsService {
     });
     if (!habit) throw new NotFoundException('Habit not found');
     if (habit.userId !== userId) throw new ForbiddenException();
-    return this.prisma.habit.update({
+    const updated = await this.prisma.habit.update({
       where: { id: habitId },
       data: {
         ...(dto.name !== undefined ? { name: dto.name } : {}),
@@ -201,6 +223,8 @@ export class HabitsService {
         ...(dto.verb !== undefined ? { verb: dto.verb } : {}),
       },
     });
+    await this.invalidateHabits(userId);
+    return updated;
   }
 
   async deleteHabit(userId: string, habitId: string) {
@@ -209,7 +233,9 @@ export class HabitsService {
     });
     if (!habit) throw new NotFoundException('Habit not found');
     if (habit.userId !== userId) throw new ForbiddenException();
-    return this.prisma.habit.delete({ where: { id: habitId } });
+    const deleted = await this.prisma.habit.delete({ where: { id: habitId } });
+    await this.invalidateHabits(userId);
+    return deleted;
   }
 
   async applyTemplate(userId: string, templateId: string) {
@@ -226,6 +252,7 @@ export class HabitsService {
         ...(h.verb ? { verb: h.verb } : {}),
       })),
     });
+    await this.invalidateHabits(userId);
 
     return { created: habits.length };
   }
@@ -245,12 +272,14 @@ export class HabitsService {
 
     if (existing) {
       await this.prisma.habitLog.delete({ where: { id: existing.id } });
+      await this.invalidateHabits(userId);
       return { completed: false };
     }
 
     await this.prisma.habitLog.create({
       data: { habitId, userId, year, month, day },
     });
+    await this.invalidateHabits(userId);
     return { completed: true };
   }
 
@@ -277,6 +306,7 @@ export class HabitsService {
         where: { habitId, year, month, day },
       });
     }
+    await this.invalidateHabits(userId);
     return { completed };
   }
 }
