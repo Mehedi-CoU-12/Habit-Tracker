@@ -8,12 +8,6 @@ import { Reflector } from '@nestjs/core';
 import type { Role } from '../../generated/prisma/client.js';
 import { ROLES_KEY } from './roles.decorator.js';
 
-/**
- * Enforces @Roles(...) metadata. Routes without the metadata pass untouched;
- * routes with it require the authenticated user's role to match. Runs after
- * JwtAuthGuard (so req.user is populated) and StatusGuard (so only ACTIVE
- * accounts get this far).
- */
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}

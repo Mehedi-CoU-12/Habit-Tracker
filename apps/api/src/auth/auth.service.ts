@@ -11,11 +11,6 @@ import { cacheKeys } from '../redis/cache-keys.js';
 import { SignupDto } from './dto/signup.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 
-// Refresh tokens outlive the short access token (see auth.module.ts, 15m).
-// Both are signed with JWT_SECRET and told apart by the `type` claim: a
-// refresh token can never authorize a normal request (JwtStrategy rejects
-// type !== 'access') and an access token can never be refreshed (refresh()
-// requires type === 'refresh').
 const REFRESH_TOKEN_TTL = '30d';
 
 /** The fields every token embeds — id, email (access only), and the version. */
@@ -111,17 +106,6 @@ export class AuthService {
     return this.issueTokens(user);
   }
 
-  /**
-   * Exchange a valid refresh token for a fresh access+refresh pair (sliding
-   * expiry). Rejects if the token isn't a refresh token, the user is gone, or
-   * its tokenVersion has been bumped since (sign-out / password change) — in
-   * which case the client must sign in again.
-   *
-   * Deliberately reads the user straight from Postgres, never the cache:
-   * this runs a few times an hour per client, and minting new long-lived
-   * tokens off a stale tokenVersion is the one mistake the cache must never
-   * be able to make.
-   */
   async refresh(refreshToken: string) {
     let payload: { sub: string; tokenVersion: number; type?: string };
     try {
@@ -144,25 +128,16 @@ export class AuthService {
     return this.issueTokens(user);
   }
 
-  /**
-   * Sign out of ALL sessions: bumping tokenVersion invalidates every access
-   * and refresh token this user currently holds. Idempotent — an invalid or
-   * expired token simply has nothing to revoke, so it still returns success
-   * (the client clears its local tokens regardless).
-   */
   async logout(refreshToken: string) {
     try {
       const payload = this.jwt.verify<{ sub: string; type?: string }>(
         refreshToken,
       );
       if (payload.type === 'refresh') {
-        // updateMany (not update) so a since-deleted user is a no-op, not a throw.
         await this.prisma.user.updateMany({
           where: { id: payload.sub },
           data: { tokenVersion: { increment: 1 } },
         });
-        // Drop the cached auth row so every token dies on its next use, not
-        // when the cache TTL expires.
         await this.cache.del(cacheKeys.authUser(payload.sub));
       }
     } catch {

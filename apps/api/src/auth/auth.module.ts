@@ -14,10 +14,6 @@ import { GoogleStrategy } from './google.strategy.js';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.get<string>('JWT_SECRET'),
-        // Short-lived access token — the default for jwt.sign(). Refresh
-        // tokens override this with a longer TTL (auth.service.ts). Kept short
-        // so a leaked access token is only useful for minutes; sign-out /
-        // password change revoke instantly via tokenVersion regardless.
         signOptions: { expiresIn: '15m' },
       }),
     }),
@@ -26,8 +22,6 @@ import { GoogleStrategy } from './google.strategy.js';
   providers: [
     AuthService,
     JwtStrategy,
-    // Only instantiate GoogleStrategy when credentials are configured.
-    // passport-google-oauth20 throws at construction time if clientID is empty.
     {
       provide: 'GOOGLE_STRATEGY',
       useFactory: (config: ConfigService) => {
