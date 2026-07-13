@@ -3,12 +3,15 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, ExtractJwt } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { CacheService } from '../redis/cache.service.js';
+import { cacheKeys, TTL } from '../redis/cache-keys.js';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     config: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -16,18 +19,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  /**
-   * Re-reads the user on every request (one indexed PK lookup) so that role
-   * and status are always current: an admin approving or suspending an
-   * account takes effect on the holder's next request, and a deleted user's
-   * token dies instantly — a signed JWT alone proves nothing about the
-   * account's present state.
-   *
-   * The same lookup carries the revocation check: `tokenVersion` embedded in
-   * the token must still match the user's, so sign-out / password change
-   * (which bump the version) kill every outstanding token at once. A refresh
-   * token is rejected here — only /auth/refresh may accept it.
-   */
   async validate(payload: {
     sub: string;
     email: string;
@@ -38,16 +29,21 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('Invalid access token');
     }
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: payload.sub },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        status: true,
-        tokenVersion: true,
-      },
-    });
+    const user = await this.cache.getOrSet(
+      cacheKeys.authUser(payload.sub),
+      TTL.authUser,
+      () =>
+        this.prisma.user.findUnique({
+          where: { id: payload.sub },
+          select: {
+            id: true,
+            email: true,
+            role: true,
+            status: true,
+            tokenVersion: true,
+          },
+        }),
+    );
     if (!user) {
       throw new UnauthorizedException('Account no longer exists');
     }

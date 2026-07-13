@@ -6,6 +6,8 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { CacheService } from '../redis/cache.service.js';
+import { cacheKeys } from '../redis/cache-keys.js';
 import { SignupDto } from './dto/signup.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 
@@ -34,6 +36,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    private readonly cache: CacheService,
   ) {}
 
   async signup(dto: SignupDto) {
@@ -48,6 +51,8 @@ export class AuthService {
     const user = await this.prisma.user.create({
       data: { name: dto.name, email: dto.email, password: hashed },
     });
+    // New PENDING accounts must show up in the admin's user list right away.
+    await this.cache.bumpVersion(cacheKeys.adminUsersVersion);
 
     return { ...this.issueTokens(user), user: this.publicUser(user) };
   }
@@ -99,6 +104,8 @@ export class AuthService {
           avatarUrl: googleUser.avatarUrl,
         },
       });
+      // Same as signup: surface the new account in the admin list now.
+      await this.cache.bumpVersion(cacheKeys.adminUsersVersion);
     }
 
     return this.issueTokens(user);
@@ -109,6 +116,11 @@ export class AuthService {
    * expiry). Rejects if the token isn't a refresh token, the user is gone, or
    * its tokenVersion has been bumped since (sign-out / password change) — in
    * which case the client must sign in again.
+   *
+   * Deliberately reads the user straight from Postgres, never the cache:
+   * this runs a few times an hour per client, and minting new long-lived
+   * tokens off a stale tokenVersion is the one mistake the cache must never
+   * be able to make.
    */
   async refresh(refreshToken: string) {
     let payload: { sub: string; tokenVersion: number; type?: string };
@@ -149,6 +161,9 @@ export class AuthService {
           where: { id: payload.sub },
           data: { tokenVersion: { increment: 1 } },
         });
+        // Drop the cached auth row so every token dies on its next use, not
+        // when the cache TTL expires.
+        await this.cache.del(cacheKeys.authUser(payload.sub));
       }
     } catch {
       /* unverifiable token — nothing to revoke */

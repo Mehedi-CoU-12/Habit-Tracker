@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { AccountStatus, Prisma, Role } from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { CacheService } from '../redis/cache.service.js';
+import { cacheKeys, TTL } from '../redis/cache-keys.js';
 import { HabitsService } from '../habits/habits.service.js';
 import { pageParams, type Paginated } from '../common/pagination.js';
 import { ListUsersDto } from './dto/list-users.dto.js';
@@ -26,10 +28,21 @@ const USER_ROW_SELECT = {
 export class AdminService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
     private readonly habitsService: HabitsService,
   ) {}
 
-  async getStats() {
+  // Cached for TTL.adminStats only — no explicit invalidation, since the
+  // numbers move with every habit log written anywhere. A 30s-stale
+  // dashboard aggregate is fine; a groupBy over the whole users/logs tables
+  // on every poll is not.
+  getStats() {
+    return this.cache.getOrSet(cacheKeys.adminStats, TTL.adminStats, () =>
+      this.computeStats(),
+    );
+  }
+
+  private async computeStats() {
     const now = new Date();
     const today = {
       year: now.getFullYear(),
@@ -94,7 +107,23 @@ export class AdminService {
     };
   }
 
-  async listUsers(query: ListUsersDto): Promise<Paginated<unknown>> {
+  // List and detail views share the adminUsersVersion namespace: signups,
+  // status changes, deletions and payments bump it (instant feedback for the
+  // admin's own actions); name/avatar edits and log activity are left to the
+  // short TTL.
+  listUsers(query: ListUsersDto): Promise<Paginated<unknown>> {
+    // Normalize page/pageSize the same way the query will, so "?page=0" and
+    // "?page=1" share one cache entry.
+    const { page, pageSize } = pageParams(query.page, query.pageSize);
+    return this.cache.getOrSetVersioned(
+      cacheKeys.adminUsersVersion,
+      cacheKeys.adminUsersList(page, pageSize, query.status, query.search),
+      TTL.adminUsers,
+      () => this.queryUsers(query),
+    );
+  }
+
+  private async queryUsers(query: ListUsersDto): Promise<Paginated<unknown>> {
     const { skip, take, page, pageSize } = pageParams(
       query.page,
       query.pageSize,
@@ -161,7 +190,16 @@ export class AdminService {
     return { items, total, page, pageSize };
   }
 
-  async getUser(id: string) {
+  getUser(id: string) {
+    return this.cache.getOrSetVersioned(
+      cacheKeys.adminUsersVersion,
+      cacheKeys.adminUserDetail(id),
+      TTL.adminUsers,
+      () => this.queryUser(id),
+    );
+  }
+
+  private async queryUser(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
       select: {
@@ -192,7 +230,7 @@ export class AdminService {
 
   async updateStatus(adminId: string, targetId: string, dto: UpdateStatusDto) {
     await this.ensureTargetIsModifiable(adminId, targetId);
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id: targetId },
       data: {
         status: dto.status,
@@ -206,12 +244,25 @@ export class AdminService {
         statusNote: true,
       },
     });
+    // The target's cached auth row must die NOW: suspension takes effect on
+    // their next request, activation on their next /users/me poll.
+    await this.cache.del(cacheKeys.authUser(targetId), cacheKeys.me(targetId));
+    await this.cache.bumpVersion(cacheKeys.adminUsersVersion);
+    return updated;
   }
 
   async deleteUser(adminId: string, targetId: string) {
     await this.ensureTargetIsModifiable(adminId, targetId);
     // Habits, logs and payments cascade at the DB level.
     await this.prisma.user.delete({ where: { id: targetId } });
+    // Same urgency as updateStatus: the deleted user's token must stop
+    // working on their next request, not when the auth TTL runs out.
+    await this.cache.del(
+      cacheKeys.authUser(targetId),
+      cacheKeys.me(targetId),
+      cacheKeys.adminPayments(targetId),
+    );
+    await this.cache.bumpVersion(cacheKeys.adminUsersVersion);
     return { id: targetId, deleted: true };
   }
 
@@ -221,7 +272,7 @@ export class AdminService {
     dto: CreatePaymentDto,
   ) {
     await this.ensureUserExists(targetId);
-    return this.prisma.payment.create({
+    const payment = await this.prisma.payment.create({
       data: {
         userId: targetId,
         amount: dto.amount,
@@ -229,14 +280,23 @@ export class AdminService {
         recordedById: adminId,
       },
     });
+    // totalPaid shows in both the list and the detail view.
+    await this.cache.del(cacheKeys.adminPayments(targetId));
+    await this.cache.bumpVersion(cacheKeys.adminUsersVersion);
+    return payment;
   }
 
   async listPayments(targetId: string) {
     await this.ensureUserExists(targetId);
-    return this.prisma.payment.findMany({
-      where: { userId: targetId },
-      orderBy: { createdAt: 'desc' },
-    });
+    return this.cache.getOrSet(
+      cacheKeys.adminPayments(targetId),
+      TTL.adminPayments,
+      () =>
+        this.prisma.payment.findMany({
+          where: { userId: targetId },
+          orderBy: { createdAt: 'desc' },
+        }),
+    );
   }
 
   private async ensureUserExists(id: string) {

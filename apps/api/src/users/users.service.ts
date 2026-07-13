@@ -6,11 +6,16 @@ import {
 import * as bcrypt from 'bcryptjs';
 import { v2 as cloudinary } from 'cloudinary';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { CacheService } from '../redis/cache.service.js';
+import { cacheKeys, TTL } from '../redis/cache-keys.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {
     cloudinary.config({
       cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
       api_key: process.env.CLOUDINARY_API_KEY,
@@ -18,20 +23,24 @@ export class UsersService {
     });
   }
 
-  async getMe(userId: string) {
-    const user = await this.prisma.user.findUniqueOrThrow({
-      where: { id: userId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        avatarUrl: true,
-        role: true,
-        status: true,
-        createdAt: true,
-      },
-    });
-    return user;
+  // Cached; invalidated by every mutation of the profile — updateProfile and
+  // uploadAvatar here, plus the admin status change/delete (AdminService) so
+  // a PENDING account polling this endpoint sees its activation immediately.
+  getMe(userId: string) {
+    return this.cache.getOrSet(cacheKeys.me(userId), TTL.me, () =>
+      this.prisma.user.findUniqueOrThrow({
+        where: { id: userId },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatarUrl: true,
+          role: true,
+          status: true,
+          createdAt: true,
+        },
+      }),
+    );
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
@@ -83,6 +92,9 @@ export class UsersService {
         createdAt: true,
       },
     });
+    // A password change bumps tokenVersion, so the cached auth row must go
+    // too — otherwise old tokens would stay valid until the authUser TTL.
+    await this.cache.del(cacheKeys.me(userId), cacheKeys.authUser(userId));
     return updated;
   }
 
@@ -112,6 +124,7 @@ export class UsersService {
         createdAt: true,
       },
     });
+    await this.cache.del(cacheKeys.me(userId));
     return updated;
   }
 }

@@ -7,6 +7,7 @@ import { AppService } from './app.service.js';
 import { ClientGuard } from './common/client.guard.js';
 import { KeepAliveService } from './common/keep-alive.service.js';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { RedisModule } from './redis/redis.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { JwtAuthGuard } from './auth/jwt-auth.guard.js';
 import { StatusGuard } from './auth/status.guard.js';
@@ -24,6 +25,7 @@ import { AdminModule } from './admin/admin.module.js';
     // shared store (e.g. Redis) if you scale to multiple instances.
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 120 }]),
     PrismaModule,
+    RedisModule,
     AuthModule,
     HabitsModule,
     UsersModule,

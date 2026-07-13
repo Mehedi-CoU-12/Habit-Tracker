@@ -29,6 +29,10 @@ services:
             value: 22.x
           - key: DATABASE_URL
             sync: false
+          # Optional Redis cache (e.g. a Render Key Value instance or Upstash).
+          # Leave unset to run without caching — the API works either way.
+          - key: REDIS_URL
+            sync: false
           - key: JWT_SECRET
             generateValue: true
           # Shared secret the web/mobile clients echo back as `x-app-client`.
