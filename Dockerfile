@@ -14,7 +14,7 @@ COPY . .
 RUN pnpm install
 
 # 6. Expose port
-EXPOSE 3000
+EXPOSE 5000
 
 # 7. Start in dev mode
 CMD ["pnpm", "run", "dev"]

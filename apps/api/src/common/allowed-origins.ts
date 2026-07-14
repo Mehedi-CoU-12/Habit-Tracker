@@ -9,7 +9,7 @@ export function getAllowedOrigins(): string[] {
   return (
     process.env.CORS_ORIGINS ??
     process.env.FRONTEND_URL ??
-    'http://localhost:3000,http://localhost:8081'
+    'http://localhost:5000,http://localhost:8081'
   )
     .split(',')
     .map((o) => o.trim())
