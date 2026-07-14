@@ -44,3 +44,6 @@ _Move completed items here with the date, e.g. `- [x] 2026-07-09 — …`._
 ## 💡 Backlog / Ideas
 
 _Unscheduled ideas. Promote to a section above once picked up._
+
+1. move the edit page and notification settings and the notification should be asked question
+   i have ss in mobile
