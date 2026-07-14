@@ -44,7 +44,6 @@
     },
     "scripts": {
         "start": "expo start",
-        "reset-project": "node ./scripts/reset-project.js",
         "generate:sounds": "node ./scripts/generate-sounds.mjs",
         "android": "expo run:android",
         "ios": "expo run:ios",
