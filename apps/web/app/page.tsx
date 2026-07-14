@@ -47,6 +47,21 @@ const features = [
         title: "Seed packs",
         desc: "Start fast with curated habit packs, each with its own icon and routine.",
     },
+    {
+        icon: "sun",
+        title: "Focus sessions",
+        desc: "A built-in Pomodoro timer turns deep work into sunlight — finishing a session waters the habit for the day.",
+    },
+    {
+        icon: "music",
+        title: "Session sounds",
+        desc: "Five gentle chimes mark the start and end of every focus session. Pick the one that suits your garden.",
+    },
+    {
+        icon: "bell",
+        title: "Smart reminders",
+        desc: "Per-habit reminders with your own message and quiet hours, right on your phone.",
+    },
 ];
 
 const stats = [
