@@ -11,13 +11,13 @@
 
 | Status | Item           | Priority | Area         | Notes                                                  |
 | ------ | -------------- | -------- | ------------ | ------------------------------------------------------ |
-| ⬜     | Pomodoro timer | P1       | web / mobile | Focus timer (work/break cycles) as a productivity tool |
+| ✅     | Pomodoro timer | P1       | web / mobile | Focus timer (work/break cycles) as a productivity tool |
 | ⬜     | To-do list     | P1       | web / mobile | Lightweight task list alongside habits                 |
 | ⬜     | Stopwatch      | P2       | web / mobile | Simple count-up timer                                  |
 
 ### Checklist
 
-- [ ] **Pomodoro timer** — configurable work/break intervals, start/pause/reset, session count
+- [x] **Pomodoro timer** — configurable work/break intervals, start/pause/reset, session count
 - [ ] **To-do list** — add / complete / delete tasks; decide if it persists via API or local-only
 - [ ] **Stopwatch** — count-up timer with lap/reset
 
@@ -39,6 +39,7 @@
 
 _Move completed items here with the date, e.g. `- [x] 2026-07-09 — …`._
 
+- [x] 2026-07-14 — **Pomodoro focus timer + session sounds** _(web + mobile)_ — Bloom "Focus" screen (focus/short/long cycles, 15/25/50 presets, timestamp-based countdown that survives reload, completing a session waters the habit) and a session-sound system (5 synthesized styles, start/end tones, on/off + volume picker). Web: `/focus` + `/focus/sound` (Web Audio engine in `src/lib/sound.ts`); mobile: `focus`/`sound` screens with baked WAV tones, keep-awake and background end-notification. Entry points: dashboard navbar + garden Focus pill (web); Today pill, habit detail, Settings (mobile)
 - [x] 2026-07-14 — **Per-habit reminders on the edit page** _(mobile)_ — reminder toggle, preset + custom times, and a custom notification message ("Did you go to the office today?") now live on each habit's edit page; Settings keeps the master switch + quiet hours and links each habit to its edit page
 
 ---
