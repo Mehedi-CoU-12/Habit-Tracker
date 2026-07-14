@@ -20,7 +20,12 @@ export const IOS_BUDGET = 56;
 export type TimeStr = string;
 
 /** Per-habit override of the tod-derived default. Absent fields fall back. */
-export type HabitOverride = { enabled?: boolean; times?: TimeStr[] };
+export type HabitOverride = {
+    enabled?: boolean;
+    times?: TimeStr[];
+    /** Custom notification body (e.g. "Did you go to the office today?"). */
+    message?: string;
+};
 
 export type ReminderPrefs = {
     /** Master switch — reminders are opt-in, off until the user enables them. */
@@ -53,6 +58,14 @@ export const PRESET_TIMES: { label: string; time: TimeStr }[] = [
     { label: "Evening", time: "19:00" },
     { label: "Night", time: "21:00" },
 ];
+
+/** "08:00" → "8:00 AM" for display. */
+export function formatTime12h(t: TimeStr): string {
+    const [h, m] = t.split(":").map(Number);
+    const ampm = h < 12 ? "AM" : "PM";
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
+}
 
 /** The effective reminder for a habit: its override, or the tod default. */
 export function effectiveReminder(

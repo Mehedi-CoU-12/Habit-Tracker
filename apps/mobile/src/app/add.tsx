@@ -1,13 +1,35 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import {
+    Alert,
+    Linking,
+    Pressable,
+    ScrollView,
+    Text,
+    TextInput,
+    View,
+} from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../theme/ThemeProvider";
 import { useCreateHabit, useHabits, useUpdateHabit } from "../api/hooks";
 import { Tod } from "../lib/types";
+import {
+    requestPermission,
+    syncReminders,
+    useReminderPrefs,
+} from "../notifications";
+import { setEnabled, setOverride } from "../notifications/store";
+import {
+    PRESET_TIMES,
+    TOD_DEFAULT_TIME,
+    effectiveReminder,
+    formatTime12h,
+    type HabitOverride,
+    type TimeStr,
+} from "../notifications/types";
 import Plant from "../components/Plant";
 import Icon from "../components/Icon";
-import { Pill } from "../components/primitives";
+import { Pill, Toggle } from "../components/primitives";
 
 const ICONS = [
     "leaf",
@@ -53,6 +75,17 @@ export default function AddScreen() {
     const [tod, setTod] = useState<Tod>("morning");
     const [goal, setGoal] = useState(20);
 
+    // Per-habit reminder, edited here and committed to the device-local
+    // reminder store on save (the OS schedule is per-device, not synced).
+    const reminders = useReminderPrefs();
+    const [remindOn, setRemindOn] = useState(false);
+    const [times, setTimes] = useState<TimeStr[]>([]);
+    const [message, setMessage] = useState("");
+    const [pickerOpen, setPickerOpen] = useState(false);
+    const [pickH, setPickH] = useState(9); // 1–12
+    const [pickM, setPickM] = useState(0);
+    const [pickPm, setPickPm] = useState(false);
+
     // Pre-fill the form once the habit being edited is available from cache.
     const hydrated = useRef(false);
     useEffect(() => {
@@ -63,11 +96,65 @@ export default function AddScreen() {
             setIcon(editing.icon);
             setTod(editing.tod as Tod);
             setGoal(editing.goal);
+            const eff = effectiveReminder(
+                editing.id,
+                editing.tod as Tod,
+                reminders,
+            );
+            setRemindOn(reminders.enabled && eff.enabled);
+            setTimes(eff.times);
+            setMessage(reminders.overrides[editing.id]?.message ?? "");
         }
-    }, [isEdit, editing]);
+    }, [isEdit, editing, reminders]);
 
     const close = () =>
         router.canGoBack() ? router.back() : router.replace("/");
+
+    const toggleRemind = async () => {
+        if (remindOn) {
+            setRemindOn(false);
+            return;
+        }
+        // The master switch is opt-in; flipping a habit on while it's off asks
+        // for permission and enables it, so this toggle is never a dead switch.
+        if (!reminders.enabled) {
+            const ok = await requestPermission();
+            if (!ok) {
+                Alert.alert(
+                    "Notifications are off",
+                    "Turn on notifications for HabitFlow in your device settings to get habit reminders.",
+                    [
+                        { text: "Not now", style: "cancel" },
+                        {
+                            text: "Open settings",
+                            onPress: () => Linking.openSettings(),
+                        },
+                    ],
+                );
+                return;
+            }
+            await setEnabled(true);
+            void syncReminders();
+        }
+        if (times.length === 0) setTimes([TOD_DEFAULT_TIME[tod]]);
+        setRemindOn(true);
+    };
+
+    const toggleTime = (t: TimeStr) => {
+        const has = times.includes(t);
+        const next = has ? times.filter((x) => x !== t) : [...times, t].sort();
+        setTimes(next);
+        // Zero times while on reads as "on but silent" — turn off instead,
+        // matching the reminder store's own guard.
+        if (next.length === 0) setRemindOn(false);
+    };
+
+    const addCustomTime = () => {
+        const h24 = (pickH % 12) + (pickPm ? 12 : 0);
+        const t = `${String(h24).padStart(2, "0")}:${String(pickM).padStart(2, "0")}`;
+        if (!times.includes(t)) setTimes([...times, t].sort());
+        setPickerOpen(false);
+    };
 
     const save = () => {
         const input = {
@@ -77,12 +164,92 @@ export default function AddScreen() {
             tod,
             verb: verb.trim() || undefined,
         };
+        // Message is committed even while the reminder is off so it survives
+        // an off/on round-trip; empty string overwrites (clears) an old one.
+        const reminderPatch: HabitOverride = remindOn
+            ? {
+                  enabled: true,
+                  times: times.length ? times : [TOD_DEFAULT_TIME[tod]],
+                  message: message.trim(),
+              }
+            : { enabled: false, message: message.trim() };
+        const finish = async (habitId: string) => {
+            await setOverride(habitId, reminderPatch);
+            void syncReminders();
+            close();
+        };
         if (isEdit && id) {
-            update.mutate({ id, input }, { onSuccess: close });
+            update.mutate({ id, input }, { onSuccess: () => void finish(id) });
         } else {
-            create.mutate(input, { onSuccess: close });
+            create.mutate(input, { onSuccess: (h) => void finish(h.id) });
         }
     };
+
+    // Preset chips first, then any custom times the presets don't cover.
+    const chips: { label: string; time: TimeStr }[] = [
+        ...PRESET_TIMES,
+        ...times
+            .filter((t) => !PRESET_TIMES.some((p) => p.time === t))
+            .map((t) => ({ label: formatTime12h(t), time: t })),
+    ];
+    const inQuiet = (t: TimeStr) => {
+        const h = Number(t.split(":")[0]);
+        return h >= 22 || h < 7;
+    };
+    const quietClash = remindOn && reminders.quietHours && times.some(inQuiet);
+
+    const Step = ({
+        value,
+        onLess,
+        onMore,
+    }: {
+        value: string;
+        onLess: () => void;
+        onMore: () => void;
+    }) => (
+        <View
+            style={{
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: th.surface2,
+                borderRadius: 12,
+            }}
+        >
+            <Pressable
+                onPress={onLess}
+                style={{
+                    width: 32,
+                    height: 36,
+                    alignItems: "center",
+                    justifyContent: "center",
+                }}
+            >
+                <Text style={{ fontSize: 18, color: th.ink }}>−</Text>
+            </Pressable>
+            <Text
+                style={{
+                    fontFamily: th.display,
+                    fontSize: 17,
+                    color: th.ink,
+                    minWidth: 28,
+                    textAlign: "center",
+                }}
+            >
+                {value}
+            </Text>
+            <Pressable
+                onPress={onMore}
+                style={{
+                    width: 32,
+                    height: 36,
+                    alignItems: "center",
+                    justifyContent: "center",
+                }}
+            >
+                <Text style={{ fontSize: 18, color: th.ink }}>+</Text>
+            </Pressable>
+        </View>
+    );
 
     return (
         <View style={{ flex: 1, backgroundColor: th.bg }}>
@@ -347,6 +514,264 @@ export default function AddScreen() {
                                 +
                             </Text>
                         </Pressable>
+                    </View>
+                </View>
+
+                {/* reminder */}
+                <View style={{ paddingHorizontal: th.d.pad, marginBottom: 28 }}>
+                    <Text
+                        style={{
+                            fontSize: 11,
+                            color: th.muted,
+                            fontFamily: th.sansBold,
+                            letterSpacing: 0.8,
+                            marginBottom: 8,
+                        }}
+                    >
+                        REMINDER
+                    </Text>
+                    <View
+                        style={{
+                            backgroundColor: th.surface,
+                            borderWidth: 1.5,
+                            borderColor: th.line,
+                            borderRadius: 16,
+                            padding: 16,
+                            gap: 14,
+                        }}
+                    >
+                        <View
+                            style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                gap: 12,
+                            }}
+                        >
+                            <Icon
+                                name="bell"
+                                size={18}
+                                stroke={th.ink2}
+                                strokeWidth={1.7}
+                            />
+                            <View style={{ flex: 1 }}>
+                                <Text
+                                    style={{
+                                        fontSize: 14.5,
+                                        color: th.ink,
+                                        fontFamily: th.sans,
+                                    }}
+                                >
+                                    Remind me
+                                </Text>
+                                <Text
+                                    style={{
+                                        fontSize: 12,
+                                        color: th.muted,
+                                        marginTop: 2,
+                                    }}
+                                >
+                                    {remindOn
+                                        ? times.map(formatTime12h).join(" · ")
+                                        : "No reminder for this habit"}
+                                </Text>
+                            </View>
+                            <Toggle
+                                on={remindOn}
+                                onPress={() => void toggleRemind()}
+                            />
+                        </View>
+
+                        {remindOn && (
+                            <>
+                                <View
+                                    style={{
+                                        flexDirection: "row",
+                                        flexWrap: "wrap",
+                                        gap: 6,
+                                    }}
+                                >
+                                    {chips.map((c) => {
+                                        const on = times.includes(c.time);
+                                        return (
+                                            <Pressable
+                                                key={c.time}
+                                                onPress={() =>
+                                                    toggleTime(c.time)
+                                                }
+                                                style={{
+                                                    paddingVertical: 6,
+                                                    paddingHorizontal: 12,
+                                                    borderRadius: 14,
+                                                    backgroundColor: on
+                                                        ? th.accent
+                                                        : th.surface2,
+                                                }}
+                                            >
+                                                <Text
+                                                    style={{
+                                                        fontSize: 12,
+                                                        fontFamily: th.sansBold,
+                                                        color: on
+                                                            ? "#fff"
+                                                            : th.ink2,
+                                                    }}
+                                                >
+                                                    {c.label}
+                                                </Text>
+                                            </Pressable>
+                                        );
+                                    })}
+                                    <Pressable
+                                        onPress={() => setPickerOpen((o) => !o)}
+                                        style={{
+                                            paddingVertical: 6,
+                                            paddingHorizontal: 12,
+                                            borderRadius: 14,
+                                            borderWidth: 1.5,
+                                            borderColor: th.line,
+                                            backgroundColor: pickerOpen
+                                                ? th.surface2
+                                                : "transparent",
+                                        }}
+                                    >
+                                        <Text
+                                            style={{
+                                                fontSize: 12,
+                                                fontFamily: th.sansBold,
+                                                color: th.ink2,
+                                            }}
+                                        >
+                                            + Custom
+                                        </Text>
+                                    </Pressable>
+                                </View>
+
+                                {pickerOpen && (
+                                    <View
+                                        style={{
+                                            flexDirection: "row",
+                                            alignItems: "center",
+                                            flexWrap: "wrap",
+                                            gap: 8,
+                                        }}
+                                    >
+                                        <Step
+                                            value={`${pickH}`}
+                                            onLess={() =>
+                                                setPickH(
+                                                    (h) => ((h + 10) % 12) + 1,
+                                                )
+                                            }
+                                            onMore={() =>
+                                                setPickH((h) => (h % 12) + 1)
+                                            }
+                                        />
+                                        <Step
+                                            value={String(pickM).padStart(
+                                                2,
+                                                "0",
+                                            )}
+                                            onLess={() =>
+                                                setPickM((m) => (m + 55) % 60)
+                                            }
+                                            onMore={() =>
+                                                setPickM((m) => (m + 5) % 60)
+                                            }
+                                        />
+                                        <Pressable
+                                            onPress={() => setPickPm((p) => !p)}
+                                            style={{
+                                                paddingVertical: 8,
+                                                paddingHorizontal: 12,
+                                                borderRadius: 12,
+                                                backgroundColor: th.surface2,
+                                            }}
+                                        >
+                                            <Text
+                                                style={{
+                                                    fontSize: 13,
+                                                    fontFamily: th.sansBold,
+                                                    color: th.ink,
+                                                }}
+                                            >
+                                                {pickPm ? "PM" : "AM"}
+                                            </Text>
+                                        </Pressable>
+                                        <Pressable
+                                            onPress={addCustomTime}
+                                            style={{
+                                                paddingVertical: 8,
+                                                paddingHorizontal: 14,
+                                                borderRadius: 12,
+                                                backgroundColor: th.accent,
+                                            }}
+                                        >
+                                            <Text
+                                                style={{
+                                                    fontSize: 13,
+                                                    fontFamily: th.sansBold,
+                                                    color: "#fff",
+                                                }}
+                                            >
+                                                Add time
+                                            </Text>
+                                        </Pressable>
+                                    </View>
+                                )}
+
+                                {quietClash && (
+                                    <Text
+                                        style={{
+                                            fontSize: 12,
+                                            color: th.muted,
+                                        }}
+                                    >
+                                        Times between 10:00 PM and 7:00 AM are
+                                        silenced by Quiet hours (see Settings).
+                                    </Text>
+                                )}
+
+                                <View>
+                                    <Text
+                                        style={{
+                                            fontSize: 11,
+                                            color: th.muted,
+                                            fontFamily: th.sansBold,
+                                            letterSpacing: 0.8,
+                                            marginBottom: 6,
+                                        }}
+                                    >
+                                        NOTIFICATION MESSAGE
+                                    </Text>
+                                    <TextInput
+                                        value={message}
+                                        onChangeText={setMessage}
+                                        placeholder="e.g. Did you go to the office today?"
+                                        placeholderTextColor={th.muted}
+                                        maxLength={120}
+                                        style={{
+                                            backgroundColor: th.surface2,
+                                            borderRadius: 12,
+                                            paddingVertical: 10,
+                                            paddingHorizontal: 12,
+                                            fontFamily: th.sans,
+                                            fontSize: 14,
+                                            color: th.ink,
+                                        }}
+                                    />
+                                    <Text
+                                        style={{
+                                            fontSize: 12,
+                                            color: th.muted,
+                                            marginTop: 6,
+                                        }}
+                                    >
+                                        Shown as the notification text when this
+                                        habit is reminded on its own.
+                                    </Text>
+                                </View>
+                            </>
+                        )}
                     </View>
                 </View>
 

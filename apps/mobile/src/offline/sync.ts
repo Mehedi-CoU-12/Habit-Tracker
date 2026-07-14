@@ -72,6 +72,9 @@ function isPermanent(err: unknown): boolean {
 }
 
 let draining = false;
+// A runSync arrived while a drain was in progress — run one follow-up pass so
+// whatever it wanted synced isn't left waiting for the next external trigger.
+let drainQueued = false;
 let retryTimer: ReturnType<typeof setTimeout> | null = null;
 let backoff = 0;
 // True once a drain was skipped because we were offline; the next successful
@@ -89,9 +92,30 @@ let pendingReconcile = false;
  * removed; a permanently-failed op is dropped so it can't wedge the queue; a
  * transient failure stops the drain (preserving order) and schedules a backoff
  * retry. Reconciles against the server only when it's actually needed.
+ *
+ * The gate MUST be claimed synchronously, before the first await. A single
+ * write triggers runSync more than once in the same tick (the mutation's own
+ * call plus the outbox-change subscriber); with an async gap before the flag
+ * was set, each caller passed the check and dispatched the same head op —
+ * duplicate POSTs per click. Late callers now just queue one follow-up pass.
  */
 export async function runSync(): Promise<void> {
-    if (draining) return;
+    if (draining) {
+        drainQueued = true;
+        return;
+    }
+    draining = true;
+    try {
+        do {
+            drainQueued = false;
+            await drainOnce();
+        } while (drainQueued);
+    } finally {
+        draining = false;
+    }
+}
+
+async function drainOnce(): Promise<void> {
     if (!onlineManager.isOnline()) {
         wasOffline = true;
         return;
@@ -108,46 +132,41 @@ export async function runSync(): Promise<void> {
         return;
     }
 
-    draining = true;
     setStatus("syncing");
     if (wasOffline) {
         pendingReconcile = true;
         wasOffline = false;
     }
-    try {
-        while (onlineManager.isOnline()) {
-            const ops = getOps();
-            if (ops.length === 0) break;
-            const op = ops[0];
-            // Pin the op so a concurrent enqueue can't mutate/cancel it while
-            // its request body is already serialized and on the wire.
-            markInFlight(op.key);
-            try {
-                await dispatch(op);
+    while (onlineManager.isOnline()) {
+        const ops = getOps();
+        if (ops.length === 0) break;
+        const op = ops[0];
+        // Pin the op so a concurrent enqueue can't mutate/cancel it while
+        // its request body is already serialized and on the wire.
+        markInFlight(op.key);
+        try {
+            await dispatch(op);
+            await removeOp(op.key);
+        } catch (err) {
+            if (isPermanent(err)) {
                 await removeOp(op.key);
-            } catch (err) {
-                if (isPermanent(err)) {
-                    await removeOp(op.key);
-                    pendingReconcile = true;
-                    continue;
-                }
-                setStatus("error");
-                scheduleRetry();
-                return;
-            } finally {
-                markInFlight(null);
+                pendingReconcile = true;
+                continue;
             }
+            setStatus("error");
+            scheduleRetry();
+            return;
+        } finally {
+            markInFlight(null);
         }
-        setStatus("idle");
-        backoff = 0;
-        // Clear a stale backoff timer so a later failure gets a fresh 5s retry
-        // rather than waiting out the previous (possibly 60s) backoff.
-        if (retryTimer) {
-            clearTimeout(retryTimer);
-            retryTimer = null;
-        }
-    } finally {
-        draining = false;
+    }
+    setStatus("idle");
+    backoff = 0;
+    // Clear a stale backoff timer so a later failure gets a fresh 5s retry
+    // rather than waiting out the previous (possibly 60s) backoff.
+    if (retryTimer) {
+        clearTimeout(retryTimer);
+        retryTimer = null;
     }
 
     if (pendingReconcile) {
@@ -184,6 +203,7 @@ export function resetSync(): void {
         retryTimer = null;
     }
     draining = false;
+    drainQueued = false;
     backoff = 0;
     wasOffline = false;
     pendingReconcile = false;

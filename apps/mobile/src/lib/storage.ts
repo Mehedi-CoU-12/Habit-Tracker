@@ -1,10 +1,13 @@
+import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
-/**
- * Thin wrapper over expo-secure-store. Used for the auth token, UI prefs,
- * and the onboarding flag. Values are small JSON-or-string blobs.
- */
-export const storage = {
+type Storage = {
+    get(key: string): Promise<string | null>;
+    set(key: string, value: string): Promise<void>;
+    remove(key: string): Promise<void>;
+};
+
+const nativeStorage: Storage = {
     async get(key: string): Promise<string | null> {
         // getItemAsync returns null for an absent key WITHOUT throwing; it only
         // throws on a real read error (e.g. the keystore not being ready right
@@ -36,6 +39,33 @@ export const storage = {
         }
     },
 };
+
+const webStorage: Storage = {
+    async get(key: string): Promise<string | null> {
+        try {
+            return window.localStorage.getItem(key);
+        } catch {
+            return null; // storage blocked (e.g. private mode) — treat as absent
+        }
+    },
+    async set(key: string, value: string): Promise<void> {
+        try {
+            window.localStorage.setItem(key, value);
+        } catch {
+            // ignore write failures — prefs are best-effort
+        }
+    },
+    async remove(key: string): Promise<void> {
+        try {
+            window.localStorage.removeItem(key);
+        } catch {
+            // ignore
+        }
+    },
+};
+
+export const storage: Storage =
+    Platform.OS === "web" ? webStorage : nativeStorage;
 
 export const KEYS = {
     token: "habitflow.token",
