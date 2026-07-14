@@ -250,6 +250,17 @@ export default function DetailScreen() {
                                 : "Mark as done today"}
                         </Text>
                     </Pressable>
+                    <Pill
+                        icon="sun"
+                        label="Start a focus session"
+                        onPress={() =>
+                            router.push({
+                                pathname: "/focus",
+                                params: { habit: h.id },
+                            })
+                        }
+                        style={{ marginTop: 10 }}
+                    />
                 </View>
 
                 {/* stats */}

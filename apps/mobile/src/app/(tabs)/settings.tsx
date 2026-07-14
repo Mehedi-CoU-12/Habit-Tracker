@@ -34,11 +34,13 @@ import {
     effectiveReminder,
 } from "../../notifications/types";
 import type { Tod } from "../../lib/types";
+import { SOUND_STYLES, useSoundPrefs } from "../../sound";
 import { Card, Toggle } from "../../components/primitives";
 import Icon from "../../components/Icon";
 
 const TODS: Tod[] = ["morning", "afternoon", "evening", "anytime"];
-const asTod = (t: string): Tod => (TODS.includes(t as Tod) ? (t as Tod) : "anytime");
+const asTod = (t: string): Tod =>
+    TODS.includes(t as Tod) ? (t as Tod) : "anytime";
 
 /** "08:00" → "8:00 AM" for display. */
 function fmtTime(t: string): string {
@@ -108,6 +110,9 @@ export default function SettingsScreen() {
     );
 
     const reminders = useReminderPrefs();
+    const sound = useSoundPrefs();
+    const soundStyleName =
+        SOUND_STYLES.find((s) => s.id === sound.style)?.name ?? "Metal Pipe";
     const enabledCount = reminders.enabled
         ? habits.filter(
               (h) => effectiveReminder(h.id, asTod(h.tod), reminders).enabled,
@@ -646,7 +651,9 @@ export default function SettingsScreen() {
                                                                 h.id,
                                                                 p.time,
                                                                 eff.times,
-                                                            ).then(syncReminders);
+                                                            ).then(
+                                                                syncReminders,
+                                                            );
                                                         }}
                                                         style={{
                                                             paddingVertical: 5,
@@ -677,6 +684,36 @@ export default function SettingsScreen() {
                                 </View>
                             );
                         })}
+                </Section>
+
+                <Section title="FOCUS">
+                    <Row
+                        first
+                        icon="sun"
+                        label="Focus timer"
+                        hint="Grow a habit with a Pomodoro session"
+                        right={
+                            <Icon
+                                name="chevronRight"
+                                size={16}
+                                stroke={th.muted}
+                            />
+                        }
+                        onPress={() => router.push("/focus")}
+                    />
+                    <Row
+                        icon={sound.on ? "volume" : "volumeOff"}
+                        label="Session sounds"
+                        hint={sound.on ? `On · ${soundStyleName}` : "Off"}
+                        right={
+                            <Icon
+                                name="chevronRight"
+                                size={16}
+                                stroke={th.muted}
+                            />
+                        }
+                        onPress={() => router.push("/sound")}
+                    />
                 </Section>
 
                 <Section title="DATA">
