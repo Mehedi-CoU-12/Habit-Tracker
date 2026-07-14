@@ -42,4 +42,6 @@ export const KEYS = {
     refreshToken: "habitflow.refreshToken",
     prefs: "habitflow.prefs",
     onboarded: "habitflow.onboarded",
+    sound: "habitflow.sound",
+    focus: "habitflow.focus",
 } as const;

@@ -170,6 +170,28 @@ const PATHS: Record<string, (s: string, fill: string) => ReactNode> = {
             <Path d="M12 11.5 c4 0 6 -3 6 -7 c-3 0 -6 3 -6 7z" />
         </>
     ),
+    target: (s) => (
+        <>
+            <Circle cx={12} cy={12} r={9} />
+            <Circle cx={12} cy={12} r={5} />
+            <Circle cx={12} cy={12} r={1.5} fill={s} />
+        </>
+    ),
+    volume: () => (
+        <>
+            <Path d="M4 9 v6 h4 l5 4 V5 l-5 4 z" />
+            <Path d="M16 8.5 a5 5 0 0 1 0 7" />
+            <Path d="M18.5 6 a9 9 0 0 1 0 12" />
+        </>
+    ),
+    volumeOff: () => (
+        <>
+            <Path d="M4 9 v6 h4 l5 4 V5 l-5 4 z" />
+            <Line x1={16.5} y1={9.5} x2={21.5} y2={14.5} />
+            <Line x1={21.5} y1={9.5} x2={16.5} y2={14.5} />
+        </>
+    ),
+    play2: (s) => <Path d="M7 5 v14 l12 -7 z" fill={s} stroke="none" />,
 };
 
 export type IconName = keyof typeof PATHS;
