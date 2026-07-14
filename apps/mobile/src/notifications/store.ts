@@ -1,11 +1,6 @@
 import { useSyncExternalStore } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {
-    DEFAULT_PREFS,
-    type HabitOverride,
-    type ReminderPrefs,
-    type TimeStr,
-} from "./types";
+import { DEFAULT_PREFS, type HabitOverride, type ReminderPrefs } from "./types";
 
 // Local, device-scoped reminder preferences. Kept in the same shape and spirit
 // as the theme prefs: an in-memory copy, a durable AsyncStorage mirror, and a
@@ -75,22 +70,6 @@ export function setOverride(
         [habitId]: { ...state.overrides[habitId], ...patch },
     };
     return commit({ ...state, overrides });
-}
-
-/** Toggle a single preset time on/off for a habit, preserving the rest. */
-export function toggleHabitTime(
-    habitId: string,
-    time: TimeStr,
-    current: TimeStr[],
-): Promise<void> {
-    const has = current.includes(time);
-    const next = has
-        ? current.filter((t) => t !== time)
-        : [...current, time].sort();
-    // Never leave a habit with zero times while enabled — that reads as "on but
-    // silent". Removing the last time turns the habit's reminders off instead.
-    if (next.length === 0) return setOverride(habitId, { enabled: false });
-    return setOverride(habitId, { enabled: true, times: next });
 }
 
 /** Live prefs for React components. */

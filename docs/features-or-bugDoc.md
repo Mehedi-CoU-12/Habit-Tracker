@@ -39,6 +39,8 @@
 
 _Move completed items here with the date, e.g. `- [x] 2026-07-09 — …`._
 
+- [x] 2026-07-14 — **Per-habit reminders on the edit page** _(mobile)_ — reminder toggle, preset + custom times, and a custom notification message ("Did you go to the office today?") now live on each habit's edit page; Settings keeps the master switch + quiet hours and links each habit to its edit page
+
 ---
 
 ## 💡 Backlog / Ideas

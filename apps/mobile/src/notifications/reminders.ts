@@ -75,13 +75,22 @@ function idFor(dKey: string, time: TimeStr): string {
 }
 
 /** Human-facing title/body for a slot, coalescing multiple habits into one. */
-function renderCopy(names: string[]): { title: string; body: string } {
-    if (names.length === 1) {
-        return { title: names[0], body: "You haven't done this yet today." };
+// A habit's custom message only shows when it's alone in its slot — a coalesced
+// summary can't speak in one habit's voice, so it falls back to the name list.
+function renderCopy(items: { name: string; message?: string }[]): {
+    title: string;
+    body: string;
+} {
+    if (items.length === 1) {
+        return {
+            title: items[0].name,
+            body:
+                items[0].message?.trim() || "You haven't done this yet today.",
+        };
     }
     return {
-        title: `${names.length} habits still pending`,
-        body: names.join(" · "),
+        title: `${items.length} habits still pending`,
+        body: items.map((i) => i.name).join(" · "),
     };
 }
 
@@ -109,7 +118,7 @@ export function computeDesired(
     const desired: Desired = new Map();
 
     for (let off = 0; off <= HORIZON_DAYS; off++) {
-        const names = new Map<TimeStr, string[]>();
+        const items = new Map<TimeStr, { name: string; message?: string }[]>();
         const ids = new Map<TimeStr, string[]>();
 
         for (const h of habits) {
@@ -119,16 +128,19 @@ export function computeDesired(
             // pending (a fresh day starts with nothing completed).
             if (off === 0 && h.doneToday) continue;
             for (const time of eff.times) {
-                if (!names.has(time)) {
-                    names.set(time, []);
+                if (!items.has(time)) {
+                    items.set(time, []);
                     ids.set(time, []);
                 }
-                names.get(time)!.push(h.name);
+                items.get(time)!.push({
+                    name: h.name,
+                    message: prefs.overrides[h.id]?.message,
+                });
                 ids.get(time)!.push(h.id);
             }
         }
 
-        for (const [time, list] of names) {
+        for (const [time, list] of items) {
             const fireAt = dateAt(now, off, time);
             if (fireAt.getTime() <= now.getTime()) continue; // never the past
             if (prefs.quietHours && inQuietHours(time)) continue;
@@ -226,13 +238,14 @@ export async function scheduleSnooze(
     minutes: number,
 ): Promise<void> {
     if (habitIds.length === 0) return;
-    const pendingNames = readHabits(new Date())
+    const overrides = getPrefs().overrides;
+    const pending = readHabits(new Date())
         .filter((h) => habitIds.includes(h.id) && !h.doneToday)
-        .map((h) => h.name);
-    if (pendingNames.length === 0) return; // all done — nothing to snooze
+        .map((h) => ({ name: h.name, message: overrides[h.id]?.message }));
+    if (pending.length === 0) return; // all done — nothing to snooze
 
     const date = new Date(Date.now() + minutes * 60 * 1000);
-    const { title, body } = renderCopy(pendingNames);
+    const { title, body } = renderCopy(pending);
     await Notifications.scheduleNotificationAsync({
         identifier: `${SNOOZE_PREFIX}${slot}__${date.getTime()}`,
         content: {
