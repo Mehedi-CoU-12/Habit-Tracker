@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { HabitWithStats } from "../../app/dashboard/types";
 import OverviewCard from "../overview/OverviewCard";
 import Plant from "../bloom/Plant";
@@ -23,8 +24,18 @@ export default function Garden({
         <OverviewCard
             title="Your garden, today"
             action={
-                <span className="text-xs font-bold text-ink2">
-                    {done} of {habits.length} watered ☿
+                <span className="flex items-center gap-3">
+                    <span className="text-xs font-bold text-ink2">
+                        {done} of {habits.length} watered ☿
+                    </span>
+                    <Link
+                        href="/focus"
+                        className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 text-xs font-bold text-white transition hover:bg-accent-deep"
+                        title="Start a focus session"
+                    >
+                        <BloomIcon name="sun" size={13} strokeWidth={2} />
+                        Focus
+                    </Link>
                 </span>
             }
             bodyClassName="p-5"

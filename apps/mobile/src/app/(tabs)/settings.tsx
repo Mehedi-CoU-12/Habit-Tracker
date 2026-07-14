@@ -25,6 +25,7 @@ import {
 import { setEnabled, setQuietHours } from "../../notifications/store";
 import { effectiveReminder } from "../../notifications/types";
 import type { Tod } from "../../lib/types";
+import { SOUND_STYLES, useSoundPrefs } from "../../sound";
 import { Card, Toggle } from "../../components/primitives";
 import Icon from "../../components/Icon";
 
@@ -92,6 +93,9 @@ export default function SettingsScreen() {
     );
 
     const reminders = useReminderPrefs();
+    const sound = useSoundPrefs();
+    const soundStyleName =
+        SOUND_STYLES.find((s) => s.id === sound.style)?.name ?? "Metal Pipe";
     const enabledCount = reminders.enabled
         ? habits.filter(
               (h) => effectiveReminder(h.id, asTod(h.tod), reminders).enabled,
@@ -533,6 +537,36 @@ export default function SettingsScreen() {
                             hint="Set times and the notification message on each habit's edit page"
                         />
                     )}
+                </Section>
+
+                <Section title="FOCUS">
+                    <Row
+                        first
+                        icon="sun"
+                        label="Focus timer"
+                        hint="Grow a habit with a Pomodoro session"
+                        right={
+                            <Icon
+                                name="chevronRight"
+                                size={16}
+                                stroke={th.muted}
+                            />
+                        }
+                        onPress={() => router.push("/focus")}
+                    />
+                    <Row
+                        icon={sound.on ? "volume" : "volumeOff"}
+                        label="Session sounds"
+                        hint={sound.on ? `On · ${soundStyleName}` : "Off"}
+                        right={
+                            <Icon
+                                name="chevronRight"
+                                size={16}
+                                stroke={th.muted}
+                            />
+                        }
+                        onPress={() => router.push("/sound")}
+                    />
                 </Section>
 
                 <Section title="DATA">

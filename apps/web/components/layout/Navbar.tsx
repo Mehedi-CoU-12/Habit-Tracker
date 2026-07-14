@@ -75,6 +75,13 @@ export default function Navbar(props: NavbarProps) {
                 <div className="flex items-center gap-2">
                     {isDashboard ? (
                         <>
+                            <Link
+                                href="/focus"
+                                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 py-2 text-xs font-bold text-ink2 transition hover:bg-surface2"
+                            >
+                                <BloomIcon name="sun" size={14} />
+                                Focus
+                            </Link>
                             <button
                                 onClick={props.onShowTemplates}
                                 className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 py-2 text-xs font-bold text-ink2 transition hover:bg-surface2"

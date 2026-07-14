@@ -17,6 +17,7 @@ import { dayNamesFull, monthShort } from "../../lib/date";
 import { SkyWash, Card } from "../../components/primitives";
 import { HabitRow, RoutineHeader } from "../../components/HabitRow";
 import Plant from "../../components/Plant";
+import Icon from "../../components/Icon";
 
 const ROUTINES: { tod: Tod; icon: string; label: string }[] = [
     { tod: "morning", icon: "sun", label: "Morning" },
@@ -100,6 +101,40 @@ export default function TodayScreen() {
                     >
                         {done} of {habits.length} watered ☿
                     </Text>
+                    {habits.length > 0 && (
+                        <Pressable
+                            onPress={() => router.push("/focus")}
+                            style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                alignSelf: "flex-start",
+                                gap: 7,
+                                marginTop: 14,
+                                paddingVertical: 9,
+                                paddingHorizontal: 16,
+                                borderRadius: 20,
+                                backgroundColor: th.surface,
+                                borderWidth: 1.5,
+                                borderColor: th.line,
+                            }}
+                        >
+                            <Icon
+                                name="sun"
+                                size={16}
+                                stroke={th.accent}
+                                strokeWidth={1.8}
+                            />
+                            <Text
+                                style={{
+                                    fontSize: 13,
+                                    fontFamily: th.sansBold,
+                                    color: th.ink,
+                                }}
+                            >
+                                Focus
+                            </Text>
+                        </Pressable>
+                    )}
                 </View>
 
                 {isLoading && (

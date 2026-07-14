@@ -172,6 +172,28 @@ const PATHS: Record<string, ReactElement> = {
             <path d="M12 11.5 c4 0 6 -3 6 -7 c-3 0 -6 3 -6 7z" />
         </>
     ),
+    target: (
+        <>
+            <circle cx="12" cy="12" r="9" />
+            <circle cx="12" cy="12" r="5" />
+            <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+        </>
+    ),
+    volume: (
+        <>
+            <path d="M4 9 v6 h4 l5 4 V5 l-5 4 z" />
+            <path d="M16 8.5 a5 5 0 0 1 0 7" />
+            <path d="M18.5 6 a9 9 0 0 1 0 12" />
+        </>
+    ),
+    volumeOff: (
+        <>
+            <path d="M4 9 v6 h4 l5 4 V5 l-5 4 z" />
+            <line x1="16.5" y1="9.5" x2="21.5" y2="14.5" />
+            <line x1="21.5" y1="9.5" x2="16.5" y2="14.5" />
+        </>
+    ),
+    play2: <path d="M7 5 v14 l12 -7 z" fill="currentColor" stroke="none" />,
 };
 
 export const BLOOM_ICON_NAMES = Object.keys(PATHS);
