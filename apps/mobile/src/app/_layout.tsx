@@ -25,11 +25,6 @@ import { startReminders } from "../notifications";
 import OfflineBar from "../components/OfflineBar";
 import SyncPill from "../components/SyncPill";
 
-/**
- * Redirects between the auth screens, the pending screen and the app.
- * Token presence decides login vs app; the account status from /users/me
- * (the one endpoint gated accounts may call) decides app vs /pending.
- */
 function AuthGate() {
     const th = useTheme();
     const { ready, token } = useAuth();
@@ -38,18 +33,12 @@ function AuthGate() {
     // True while the persisted query cache is rehydrating from AsyncStorage.
     const isRestoring = useIsRestoring();
 
-    // Keyed on DATA, deliberately not on "anything other than ACTIVE":
-    // while the profile loads — or on a network failure — we stay put rather
-    // than bounce an offline user to /pending. A 401 here (dead token) fires
-    // the api client's onUnauthorized → signOut → the !token branch below.
     const { data: me, isLoading } = useMe(ready && !!token);
 
     useEffect(() => {
         if (!ready) return;
         const top = segments[0];
-        // The Google deep-link screen routes for itself once the code
-        // exchange lands; until then it has no token, and bouncing it to
-        // /login here would abort the sign-in.
+
         if (top === "google-auth") return;
         const inAuth = top === "login" || top === "signup";
         const onPending = top === "pending";
