@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
     Alert,
+    KeyboardAvoidingView,
     Linking,
+    Platform,
     Pressable,
     ScrollView,
     Text,
@@ -252,13 +254,17 @@ export default function AddScreen() {
     );
 
     return (
-        <View style={{ flex: 1, backgroundColor: th.bg }}>
+        <KeyboardAvoidingView
+            style={{ flex: 1, backgroundColor: th.bg }}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
             <ScrollView
                 contentContainerStyle={{
                     paddingTop: insets.top + 8,
                     paddingBottom: 40,
                 }}
                 showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
             >
                 {/* top bar */}
                 <View
@@ -792,6 +798,6 @@ export default function AddScreen() {
                     />
                 </View>
             </ScrollView>
-        </View>
+        </KeyboardAvoidingView>
     );
 }
