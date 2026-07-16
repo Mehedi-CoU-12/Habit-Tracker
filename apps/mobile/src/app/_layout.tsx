@@ -47,6 +47,10 @@ function AuthGate() {
     useEffect(() => {
         if (!ready) return;
         const top = segments[0];
+        // The Google deep-link screen routes for itself once the code
+        // exchange lands; until then it has no token, and bouncing it to
+        // /login here would abort the sign-in.
+        if (top === "google-auth") return;
         const inAuth = top === "login" || top === "signup";
         const onPending = top === "pending";
 
@@ -66,12 +70,6 @@ function AuthGate() {
         }
     }, [ready, token, me, segments, router]);
 
-    // Splash while a signed-in session's status is still unknown, so a gated
-    // account never flashes the tabs before the redirect lands, and while the
-    // persisted cache is still restoring, so an offline cold start doesn't
-    // flash an empty garden before the last-known habits rehydrate. Only while
-    // the fetch is in flight (or restore is running) — a network failure falls
-    // through to the current screen instead of stranding an offline user here.
     if (ready && token && (isRestoring || (!me && isLoading))) {
         return (
             <View

@@ -20,6 +20,8 @@ import * as api from "./endpoints";
 // the app scheme (app.json) and the API's MOBILE_GOOGLE_REDIRECT default.
 const GOOGLE_REDIRECT = "habitflow://google-auth";
 
+const googleExchanges = new Map<string, Promise<api.AuthResult>>();
+
 type AuthState = {
     ready: boolean; // finished reading persisted token
     token: string | null;
@@ -34,6 +36,7 @@ type AuthState = {
     // Resolves null when the user closes the browser without signing in —
     // a non-event, not an error the screens should display.
     signInWithGoogle: () => Promise<api.AuthResult | null>;
+    completeGoogleSignIn: (code: string) => Promise<api.AuthResult>;
     signOut: () => Promise<void>;
 };
 
@@ -78,10 +81,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         [persistTokens],
     );
 
-    // Same server-side OAuth flow the web app uses, in an in-app browser tab.
-    // `?client=mobile` makes the API's Google callback redirect back to
-    // GOOGLE_REDIRECT with a one-time code instead of the web /auth/callback;
-    // the code is then exchanged for tokens over the normal API path.
+    const completeGoogleSignIn = useCallback(
+        (code: string) => {
+            let p = googleExchanges.get(code);
+            if (!p) {
+                p = (async () => {
+                    const res = await api.googleExchange(code);
+                    await persistTokens(res.accessToken, res.refreshToken);
+                    return res;
+                })();
+                // A transport failure never reached the server, so the code
+                // may still be spendable — allow a retry to re-attempt it.
+                p.catch(() => googleExchanges.delete(code));
+                googleExchanges.set(code, p);
+            }
+            return p;
+        },
+        [persistTokens],
+    );
+
     const signInWithGoogle = useCallback(async () => {
         const result = await WebBrowser.openAuthSessionAsync(
             `${API_URL}/auth/google?client=mobile`,
@@ -92,10 +110,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (typeof code !== "string" || !code) {
             throw new Error("Google sign-in failed — please try again");
         }
-        const res = await api.googleExchange(code);
-        await persistTokens(res.accessToken, res.refreshToken);
-        return res;
-    }, [persistTokens]);
+        return completeGoogleSignIn(code);
+    }, [completeGoogleSignIn]);
 
     // Drop all of THIS device's local state (tokens, write queue, caches) so
     // nothing replays or leaks into the next account signed in here. Does NOT
@@ -151,7 +167,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <Ctx.Provider
-            value={{ ready, token, signIn, register, signInWithGoogle, signOut }}
+            value={{
+                ready,
+                token,
+                signIn,
+                register,
+                signInWithGoogle,
+                completeGoogleSignIn,
+                signOut,
+            }}
         >
             {children}
         </Ctx.Provider>
