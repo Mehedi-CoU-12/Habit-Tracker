@@ -345,6 +345,13 @@ export default function AddScreen() {
                             marginTop: 10,
                         }}
                     />
+                    <View
+                        style={{
+                            height: 1,
+                            backgroundColor: th.line,
+                            marginTop: 2,
+                        }}
+                    />
                 </View>
 
                 {/* seed icons */}
@@ -364,7 +371,7 @@ export default function AddScreen() {
                         style={{
                             flexDirection: "row",
                             flexWrap: "wrap",
-                            gap: 8,
+                            gap: 6,
                         }}
                     >
                         {ICONS.map((ic) => {
@@ -379,6 +386,7 @@ export default function AddScreen() {
                                         borderRadius: 14,
                                         alignItems: "center",
                                         justifyContent: "center",
+                                        marginBottom: 6,
                                         backgroundColor: on
                                             ? th.accent
                                             : th.surface,
