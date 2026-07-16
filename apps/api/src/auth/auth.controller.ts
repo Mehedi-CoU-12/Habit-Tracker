@@ -9,7 +9,6 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
@@ -17,13 +16,16 @@ import { AuthService } from './auth.service.js';
 import { SignupDto } from './dto/signup.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 import { RefreshDto } from './dto/refresh.dto.js';
+import { GoogleExchangeDto } from './dto/google-exchange.dto.js';
+import { GoogleOAuthGuard } from './google-oauth.guard.js';
 import { SkipClientGuard } from '../common/skip-client-guard.decorator.js';
 import { Public } from './public.decorator.js';
 
 /**
  * Shape that Passport's Google strategy attaches to the request.
  * Mirrors what `GoogleStrategy.validate()` passes to `done()`
- * (see google.strategy.ts).
+ * (see google.strategy.ts). `state` is the client marker the
+ * GoogleOAuthGuard round-tripped through Google.
  */
 interface GoogleAuthRequest {
   user: {
@@ -32,6 +34,7 @@ interface GoogleAuthRequest {
     email: string;
     avatarUrl: string | null;
   };
+  query: { state?: string };
 }
 
 // @Public: these are the routes that *issue* tokens — the global JwtAuthGuard
@@ -81,10 +84,13 @@ export class AuthController {
     return this.authService.logout(dto.refreshToken);
   }
 
-  /** Step 1 — redirect the browser to Google */
+  /**
+   * Step 1 — redirect the browser to Google. Mobile opens this with
+   * `?client=mobile`, which the guard round-trips via OAuth `state`.
+   */
   @SkipClientGuard()
   @Get('google')
-  @UseGuards(AuthGuard('google'))
+  @UseGuards(GoogleOAuthGuard)
   googleAuth() {
     // Passport handles the redirect automatically
   }
@@ -92,8 +98,19 @@ export class AuthController {
   /** Step 2 — Google redirects here after the user consents */
   @SkipClientGuard()
   @Get('google/callback')
-  @UseGuards(AuthGuard('google'))
+  @UseGuards(GoogleOAuthGuard)
   async googleCallback(@Req() req: GoogleAuthRequest, @Res() res: Response) {
+    if (req.query.state === 'mobile') {
+      // Deep links are interceptable by other installed apps, so this carries
+      // only a 60s one-time code — the app trades it for tokens over HTTPS
+      // at /auth/google/exchange.
+      const code = await this.authService.googleLoginCode(req.user);
+      const deepLink =
+        this.config.get<string>('MOBILE_GOOGLE_REDIRECT') ??
+        'habitflow://google-auth';
+      return res.redirect(`${deepLink}?code=${code}`);
+    }
+
     const { accessToken, refreshToken } = await this.authService.googleLogin(
       req.user,
     );
@@ -104,5 +121,16 @@ export class AuthController {
     res.redirect(
       `${frontendUrl}/auth/callback#token=${accessToken}&refresh=${refreshToken}`,
     );
+  }
+
+  /**
+   * Step 3 (mobile only) — exchange the deep-link code for tokens + user.
+   * Behind the ClientGuard like the rest of the mobile API surface.
+   */
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
+  @Post('google/exchange')
+  @HttpCode(HttpStatus.OK)
+  googleExchange(@Body() dto: GoogleExchangeDto) {
+    return this.authService.exchangeGoogleCode(dto.code);
   }
 }
