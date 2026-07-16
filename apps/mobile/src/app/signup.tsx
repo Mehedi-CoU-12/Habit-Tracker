@@ -15,6 +15,7 @@ import { useAuth } from "../api/AuthProvider";
 import { useKeyboardVisible } from "../lib/useKeyboardVisible";
 import Plant from "../components/Plant";
 import Icon from "../components/Icon";
+import GoogleButton from "../components/GoogleButton";
 import { Pill } from "../components/primitives";
 
 export default function SignupScreen() {
@@ -22,7 +23,7 @@ export default function SignupScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const kbVisible = useKeyboardVisible();
-    const { register } = useAuth();
+    const { register, signInWithGoogle } = useAuth();
 
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
@@ -57,6 +58,25 @@ export default function SignupScreen() {
             );
         } catch (e) {
             setError(e instanceof Error ? e.message : "Signup failed");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const google = async () => {
+        if (loading) return;
+        setError("");
+        setLoading(true);
+        try {
+            const res = await signInWithGoogle();
+            if (!res) return; // user closed the browser — not an error
+            // Google accounts land here brand-new or already known; route the
+            // same way login does (Google sign-in needs no onboarding detour).
+            router.replace(res.user.status === "ACTIVE" ? "/" : "/pending");
+        } catch (e) {
+            setError(
+                e instanceof Error ? e.message : "Google sign-in failed",
+            );
         } finally {
             setLoading(false);
         }
@@ -226,6 +246,41 @@ export default function SignupScreen() {
                         onPress={submit}
                         style={{ marginTop: 4 }}
                     />
+
+                    <View
+                        style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 10,
+                            marginVertical: 4,
+                        }}
+                    >
+                        <View
+                            style={{
+                                flex: 1,
+                                height: 1,
+                                backgroundColor: th.line,
+                            }}
+                        />
+                        <Text
+                            style={{
+                                color: th.muted,
+                                fontSize: 12,
+                                fontFamily: th.sansBold,
+                            }}
+                        >
+                            OR
+                        </Text>
+                        <View
+                            style={{
+                                flex: 1,
+                                height: 1,
+                                backgroundColor: th.line,
+                            }}
+                        />
+                    </View>
+
+                    <GoogleButton onPress={() => void google()} />
                 </View>
 
                 <View
