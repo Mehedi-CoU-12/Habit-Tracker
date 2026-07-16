@@ -18,8 +18,20 @@ import { LoginDto } from './dto/login.dto.js';
 // requires type === 'refresh').
 const REFRESH_TOKEN_TTL = '30d';
 
+// One-time code carried by the mobile Google sign-in deep link; only needs
+// to survive the browser→app handoff, so keep it tight.
+const GOOGLE_CODE_TTL = '60s';
+
 /** The fields every token embeds — id, email (access only), and the version. */
 type TokenUser = { id: string; email: string; tokenVersion: number };
+
+/** Profile shape GoogleStrategy.validate() extracts from Google's response. */
+type GoogleUser = {
+  googleId: string;
+  name: string;
+  email: string;
+  avatarUrl: string | null;
+};
 
 /** Minimal shape returned to clients alongside the tokens. */
 type PublicUser = {
@@ -74,12 +86,55 @@ export class AuthService {
     return { ...this.issueTokens(user), user: this.publicUser(user) };
   }
 
-  async googleLogin(googleUser: {
-    googleId: string;
-    name: string;
-    email: string;
-    avatarUrl: string | null;
-  }) {
+  async googleLogin(googleUser: GoogleUser) {
+    const user = await this.upsertGoogleUser(googleUser);
+    return this.issueTokens(user);
+  }
+
+  /**
+   * Mobile variant of googleLogin. The callback redirect for mobile is a
+   * habitflow:// deep link, which any installed app could register to
+   * intercept — so instead of tokens it carries a single-purpose 60s code
+   * that the app exchanges for tokens over HTTPS (see exchangeGoogleCode).
+   */
+  async googleLoginCode(googleUser: GoogleUser) {
+    const user = await this.upsertGoogleUser(googleUser);
+    return this.jwt.sign(
+      { sub: user.id, type: 'google_code' },
+      { expiresIn: GOOGLE_CODE_TTL },
+    );
+  }
+
+  /** Trade a deep-link code for the same payload login/signup return. */
+  async exchangeGoogleCode(code: string) {
+    let payload: { sub: string; type?: string };
+    try {
+      payload = this.jwt.verify(code);
+    } catch {
+      throw new UnauthorizedException('Invalid or expired sign-in code');
+    }
+    if (payload.type !== 'google_code') {
+      throw new UnauthorizedException('Invalid or expired sign-in code');
+    }
+
+    // Best-effort single-use: with Redis up a replayed code dies here;
+    // without Redis the 60s expiry still bounds the window.
+    const usedKey = cacheKeys.googleCodeUsed(code);
+    if (await this.cache.get(usedKey)) {
+      throw new UnauthorizedException('Invalid or expired sign-in code');
+    }
+    await this.cache.set(usedKey, 1, 120);
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+    });
+    if (!user) {
+      throw new UnauthorizedException('Account no longer exists');
+    }
+    return { ...this.issueTokens(user), user: this.publicUser(user) };
+  }
+
+  private async upsertGoogleUser(googleUser: GoogleUser) {
     let user = await this.prisma.user.findUnique({
       where: { email: googleUser.email },
     });
@@ -108,7 +163,7 @@ export class AuthService {
       await this.cache.bumpVersion(cacheKeys.adminUsersVersion);
     }
 
-    return this.issueTokens(user);
+    return user;
   }
 
   /**

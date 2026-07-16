@@ -38,6 +38,14 @@ export function logout(refreshToken: string) {
     return apiPost<{ success: boolean }>("/auth/logout", { refreshToken });
 }
 
+/**
+ * Trade the one-time code from the Google sign-in deep link for tokens +
+ * user (see AuthProvider.signInWithGoogle for the full flow).
+ */
+export function googleExchange(code: string) {
+    return apiPost<AuthResult>("/auth/google/exchange", { code });
+}
+
 export function fetchMe() {
     return apiGet<UserProfile>("/users/me");
 }

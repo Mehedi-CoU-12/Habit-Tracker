@@ -44,4 +44,7 @@ export const cacheKeys = {
 
   /** One user's payment list (admin view). */
   adminPayments: (userId: string) => `admin:payments:${userId}`,
+
+  /** Replay marker for a consumed mobile Google sign-in code. */
+  googleCodeUsed: (code: string) => `auth:gcode:${code}`,
 } as const;

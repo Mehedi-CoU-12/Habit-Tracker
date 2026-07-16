@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
     Alert,
+    KeyboardAvoidingView,
     Linking,
+    Platform,
     Pressable,
     ScrollView,
     Text,
@@ -53,6 +55,78 @@ const WHEN: { l: string; i: string; v: Tod }[] = [
     { l: "Anytime", i: "sparkle", v: "anytime" },
 ];
 
+function Step({
+    value,
+    onLess,
+    onMore,
+    onCommit,
+}: {
+    value: string;
+    onLess: () => void;
+    onMore: () => void;
+    onCommit: (digits: string) => void;
+}) {
+    const th = useTheme();
+    const [draft, setDraft] = useState<string | null>(null);
+    const step = (fn: () => void) => {
+        setDraft(null);
+        fn();
+    };
+    return (
+        <View
+            style={{
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: th.surface2,
+                borderRadius: 12,
+            }}
+        >
+            <Pressable
+                onPress={() => step(onLess)}
+                style={{
+                    width: 32,
+                    height: 36,
+                    alignItems: "center",
+                    justifyContent: "center",
+                }}
+            >
+                <Text style={{ fontSize: 18, color: th.ink }}>−</Text>
+            </Pressable>
+            <TextInput
+                value={draft ?? value}
+                onChangeText={(t) => {
+                    const digits = t.replace(/\D/g, "");
+                    setDraft(digits);
+                    if (digits) onCommit(digits);
+                }}
+                onBlur={() => setDraft(null)}
+                keyboardType="number-pad"
+                maxLength={2}
+                selectTextOnFocus
+                style={{
+                    fontFamily: th.display,
+                    fontSize: 17,
+                    color: th.ink,
+                    minWidth: 28,
+                    textAlign: "center",
+                    padding: 0,
+                }}
+            />
+            <Pressable
+                onPress={() => step(onMore)}
+                style={{
+                    width: 32,
+                    height: 36,
+                    alignItems: "center",
+                    justifyContent: "center",
+                }}
+            >
+                <Text style={{ fontSize: 18, color: th.ink }}>+</Text>
+            </Pressable>
+        </View>
+    );
+}
+
 export default function AddScreen() {
     const th = useTheme();
     const insets = useSafeAreaInsets();
@@ -74,6 +148,18 @@ export default function AddScreen() {
     const [icon, setIcon] = useState("sprout");
     const [tod, setTod] = useState<Tod>("morning");
     const [goal, setGoal] = useState(20);
+
+    const [goalDraft, setGoalDraft] = useState<string | null>(null);
+    const changeGoal = (t: string) => {
+        const digits = t.replace(/\D/g, "");
+        setGoalDraft(digits);
+        const n = parseInt(digits, 10);
+        if (!Number.isNaN(n)) setGoal(Math.min(31, Math.max(1, n)));
+    };
+    const stepGoal = (d: number) => {
+        setGoalDraft(null);
+        setGoal((g) => Math.min(31, Math.max(1, g + d)));
+    };
 
     // Per-habit reminder, edited here and committed to the device-local
     // reminder store on save (the OS schedule is per-device, not synced).
@@ -198,67 +284,18 @@ export default function AddScreen() {
     };
     const quietClash = remindOn && reminders.quietHours && times.some(inQuiet);
 
-    const Step = ({
-        value,
-        onLess,
-        onMore,
-    }: {
-        value: string;
-        onLess: () => void;
-        onMore: () => void;
-    }) => (
-        <View
-            style={{
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: th.surface2,
-                borderRadius: 12,
-            }}
-        >
-            <Pressable
-                onPress={onLess}
-                style={{
-                    width: 32,
-                    height: 36,
-                    alignItems: "center",
-                    justifyContent: "center",
-                }}
-            >
-                <Text style={{ fontSize: 18, color: th.ink }}>−</Text>
-            </Pressable>
-            <Text
-                style={{
-                    fontFamily: th.display,
-                    fontSize: 17,
-                    color: th.ink,
-                    minWidth: 28,
-                    textAlign: "center",
-                }}
-            >
-                {value}
-            </Text>
-            <Pressable
-                onPress={onMore}
-                style={{
-                    width: 32,
-                    height: 36,
-                    alignItems: "center",
-                    justifyContent: "center",
-                }}
-            >
-                <Text style={{ fontSize: 18, color: th.ink }}>+</Text>
-            </Pressable>
-        </View>
-    );
-
     return (
-        <View style={{ flex: 1, backgroundColor: th.bg }}>
+        <KeyboardAvoidingView
+            style={{ flex: 1, backgroundColor: th.bg }}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
             <ScrollView
                 contentContainerStyle={{
                     paddingTop: insets.top + 8,
                     paddingBottom: 40,
                 }}
                 showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
             >
                 {/* top bar */}
                 <View
@@ -339,6 +376,13 @@ export default function AddScreen() {
                             marginTop: 10,
                         }}
                     />
+                    <View
+                        style={{
+                            height: 1,
+                            backgroundColor: th.line,
+                            marginTop: 2,
+                        }}
+                    />
                 </View>
 
                 {/* seed icons */}
@@ -358,7 +402,7 @@ export default function AddScreen() {
                         style={{
                             flexDirection: "row",
                             flexWrap: "wrap",
-                            gap: 8,
+                            gap: 6,
                         }}
                     >
                         {ICONS.map((ic) => {
@@ -373,6 +417,7 @@ export default function AddScreen() {
                                         borderRadius: 14,
                                         alignItems: "center",
                                         justifyContent: "center",
+                                        marginBottom: 6,
                                         backgroundColor: on
                                             ? th.accent
                                             : th.surface,
@@ -473,7 +518,7 @@ export default function AddScreen() {
                         }}
                     >
                         <Pressable
-                            onPress={() => setGoal((g) => Math.max(1, g - 1))}
+                            onPress={() => stepGoal(-1)}
                             style={{
                                 width: 36,
                                 height: 36,
@@ -487,20 +532,41 @@ export default function AddScreen() {
                                 −
                             </Text>
                         </Pressable>
-                        <Text
+                        <View
                             style={{
-                                fontFamily: th.display,
-                                fontSize: 24,
-                                color: th.ink,
+                                flexDirection: "row",
+                                alignItems: "center",
                             }}
                         >
-                            {goal}{" "}
-                            <Text style={{ fontSize: 14, color: th.muted }}>
+                            <TextInput
+                                value={goalDraft ?? String(goal)}
+                                onChangeText={changeGoal}
+                                onBlur={() => setGoalDraft(null)}
+                                keyboardType="number-pad"
+                                maxLength={2}
+                                selectTextOnFocus
+                                style={{
+                                    fontFamily: th.display,
+                                    fontSize: 24,
+                                    color: th.ink,
+                                    minWidth: 36,
+                                    textAlign: "center",
+                                    padding: 0,
+                                }}
+                            />
+                            <Text
+                                style={{
+                                    fontFamily: th.display,
+                                    fontSize: 14,
+                                    color: th.muted,
+                                    marginLeft: 4,
+                                }}
+                            >
                                 days
                             </Text>
-                        </Text>
+                        </View>
                         <Pressable
-                            onPress={() => setGoal((g) => Math.min(31, g + 1))}
+                            onPress={() => stepGoal(1)}
                             style={{
                                 width: 36,
                                 height: 36,
@@ -665,6 +731,16 @@ export default function AddScreen() {
                                             onMore={() =>
                                                 setPickH((h) => (h % 12) + 1)
                                             }
+                                            onCommit={(t) => {
+                                                const n = parseInt(t, 10);
+                                                if (Number.isNaN(n)) return;
+                                                // 0 reads as 12 o'clock.
+                                                setPickH(
+                                                    n === 0
+                                                        ? 12
+                                                        : Math.min(12, n),
+                                                );
+                                            }}
                                         />
                                         <Step
                                             value={String(pickM).padStart(
@@ -677,6 +753,11 @@ export default function AddScreen() {
                                             onMore={() =>
                                                 setPickM((m) => (m + 5) % 60)
                                             }
+                                            onCommit={(t) => {
+                                                const n = parseInt(t, 10);
+                                                if (!Number.isNaN(n))
+                                                    setPickM(Math.min(59, n));
+                                            }}
                                         />
                                         <Pressable
                                             onPress={() => setPickPm((p) => !p)}
@@ -792,6 +873,6 @@ export default function AddScreen() {
                     />
                 </View>
             </ScrollView>
-        </View>
+        </KeyboardAvoidingView>
     );
 }
