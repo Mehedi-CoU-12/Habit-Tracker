@@ -286,6 +286,55 @@ export async function toggleLog(
     return handleResponse<{ completed: boolean }>(res);
 }
 
+// ── Focus sessions ──────────────────────────────────────────────────────
+
+export type FocusDayTotals = { sessions: number; minutes: number };
+
+export type FocusStats = {
+    today: FocusDayTotals;
+    week: FocusDayTotals;
+    allTime: FocusDayTotals & { days: number };
+    streak: number;
+    best: FocusDayTotals;
+    days: ({ date: string } & FocusDayTotals)[];
+    byHabit: ({
+        habitId: string | null;
+        name: string;
+        icon: string | null;
+    } & FocusDayTotals)[];
+};
+
+export type RecordFocusSessionInput = {
+    habitId?: string;
+    minutes: number;
+    year: number;
+    month: number;
+    day: number;
+};
+
+export async function recordFocusSession(
+    input: RecordFocusSessionInput,
+): Promise<{ id: string }> {
+    const res = await authedFetch(`/focus/sessions`, {
+        method: "POST",
+        headers: JSON_HEADERS,
+        body: JSON.stringify(input),
+    });
+    return handleResponse<{ id: string }>(res);
+}
+
+/** year/month/day = the client's local today, so day math follows the user. */
+export async function fetchFocusStats(
+    year: number,
+    month: number,
+    day: number,
+): Promise<FocusStats> {
+    const res = await authedFetch(
+        `/focus/stats?year=${year}&month=${month}&day=${day}`,
+    );
+    return handleResponse<FocusStats>(res);
+}
+
 // ── Admin (all endpoints require role ADMIN — enforced by the API) ──────
 
 export type AdminStats = {

@@ -4,7 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
-import { fetchHabits, toggleLog } from "../../src/lib/api";
+import {
+    fetchFocusStats,
+    fetchHabits,
+    recordFocusSession,
+    toggleLog,
+} from "../../src/lib/api";
 import { deriveHabitStats } from "../../src/lib/deriveStats";
 import { ApiHabit } from "../dashboard/types";
 import BloomIcon from "../../components/bloom/BloomIcon";
@@ -46,6 +51,11 @@ const fmt = (s: number) => {
     const ss = Math.max(0, s) % 60;
     return `${m}:${String(ss).padStart(2, "0")}`;
 };
+
+const fmtMin = (m: number) =>
+    m >= 60
+        ? `${Math.floor(m / 60)}h ${m % 60 ? `${m % 60}m` : ""}`.trim()
+        : `${m}m`;
 
 const todayKey = (d?: Date) => dayjs(d).format("YYYY-MM-DD");
 
@@ -169,6 +179,46 @@ export default function FocusPage() {
         [queryKey],
     );
 
+    // Dedication stats live on the server (FocusSession), so they survive
+    // devices and days — unlike the localStorage timer state.
+    const { data: stats } = useQuery({
+        queryKey: ["focusStats"],
+        queryFn: () => {
+            const d = new Date();
+            return fetchFocusStats(
+                d.getFullYear(),
+                d.getMonth() + 1,
+                d.getDate(),
+            );
+        },
+        retry: false,
+        staleTime: 60 * 1000,
+    });
+
+    /** Report a finished focus session — best-effort; the timer never waits. */
+    const recordSession = useCallback(
+        (id: string | null, minutes: number) => {
+            const d = new Date();
+            recordFocusSession({
+                ...(id ? { habitId: id } : {}),
+                minutes,
+                year: d.getFullYear(),
+                month: d.getMonth() + 1,
+                day: d.getDate(),
+            })
+                .then(() =>
+                    queryClient.invalidateQueries({
+                        queryKey: ["focusStats"],
+                    }),
+                )
+                .catch(() => {
+                    /* offline / API down — the local timer state is unaffected */
+                });
+        },
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [],
+    );
+
     // ── Hydrate persisted state (client-only, after first paint) ────────────
     useEffect(() => {
         let p: Partial<FocusPersist> = {};
@@ -209,6 +259,7 @@ export default function FocusPage() {
                 if (nextMode === "focus") {
                     nextSessions += 1;
                     if (nextHabitId) waterHabit(nextHabitId);
+                    recordSession(nextHabitId, fm);
                     nextMode = nextSessions % 4 === 0 ? "long" : "short";
                     nextRemaining = breakLen(nextMode) * 60;
                 } else {
@@ -268,6 +319,7 @@ export default function FocusPage() {
             justDoneTimer.current = setTimeout(() => setJustDone(false), 2200);
             const id = c.habitId ?? habit?.id;
             if (id) waterHabit(id);
+            recordSession(id ?? null, c.focusMin);
             playSound("end");
             const nm: Mode = next % 4 === 0 ? "long" : "short";
             setMode(nm);
@@ -754,6 +806,108 @@ export default function FocusPage() {
                         })}
                     </div>
                 </div>
+
+                {/* dedication stats — server-side history, not this device's count */}
+                {stats && stats.allTime.sessions > 0 && (
+                    <div className="mt-7">
+                        <p className="mb-2.5 text-center text-[11px] font-bold tracking-[0.1em] text-muted">
+                            YOUR DEDICATION
+                        </p>
+                        <div className="rounded-2xl border-[1.5px] border-line bg-surface p-4">
+                            <div className="grid grid-cols-3 gap-2 text-center">
+                                <div>
+                                    <div className="font-display text-xl leading-tight text-ink tabular-nums">
+                                        {fmtMin(stats.today.minutes)}
+                                    </div>
+                                    <div className="mt-0.5 text-[11px] font-semibold text-muted">
+                                        today
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="font-display text-xl leading-tight text-ink tabular-nums">
+                                        {fmtMin(stats.week.minutes)}
+                                    </div>
+                                    <div className="mt-0.5 text-[11px] font-semibold text-muted">
+                                        last 7 days
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="font-display text-xl leading-tight text-ink tabular-nums">
+                                        {stats.streak}
+                                    </div>
+                                    <div className="mt-0.5 text-[11px] font-semibold text-muted">
+                                        day streak
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* last 14 days, oldest → newest */}
+                            <div className="mt-4 flex h-12 items-end gap-[3px]">
+                                {stats.days.map((d) => {
+                                    const max = Math.max(
+                                        ...stats.days.map((x) => x.minutes),
+                                        1,
+                                    );
+                                    return (
+                                        <div
+                                            key={d.date}
+                                            title={`${d.date} · ${d.sessions} session${d.sessions === 1 ? "" : "s"} · ${fmtMin(d.minutes)}`}
+                                            className="flex flex-1 items-end self-stretch"
+                                        >
+                                            <div
+                                                className="w-full rounded-t-[3px]"
+                                                style={{
+                                                    height: d.minutes
+                                                        ? `${Math.max((d.minutes / max) * 100, 8)}%`
+                                                        : "3px",
+                                                    background: d.minutes
+                                                        ? "var(--bloom-accent)"
+                                                        : "var(--bloom-line)",
+                                                }}
+                                            />
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <div className="mt-1 flex justify-between text-[10px] font-semibold text-muted">
+                                <span>2 weeks ago</span>
+                                <span>today</span>
+                            </div>
+
+                            {stats.byHabit.length > 0 && (
+                                <div className="mt-3.5 space-y-1.5 border-t border-line pt-3">
+                                    {stats.byHabit.slice(0, 3).map((h) => (
+                                        <div
+                                            key={h.habitId ?? "other"}
+                                            className="flex items-center justify-between text-[12.5px]"
+                                        >
+                                            <span className="flex items-center gap-1.5 font-semibold text-ink2">
+                                                <BloomIcon
+                                                    name={h.icon || "sprout"}
+                                                    size={14}
+                                                    strokeWidth={1.8}
+                                                />
+                                                {h.name}
+                                            </span>
+                                            <span className="text-muted tabular-nums">
+                                                {h.sessions} ·{" "}
+                                                {fmtMin(h.minutes)}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            <p className="mt-3 text-center text-[11px] text-muted">
+                                All time: {stats.allTime.sessions} session
+                                {stats.allTime.sessions === 1 ? "" : "s"} ·{" "}
+                                {fmtMin(stats.allTime.minutes)} across{" "}
+                                {stats.allTime.days} day
+                                {stats.allTime.days === 1 ? "" : "s"}
+                            </p>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
