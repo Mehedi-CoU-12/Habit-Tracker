@@ -13,6 +13,7 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard.js';
 import { StatusGuard } from './auth/status.guard.js';
 import { RolesGuard } from './auth/roles.guard.js';
 import { HabitsModule } from './habits/habits.module.js';
+import { FocusModule } from './focus/focus.module.js';
 import { UsersModule } from './users/users.module.js';
 import { AdminModule } from './admin/admin.module.js';
 
@@ -24,6 +25,7 @@ import { AdminModule } from './admin/admin.module.js';
     RedisModule,
     AuthModule,
     HabitsModule,
+    FocusModule,
     UsersModule,
     AdminModule,
   ],

@@ -235,6 +235,9 @@ export class HabitsService {
     if (habit.userId !== userId) throw new ForbiddenException();
     const deleted = await this.prisma.habit.delete({ where: { id: habitId } });
     await this.invalidateHabits(userId);
+    // Deleting the habit just unlinked its focus sessions (SetNull) — drop the
+    // cached dedication stats so byHabit stops naming the dead habit.
+    await this.cache.bumpVersion(cacheKeys.focusVersion(userId));
     return deleted;
   }
 

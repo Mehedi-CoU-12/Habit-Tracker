@@ -36,6 +36,7 @@ model User {
   tokenVersion    Int           @default(0)
   habits          Habit[]
   payments        Payment[]
+  focusSessions   FocusSession[]
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -58,17 +59,38 @@ model Payment {
 }
 
 model Habit {
-  id        String     @id @default(cuid())
+  id            String         @id @default(cuid())
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  goal          Int
+  icon          String         @default("sprout")
+  tod           String         @default("anytime")
+  verb          String?
+  logs          HabitLog[]
+  focusSessions FocusSession[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+// One completed focus (Pomodoro) session. The habit link survives as history
+// even if the habit is later deleted (SetNull), so dedication stats never
+// shrink retroactively. year/month/day are the CLIENT's local calendar day —
+// same convention as HabitLog — so stats group by the user's day, not the
+// server's timezone.
+model FocusSession {
+  id        String   @id @default(cuid())
   userId    String
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name      String
-  goal      Int
-  icon      String     @default("sprout")
-  tod       String     @default("anytime")
-  verb      String?
-  logs      HabitLog[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  habitId   String?
+  habit     Habit?   @relation(fields: [habitId], references: [id], onDelete: SetNull)
+  minutes   Int
+  year      Int
+  month     Int
+  day       Int
+  createdAt DateTime @default(now())
+
+  @@index([userId, year, month, day])
 }
 
 model HabitLog {

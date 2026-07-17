@@ -29,6 +29,10 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     return this.client.payment;
   }
 
+  get focusSession() {
+    return this.client.focusSession;
+  }
+
   async onModuleInit() {
     await this.client.$connect();
   }
