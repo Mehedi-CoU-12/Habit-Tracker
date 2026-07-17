@@ -69,14 +69,11 @@ export default function SignupScreen() {
         setLoading(true);
         try {
             const res = await signInWithGoogle();
-            if (!res) return; // user closed the browser — not an error
-            // Google accounts land here brand-new or already known; route the
-            // same way login does (Google sign-in needs no onboarding detour).
+            if (!res) return;
+
             router.replace(res.user.status === "ACTIVE" ? "/" : "/pending");
         } catch (e) {
-            setError(
-                e instanceof Error ? e.message : "Google sign-in failed",
-            );
+            setError(e instanceof Error ? e.message : "Google sign-in failed");
         } finally {
             setLoading(false);
         }

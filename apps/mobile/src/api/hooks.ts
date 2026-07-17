@@ -14,8 +14,6 @@ import { enqueue, type HabitPatch } from "../offline/outbox";
 import { runSync } from "../offline/sync";
 import { syncReminders } from "../notifications";
 
-// Strip undefined keys so a merged patch / optimistic spread never blanks a
-// field that wasn't actually edited.
 function definedOnly<T extends object>(obj: T): Partial<T> {
     const out: Partial<T> = {};
     for (const k in obj) {
@@ -30,8 +28,6 @@ export function useMe(enabled = true) {
         queryFn: api.fetchMe,
         retry: false,
         staleTime: 5 * 60 * 1000,
-        // The AuthGate disables this until a token exists, so signed-out
-        // visitors don't fire a guaranteed-401 request on the login screen.
         enabled,
     });
 }
@@ -68,9 +64,7 @@ export function useHabitsHistory(today: Date, monthsBack = 7): MonthHabits[] {
         () => lastNMonths(today, monthsBack),
         [today, monthsBack],
     );
-    // `combine` assembles the result so useQueries returns a referentially
-    // stable value (via replaceEqualDeep) — without it useQueries hands back a
-    // fresh array every render, which would defeat the downstream heatmap memos.
+
     return useQueries({
         queries: months.map(({ year, month }) => ({
             queryKey: habitsKey(year, month),
@@ -88,19 +82,11 @@ export function useHabitsHistory(today: Date, monthsBack = 7): MonthHabits[] {
 }
 
 // ── Offline-first mutations ─────────────────────────────────────────────────
-// Every write is applied optimistically to the React Query cache and appended
-// to the durable outbox; the sync worker sends it to the server (now, if
-// online) and reconciles. mutationFn therefore never touches the network — it
-// resolves as soon as the op is queued, so existing `onSuccess` callbacks (e.g.
-// closing the add-habit modal) still fire and the UI stays instant offline.
 
 export function useToggleLog(year: number, month: number) {
     const qc = useQueryClient();
     const key = habitsKey(year, month);
     return useMutation({
-        // Named "toggle" for its call sites, but implemented as an absolute set:
-        // the desired state is derived from the cache, then sent as a boolean so
-        // replays are idempotent.
         mutationFn: async ({
             habitId,
             day,
@@ -147,15 +133,12 @@ export function useToggleLog(year: number, month: number) {
                 completed,
             });
             void runSync();
-            // A completion (or un-completion) changes what still needs a nudge.
             void syncReminders();
             return { completed };
         },
     });
 }
 
-// year/month are kept for a stable call-site signature; the optimistic write
-// now spans every cached month, so they're not read here.
 export function useCreateHabit(_year: number, _month: number) {
     const qc = useQueryClient();
     return useMutation({
@@ -181,8 +164,7 @@ export function useCreateHabit(_year: number, _month: number) {
                 updatedAt: now,
                 logs: [],
             };
-            // A habit appears in every month's list (only its logs are
-            // month-scoped), so insert it into all cached month queries.
+
             qc.setQueriesData<ApiHabit[]>({ queryKey: ["habits"] }, (old) =>
                 old ? [...old, optimistic] : old,
             );
@@ -224,7 +206,6 @@ export function useUpdateHabit(_year: number, _month: number) {
             );
             await enqueue({ kind: "habit.update", id, patch });
             void runSync();
-            // Name/tod change → reminder copy or default time may shift.
             void syncReminders();
         },
     });

@@ -16,25 +16,19 @@ import { clearOutbox } from "../offline/outbox";
 import { resetSync } from "../offline/sync";
 import * as api from "./endpoints";
 
-// Where the API's Google callback deep-links back into the app. Must match
-// the app scheme (app.json) and the API's MOBILE_GOOGLE_REDIRECT default.
 const GOOGLE_REDIRECT = "habitflow://google-auth";
 
 const googleExchanges = new Map<string, Promise<api.AuthResult>>();
 
 type AuthState = {
-    ready: boolean; // finished reading persisted token
+    ready: boolean;
     token: string | null;
-    // Both resolve with the API's response so the auth screens can route on
-    // `user.status` (new signups start PENDING).
     signIn: (email: string, password: string) => Promise<api.AuthResult>;
     register: (
         name: string,
         email: string,
         password: string,
     ) => Promise<api.AuthResult>;
-    // Resolves null when the user closes the browser without signing in —
-    // a non-event, not an error the screens should display.
     signInWithGoogle: () => Promise<api.AuthResult | null>;
     completeGoogleSignIn: (code: string) => Promise<api.AuthResult>;
     signOut: () => Promise<void>;
@@ -90,8 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     await persistTokens(res.accessToken, res.refreshToken);
                     return res;
                 })();
-                // A transport failure never reached the server, so the code
-                // may still be spendable — allow a retry to re-attempt it.
+
                 p.catch(() => googleExchanges.delete(code));
                 googleExchanges.set(code, p);
             }
@@ -105,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             `${API_URL}/auth/google?client=mobile`,
             GOOGLE_REDIRECT,
         );
-        if (result.type !== "success") return null; // user backed out
+        if (result.type !== "success") return null;
         const code = Linking.parse(result.url).queryParams?.code;
         if (typeof code !== "string" || !code) {
             throw new Error("Google sign-in failed — please try again");
@@ -113,9 +106,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return completeGoogleSignIn(code);
     }, [completeGoogleSignIn]);
 
-    // Drop all of THIS device's local state (tokens, write queue, caches) so
-    // nothing replays or leaks into the next account signed in here. Does NOT
-    // touch the server — see signOut() for the revoking variant.
     const clearLocalSession = useCallback(async () => {
         await storage.remove(KEYS.token);
         await storage.remove(KEYS.refreshToken);
@@ -127,8 +117,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [queryClient]);
 
     const signOut = useCallback(async () => {
-        // Explicit, user-initiated sign-out: revoke every session server-side
-        // (bumps tokenVersion) before dropping the local tokens.
         const refreshToken = await storage.get(KEYS.refreshToken);
         if (refreshToken) {
             try {
@@ -140,25 +128,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await clearLocalSession();
     }, [clearLocalSession]);
 
-    // Central auth plumbing: most screens swallow query errors silently, so
-    // the api client reports 401/403 here instead of relying on per-screen
-    // handling.
     const tokenRef = useRef(token);
     tokenRef.current = token;
     useEffect(() => {
         registerGateEvents({
-            // Dead token (expired, or account deleted) → clear LOCAL session so
-            // the AuthGate lands on /login. Deliberately does NOT call
-            // api.logout: the server already rejected this token (nothing to
-            // revoke), and if this were a false positive — e.g. a transient
-            // refresh hiccup on reconnect — revoking would needlessly bump
-            // tokenVersion and kill a still-valid session on every device.
-            // Guarded on a present token so a failed login attempt doesn't fire.
             onUnauthorized: () => {
                 if (tokenRef.current) void clearLocalSession();
             },
-            // Account gated mid-session (e.g. admin suspends while the app
-            // is open) → refetch the profile so the AuthGate reacts.
             onAccountGated: () => {
                 void queryClient.invalidateQueries({ queryKey: ["me"] });
             },

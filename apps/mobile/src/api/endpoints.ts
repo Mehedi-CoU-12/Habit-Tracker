@@ -11,8 +11,6 @@ import { AccountStatus, ApiHabit, UserProfile, UserRole } from "../lib/types";
 // ── Auth ──────────────────────────────────────────────────────────────
 export type AuthResult = {
     accessToken: string;
-    // Long-lived token the client exchanges for a fresh access token; stored
-    // alongside the access token in secure storage (see AuthProvider).
     refreshToken: string;
     user: {
         id: string;
