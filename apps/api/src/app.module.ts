@@ -19,10 +19,6 @@ import { AdminModule } from './admin/admin.module.js';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    // Rate limiting: at most 120 requests per minute per client IP by default.
-    // Individual routes can tighten (see @Throttle on auth) or opt out with
-    // @SkipThrottle. Storage is in-memory — fine for a single instance; use a
-    // shared store (e.g. Redis) if you scale to multiple instances.
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 120 }]),
     PrismaModule,
     RedisModule,
@@ -35,10 +31,6 @@ import { AdminModule } from './admin/admin.module.js';
   providers: [
     AppService,
     KeepAliveService,
-    // Global guards run in registration order: reject non-app callers first,
-    // rate-limit what remains, then authenticate (unless @Public), then
-    // require an ACTIVE account (unless @AllowInactive), then check @Roles.
-    // Locked by default: a new endpoint is protected without any decorator.
     { provide: APP_GUARD, useClass: ClientGuard },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },

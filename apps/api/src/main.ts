@@ -9,9 +9,6 @@ import { isAllowedOrigin } from './common/allowed-origins.js';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  // Behind Render/Vercel proxies the client IP is in X-Forwarded-For; trust
-  // the first proxy hop so req.ip is the real caller (rate limiting relies on
-  // it). Adjust the hop count if you add more proxies in front.
   app.set('trust proxy', 1);
 
   app.enableCors({
@@ -19,7 +16,6 @@ async function bootstrap() {
       origin: string,
       callback: (params1: any, params2: any) => void,
     ): any => {
-      // No Origin header → native apps (Expo Go / RN), curl, server-to-server.
       if (!origin) return callback(null, true);
       if (isAllowedOrigin(origin)) {
         return callback(null, true);
@@ -37,11 +33,9 @@ async function bootstrap() {
     }),
   );
 
-  // Turn every unhandled error (incl. Prisma) into a consistent JSON envelope
-  // so the web client can always render a meaningful toast.
   app.useGlobalFilters(new AllExceptionsFilter());
 
-  await app.listen(process.env.PORT ?? 3333);
+  await app.listen(process.env.PORT ?? 4000);
 }
 
 bootstrap().catch((err) => {

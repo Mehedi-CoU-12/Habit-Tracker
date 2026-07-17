@@ -5,8 +5,6 @@ import { RedisService } from './redis/redis.service.js';
 import { SkipClientGuard } from './common/skip-client-guard.decorator.js';
 import { Public } from './auth/public.decorator.js';
 
-// @Public: the health check must stay reachable by Render's probe and the
-// keep-alive self-ping, neither of which carries a JWT.
 @Controller()
 @SkipClientGuard()
 @Public()
@@ -28,9 +26,6 @@ export class AppController {
       status: 'ok',
       uptime: Math.round(process.uptime()),
       timestamp: new Date().toISOString(),
-      // 'ready' when caching is live, 'disabled' without REDIS_URL, anything
-      // else means Redis is configured but unreachable (API still serves —
-      // every read just falls through to Postgres).
       redis: this.redisService.status,
     };
   }

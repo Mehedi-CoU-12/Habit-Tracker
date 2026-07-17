@@ -51,8 +51,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('Session expired, please sign in again');
     }
 
-    // Deliberately omit tokenVersion from req.user — downstream guards and
-    // controllers only need identity/role/status.
     return {
       id: user.id,
       email: user.email,
