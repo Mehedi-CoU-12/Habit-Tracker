@@ -19,8 +19,6 @@ import { UsersService } from './users.service.js';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  // @AllowInactive: PENDING/SUSPENDED accounts poll this to learn their
-  // status and to notice the moment an admin activates them.
   @AllowInactive()
   @Get('me')
   getMe(@Request() req: { user: { id: string } }) {
