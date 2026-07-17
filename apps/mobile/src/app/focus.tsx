@@ -23,7 +23,13 @@ import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
 import * as Notifications from "expo-notifications";
 import { useTheme } from "../theme/ThemeProvider";
 import { hexA } from "../theme/tokens";
-import { habitsKey, useHabits, useToggleLog } from "../api/hooks";
+import {
+    habitsKey,
+    useFocusStats,
+    useHabits,
+    useRecordFocusSession,
+    useToggleLog,
+} from "../api/hooks";
 import { queryClient } from "../api/queryClient";
 import { hasPermission } from "../notifications/permissions";
 import { deriveHabitStats, daysInMonth } from "../lib/deriveStats";
@@ -59,6 +65,11 @@ const fmt = (s: number) => {
     const ss = Math.max(0, s) % 60;
     return `${m}:${String(ss).padStart(2, "0")}`;
 };
+
+const fmtMin = (m: number) =>
+    m >= 60
+        ? `${Math.floor(m / 60)}h ${m % 60 ? `${m % 60}m` : ""}`.trim()
+        : `${m}m`;
 
 const todayKey = (d = new Date()) =>
     dateKey(d.getFullYear(), d.getMonth() + 1, d.getDate());
@@ -127,6 +138,8 @@ export default function FocusScreen() {
 
     const { data: raw = [] } = useHabits(year, month);
     const toggle = useToggleLog(year, month);
+    const { data: stats } = useFocusStats();
+    const recordFocus = useRecordFocusSession();
     const habits: HabitWithStats[] = useMemo(
         () => raw.map((h) => deriveHabitStats(h, year, month, dim, now)),
         [raw, year, month, dim, now],
@@ -246,6 +259,10 @@ export default function FocusScreen() {
                     if (nextMode === "focus") {
                         nextSessions += 1;
                         if (nextHabitId) waterHabit(nextHabitId);
+                        recordFocus.mutate({
+                            habitId: nextHabitId,
+                            minutes: fm,
+                        });
                         nextMode = nextSessions % 4 === 0 ? "long" : "short";
                         nextRemaining = breakLen(nextMode) * 60;
                     } else {
@@ -307,6 +324,10 @@ export default function FocusScreen() {
             if (justDoneTimer.current) clearTimeout(justDoneTimer.current);
             justDoneTimer.current = setTimeout(() => setJustDone(false), 2200);
             if (c.habitId ?? habit?.id) waterHabit(c.habitId ?? habit!.id);
+            recordFocus.mutate({
+                habitId: c.habitId ?? habit?.id ?? null,
+                minutes: c.focusMin,
+            });
             playSound("end");
             const nm: Mode = next % 4 === 0 ? "long" : "short";
             setMode(nm);
@@ -998,6 +1019,230 @@ export default function FocusScreen() {
                         })}
                     </View>
                 </View>
+
+                {/* dedication stats — server-side history, not this device's count */}
+                {stats && stats.allTime.sessions > 0 && (
+                    <View
+                        style={{ paddingHorizontal: th.d.pad, marginTop: 26 }}
+                    >
+                        <Text
+                            style={{
+                                fontSize: 11,
+                                color: th.muted,
+                                fontFamily: th.sansBold,
+                                letterSpacing: 1.2,
+                                textAlign: "center",
+                                marginBottom: 10,
+                            }}
+                        >
+                            YOUR DEDICATION
+                        </Text>
+                        <View
+                            style={{
+                                borderRadius: 16,
+                                borderWidth: 1.5,
+                                borderColor: th.line,
+                                backgroundColor: th.surface,
+                                padding: 16,
+                            }}
+                        >
+                            <View style={{ flexDirection: "row" }}>
+                                {[
+                                    {
+                                        v: fmtMin(stats.today.minutes),
+                                        l: "today",
+                                    },
+                                    {
+                                        v: fmtMin(stats.week.minutes),
+                                        l: "last 7 days",
+                                    },
+                                    {
+                                        v: String(stats.streak),
+                                        l: "day streak",
+                                    },
+                                ].map((t) => (
+                                    <View
+                                        key={t.l}
+                                        style={{
+                                            flex: 1,
+                                            alignItems: "center",
+                                        }}
+                                    >
+                                        <Text
+                                            style={{
+                                                fontFamily: th.display,
+                                                fontSize: 20,
+                                                color: th.ink,
+                                                fontVariant: ["tabular-nums"],
+                                            }}
+                                        >
+                                            {t.v}
+                                        </Text>
+                                        <Text
+                                            style={{
+                                                fontSize: 11,
+                                                color: th.muted,
+                                                fontFamily: th.sansBold,
+                                                marginTop: 2,
+                                            }}
+                                        >
+                                            {t.l}
+                                        </Text>
+                                    </View>
+                                ))}
+                            </View>
+
+                            {/* last 14 days, oldest → newest */}
+                            <View
+                                style={{
+                                    flexDirection: "row",
+                                    alignItems: "flex-end",
+                                    gap: 3,
+                                    height: 48,
+                                    marginTop: 16,
+                                }}
+                            >
+                                {stats.days.map((d) => {
+                                    const max = Math.max(
+                                        ...stats.days.map((x) => x.minutes),
+                                        1,
+                                    );
+                                    return (
+                                        <View
+                                            key={d.date}
+                                            style={{
+                                                flex: 1,
+                                                height: "100%",
+                                                justifyContent: "flex-end",
+                                            }}
+                                        >
+                                            <View
+                                                style={{
+                                                    width: "100%",
+                                                    borderTopLeftRadius: 3,
+                                                    borderTopRightRadius: 3,
+                                                    height: d.minutes
+                                                        ? Math.max(
+                                                              (d.minutes /
+                                                                  max) *
+                                                                  48,
+                                                              4,
+                                                          )
+                                                        : 3,
+                                                    backgroundColor: d.minutes
+                                                        ? th.accent
+                                                        : th.line,
+                                                }}
+                                            />
+                                        </View>
+                                    );
+                                })}
+                            </View>
+                            <View
+                                style={{
+                                    flexDirection: "row",
+                                    justifyContent: "space-between",
+                                    marginTop: 4,
+                                }}
+                            >
+                                <Text
+                                    style={{
+                                        fontSize: 10,
+                                        color: th.muted,
+                                        fontFamily: th.sansBold,
+                                    }}
+                                >
+                                    2 weeks ago
+                                </Text>
+                                <Text
+                                    style={{
+                                        fontSize: 10,
+                                        color: th.muted,
+                                        fontFamily: th.sansBold,
+                                    }}
+                                >
+                                    today
+                                </Text>
+                            </View>
+
+                            {stats.byHabit.length > 0 && (
+                                <View
+                                    style={{
+                                        borderTopWidth: 1,
+                                        borderTopColor: th.line,
+                                        marginTop: 14,
+                                        paddingTop: 12,
+                                        gap: 6,
+                                    }}
+                                >
+                                    {stats.byHabit.slice(0, 3).map((h) => (
+                                        <View
+                                            key={h.habitId ?? "other"}
+                                            style={{
+                                                flexDirection: "row",
+                                                alignItems: "center",
+                                                justifyContent: "space-between",
+                                            }}
+                                        >
+                                            <View
+                                                style={{
+                                                    flexDirection: "row",
+                                                    alignItems: "center",
+                                                    gap: 6,
+                                                }}
+                                            >
+                                                <Icon
+                                                    name={h.icon || "sprout"}
+                                                    size={14}
+                                                    stroke={th.ink2}
+                                                    strokeWidth={1.8}
+                                                />
+                                                <Text
+                                                    style={{
+                                                        fontSize: 12.5,
+                                                        fontFamily: th.sansBold,
+                                                        color: th.ink2,
+                                                    }}
+                                                >
+                                                    {h.name}
+                                                </Text>
+                                            </View>
+                                            <Text
+                                                style={{
+                                                    fontSize: 12.5,
+                                                    color: th.muted,
+                                                    fontFamily: th.sans,
+                                                    fontVariant: [
+                                                        "tabular-nums",
+                                                    ],
+                                                }}
+                                            >
+                                                {h.sessions} ·{" "}
+                                                {fmtMin(h.minutes)}
+                                            </Text>
+                                        </View>
+                                    ))}
+                                </View>
+                            )}
+
+                            <Text
+                                style={{
+                                    fontSize: 11,
+                                    color: th.muted,
+                                    textAlign: "center",
+                                    marginTop: 12,
+                                    fontFamily: th.sans,
+                                }}
+                            >
+                                All time: {stats.allTime.sessions} session
+                                {stats.allTime.sessions === 1 ? "" : "s"} ·{" "}
+                                {fmtMin(stats.allTime.minutes)} across{" "}
+                                {stats.allTime.days} day
+                                {stats.allTime.days === 1 ? "" : "s"}
+                            </Text>
+                        </View>
+                    </View>
+                )}
             </ScrollView>
         </View>
     );

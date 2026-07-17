@@ -23,6 +23,16 @@ export type HabitPatch = {
     verb?: string;
 };
 
+export type FocusRecordPayload = {
+    /** Client-generated — makes the server-side record idempotent on replay. */
+    id: string;
+    habitId: string | null;
+    minutes: number;
+    year: number;
+    month: number;
+    day: number;
+};
+
 /** A queued op, with a stable `key` (for removal) and enqueue timestamp. */
 export type Op = { key: string; ts: number } & (
     | { kind: "habit.create"; payload: HabitCreatePayload }
@@ -36,6 +46,7 @@ export type Op = { key: string; ts: number } & (
           day: number;
           completed: boolean;
       }
+    | { kind: "focus.record"; payload: FocusRecordPayload }
 );
 
 /** The same op shapes, before a key/ts is assigned. */
@@ -50,7 +61,8 @@ export type NewOp =
           month: number;
           day: number;
           completed: boolean;
-      };
+      }
+    | { kind: "focus.record"; payload: FocusRecordPayload };
 
 type State = { ops: Op[]; counter: number };
 
@@ -143,6 +155,10 @@ function touchesHabit(o: Op, id: string): boolean {
             return o.id === id;
         case "log.set":
             return o.habitId === id;
+        // Dedication history outlives the habit: deleting a habit must not
+        // drop its queued sessions — the server records them unlinked.
+        case "focus.record":
+            return false;
     }
 }
 
@@ -227,7 +243,9 @@ export async function enqueue(input: NewOp): Promise<void> {
                 }
                 break;
             }
-            case "habit.create": {
+            case "habit.create":
+            case "focus.record": {
+                // Never coalesced — every op is a distinct fact.
                 ops.push({ ...input, key: nextKey(), ts: Date.now() });
                 break;
             }

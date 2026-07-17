@@ -6,7 +6,13 @@ import {
     apiPut,
     apiUpload,
 } from "./client";
-import { AccountStatus, ApiHabit, UserProfile, UserRole } from "../lib/types";
+import {
+    AccountStatus,
+    ApiHabit,
+    FocusStats,
+    UserProfile,
+    UserRole,
+} from "../lib/types";
 
 // ── Auth ──────────────────────────────────────────────────────────────
 export type AuthResult = {
@@ -141,4 +147,25 @@ export function applyTemplate(templateId: string) {
     return apiPost<{ created: number }>("/habits/apply-template", {
         templateId,
     });
+}
+
+// ── Focus sessions ────────────────────────────────────────────────────
+export function recordFocusSession(input: {
+    // Client-generated id — the outbox may replay this op after a crash, and
+    // the server treats a known id as already-recorded (no double-count).
+    id: string;
+    habitId?: string;
+    minutes: number;
+    year: number;
+    month: number;
+    day: number;
+}) {
+    return apiPost<{ id: string }>("/focus/sessions", input);
+}
+
+/** year/month/day = this device's local today (the HabitLog convention). */
+export function fetchFocusStats(year: number, month: number, day: number) {
+    return apiGet<FocusStats>(
+        `/focus/stats?year=${year}&month=${month}&day=${day}`,
+    );
 }

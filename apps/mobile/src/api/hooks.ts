@@ -81,6 +81,55 @@ export function useHabitsHistory(today: Date, monthsBack = 7): MonthHabits[] {
     });
 }
 
+// ── Focus stats ─────────────────────────────────────────────────────────────
+
+export function useFocusStats() {
+    return useQuery({
+        queryKey: ["focusStats"],
+        queryFn: () => {
+            const d = new Date();
+            return api.fetchFocusStats(
+                d.getFullYear(),
+                d.getMonth() + 1,
+                d.getDate(),
+            );
+        },
+        retry: false,
+        staleTime: 60 * 1000,
+    });
+}
+
+/**
+ * Queue a finished focus session through the outbox, so a session completed
+ * offline still reaches the dedication history. Stats refresh once the drain
+ * actually lands (an immediate invalidate would race the POST).
+ */
+export function useRecordFocusSession() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: async (input: {
+            habitId: string | null;
+            minutes: number;
+        }) => {
+            const d = new Date();
+            await enqueue({
+                kind: "focus.record",
+                payload: {
+                    id: newId(),
+                    habitId: input.habitId,
+                    minutes: input.minutes,
+                    year: d.getFullYear(),
+                    month: d.getMonth() + 1,
+                    day: d.getDate(),
+                },
+            });
+            void runSync().then(() =>
+                qc.invalidateQueries({ queryKey: ["focusStats"] }),
+            );
+        },
+    });
+}
+
 // ── Offline-first mutations ─────────────────────────────────────────────────
 
 export function useToggleLog(year: number, month: number) {

@@ -54,6 +54,15 @@ async function dispatch(op: Op): Promise<void> {
                 op.completed,
             );
             return;
+        case "focus.record": {
+            // The DTO rejects a null habitId — omit it for unlinked sessions.
+            const { habitId, ...rest } = op.payload;
+            await api.recordFocusSession({
+                ...rest,
+                ...(habitId ? { habitId } : {}),
+            });
+            return;
+        }
     }
 }
 
@@ -190,6 +199,7 @@ async function reconcile(): Promise<void> {
     // (queries stay paused), so it's safe to always call.
     await queryClient.invalidateQueries({ queryKey: ["habits"] });
     await queryClient.invalidateQueries({ queryKey: ["me"] });
+    await queryClient.invalidateQueries({ queryKey: ["focusStats"] });
 }
 
 /**

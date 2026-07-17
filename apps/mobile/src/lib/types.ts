@@ -52,3 +52,22 @@ export type UserProfile = {
     status: AccountStatus;
     createdAt: string;
 };
+
+export type FocusDayTotals = { sessions: number; minutes: number };
+
+/** GET /focus/stats — dedication aggregates, anchored on the client's today. */
+export type FocusStats = {
+    today: FocusDayTotals;
+    week: FocusDayTotals;
+    allTime: FocusDayTotals & { days: number };
+    streak: number;
+    best: FocusDayTotals;
+    /** Trailing 14 days, oldest first. */
+    days: ({ date: string } & FocusDayTotals)[];
+    /** Null habitId = sessions whose habit was since deleted. */
+    byHabit: ({
+        habitId: string | null;
+        name: string;
+        icon: string | null;
+    } & FocusDayTotals)[];
+};
