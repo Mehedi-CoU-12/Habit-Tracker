@@ -65,9 +65,9 @@ const features = [
 ];
 
 const stats = [
-    { value: "10k+", label: "Active gardeners" },
+    { value: "100+", label: "Active gardeners" },
     { value: "98%", label: "Streak retention" },
-    { value: "50+", label: "Habit seeds" },
+    { value: "10+", label: "Habit seeds" },
     { value: "Free", label: "Forever plan" },
 ];
 
