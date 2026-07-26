@@ -39,6 +39,37 @@ export function dateKey(year: number, month: number, day: number): string {
     return `${year}-${month}-${day}`;
 }
 
+/** Midnight-aligned copy of a date, in the device's local time. */
+export function startOfDay(d: Date): Date {
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+/**
+ * Days since the epoch for a calendar day. UTC does the arithmetic on parts
+ * that are already local (the same trick the API's focus stats use), so day
+ * counts stay exact across DST shifts — subtracting two local midnights
+ * doesn't, since one of them can be 23 or 25 hours wide.
+ */
+export function dayIndexOf(year: number, month: number, day: number): number {
+    return Math.floor(Date.UTC(year, month - 1, day) / 86_400_000);
+}
+
+export function dayIndex(d: Date): number {
+    return dayIndexOf(d.getFullYear(), d.getMonth() + 1, d.getDate());
+}
+
+/** An inclusive span of local calendar days. */
+export type DayRange = { start: Date; end: Date };
+
+/** Calendar months a range touches — how much history to fetch to cover it. */
+export function monthsSpanned(range: DayRange): number {
+    return (
+        (range.end.getFullYear() - range.start.getFullYear()) * 12 +
+        (range.end.getMonth() - range.start.getMonth()) +
+        1
+    );
+}
+
 /**
  * The (year, month) pairs for the current month and the previous `n - 1`
  * months — used to fetch enough month-scoped logs to fill the heatmap grid.
