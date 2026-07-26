@@ -60,6 +60,12 @@ EOF
 sed -e 's/#A87850\|#B95826\|#3A2A18\|#3F7140\|#6FA86B\|#E87842\|#F4C95D/#FFFFFF/g' \
     -e 's/fill-opacity 0\.[0-9]*/fill-opacity 1/g' plant.mvg > plant-white.mvg
 
+# Dark-theme repaint for the dark splash tile. Colors are the dark tokens in
+# src/theme/tokens.ts (dirt / potShadow / greenDeep / green / sun); the pot rim
+# and petals use the accent, which is the same in both themes.
+sed -e 's/#A87850/#6E5236/g' -e 's/#3A2A18/#0E0A06/g' -e 's/#3F7140/#4E8C4A/g' \
+    -e 's/#6FA86B/#6FB86A/g' -e 's/#F4C95D/#E6B85C/g' plant.mvg > plant-dark.mvg
+
 # wrap SOURCE.mvg with translate TX,TY + scale S -> OUT.mvg
 wrap() { # $1=src $2=out $3=tx $4=ty $5=s
     {
@@ -97,10 +103,23 @@ wrap plant-white.mvg mono.mvg 54 36.18 3.24
 magick -size 432x432 xc:none -draw "$(cat mono.mvg)" \
     -depth 8 PNG32:"$OUT/android-icon-monochrome.png"
 
-# ── splash icon (512, transparent, plant nearly full-frame s=1.15) ──────────
-wrap plant.mvg splash.mvg -38.4 -70.78 5.888
-magick -size 512x512 xc:none -draw "$(cat splash.mvg)" \
-    -depth 8 PNG32:"$OUT/splash-icon.png"
+# ── splash tiles (1024, rounded, light + dark) ──────────────────────────────
+# Android composites this onto the splash backgroundColor, so a bare plant on
+# transparency became a hard-edged square of that color. Drawing the tile here
+# instead — rounded, with transparent corners that flatten into the background
+# — gives the launcher-icon look on both themes. Same disc + plant geometry as
+# icon.png; tile/disc are the theme's surface / surface2 tokens.
+wrap plant.mvg splash-light.mvg -25.6 -84.74 10.752
+magick -size 1024x1024 xc:none \
+    -draw 'fill "#FFFDF7" roundrectangle 0,0 1023,1023 230,230' \
+    -draw 'fill "#FCE9C6" circle 512,512 512,942' \
+    -draw "$(cat splash-light.mvg)" -depth 8 PNG32:"$OUT/splash-icon.png"
+
+wrap plant-dark.mvg splash-dark.mvg -25.6 -84.74 10.752
+magick -size 1024x1024 xc:none \
+    -draw 'fill "#241C15" roundrectangle 0,0 1023,1023 230,230' \
+    -draw 'fill "#30251A" circle 512,512 512,942' \
+    -draw "$(cat splash-dark.mvg)" -depth 8 PNG32:"$OUT/splash-icon-dark.png"
 
 # ── favicon (48, from the main icon) ────────────────────────────────────────
 magick "$OUT/icon.png" -resize 48x48 -depth 8 PNG32:"$OUT/favicon.png"
