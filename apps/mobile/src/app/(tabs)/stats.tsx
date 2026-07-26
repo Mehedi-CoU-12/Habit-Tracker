@@ -3,14 +3,54 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../theme/ThemeProvider";
 import { useHabits, useHabitsHistory } from "../../api/hooks";
-import {
-    deriveHabitStats,
-    daysInMonth,
-    buildActivityCells,
-} from "../../lib/deriveStats";
+import { deriveRangeStats, buildActivityCells } from "../../lib/deriveStats";
+import { DayRange, monthsSpanned, startOfDay } from "../../lib/date";
 import { Tod } from "../../lib/types";
 import { SkyWash, Card } from "../../components/primitives";
 import Heatmap from "../../components/Heatmap";
+
+const PERIODS = ["Week", "Month", "Year"] as const;
+type Period = (typeof PERIODS)[number];
+
+/** Months of history the 26-week heatmap needs, whatever period is selected. */
+const HEATMAP_MONTHS = 7;
+
+/**
+ * The day range a period covers, ending today. Month and Year are calendar
+ * aligned to-date, so "This month" keeps meaning the 1st onward. Week is the
+ * trailing 7 days instead — matching the focus screen's "last 7 days", and
+ * because a Sunday-anchored week collapses to a single day every Sunday, which
+ * would swing the headline rate between 0% and 100%.
+ */
+function rangeFor(period: Period, today: Date): DayRange {
+    const end = startOfDay(today);
+    switch (period) {
+        case "Month":
+            return {
+                start: new Date(end.getFullYear(), end.getMonth(), 1),
+                end,
+            };
+        case "Year":
+            return { start: new Date(end.getFullYear(), 0, 1), end };
+        default: {
+            const start = startOfDay(today);
+            start.setDate(start.getDate() - 6);
+            return { start, end };
+        }
+    }
+}
+
+const HERO_LABEL: Record<Period, string> = {
+    Week: "LAST 7 DAYS",
+    Month: "THIS MONTH",
+    Year: "THIS YEAR",
+};
+
+const RANK_BLURB: Record<Period, string> = {
+    Week: "Ranked by completion rate over the last 7 days.",
+    Month: "Ranked by completion rate this month.",
+    Year: "Ranked by completion rate this year.",
+};
 
 export default function StatsScreen() {
     const th = useTheme();
@@ -18,16 +58,20 @@ export default function StatsScreen() {
     const now = useMemo(() => new Date(), []);
     const year = now.getFullYear();
     const month = now.getMonth() + 1;
-    const dim = daysInMonth(year, month);
-    const [period, setPeriod] = useState("Month");
+    const [period, setPeriod] = useState<Period>("Month");
+
+    const range = useMemo(() => rangeFor(period, now), [period, now]);
 
     const { data: raw = [] } = useHabits(year, month);
+    const history = useHabitsHistory(
+        now,
+        Math.max(HEATMAP_MONTHS, monthsSpanned(range)),
+    );
     const habits = useMemo(
-        () => raw.map((h) => deriveHabitStats(h, year, month, dim, now)),
-        [raw, year, month, dim, now],
+        () => deriveRangeStats(history, raw, range),
+        [history, raw, range],
     );
 
-    const history = useHabitsHistory(now);
     const activityCells = useMemo(
         () => buildActivityCells(history, now),
         [history, now],
@@ -89,7 +133,7 @@ export default function StatsScreen() {
                             padding: 3,
                         }}
                     >
-                        {["Week", "Month", "Year"].map((p) => (
+                        {PERIODS.map((p) => (
                             <Pressable
                                 key={p}
                                 onPress={() => setPeriod(p)}
@@ -153,7 +197,7 @@ export default function StatsScreen() {
                                 color: "rgba(255,255,255,0.9)",
                             }}
                         >
-                            THIS MONTH
+                            {HERO_LABEL[period]}
                         </Text>
                         <View
                             style={{
@@ -305,7 +349,7 @@ export default function StatsScreen() {
                                     marginBottom: 14,
                                 }}
                             >
-                                Ranked by completion rate this month.
+                                {RANK_BLURB[period]}
                             </Text>
                             {ranked.map((h) => (
                                 <View
