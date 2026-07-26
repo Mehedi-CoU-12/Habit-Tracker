@@ -83,8 +83,14 @@ wrap plant.mvg fg.mvg 64 42.88 3.84
 magick -size 512x512 xc:none -draw "$(cat fg.mvg)" \
     -depth 8 PNG32:"$OUT/android-icon-foreground.png"
 
-# ── android adaptive background (512, solid cream) ──────────────────────────
-magick -size 512x512 xc:"#FFF6E8" -depth 8 PNG24:"$OUT/android-icon-background.png"
+# ── android adaptive background (1024, cream + inner disc) ──────────────────
+# The disc keeps icon.png's disc:plant proportion (430/512 of the canvas at
+# plant s=1.05), rescaled to the foreground's s=0.75 -> r = 0.29994 * 1024.
+# That is 60% of the canvas, inside the 66.7% the launcher mask always shows,
+# so the icon reads the same masked (adaptive) or unmasked (legacy/OEM).
+magick -size 1024x1024 xc:"#FFF6E8" \
+    -draw 'fill "#FCE9C6" circle 512,512 512,819.1' \
+    -depth 8 PNG24:"$OUT/android-icon-background.png"
 
 # ── android monochrome (432, white silhouette, same safe-zone geometry) ─────
 wrap plant-white.mvg mono.mvg 54 36.18 3.24

@@ -3,9 +3,9 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, G } from "react-native-svg";
 import { useTheme } from "../../theme/ThemeProvider";
-import { useHabits } from "../../api/hooks";
+import { useHabits, useToggleLog } from "../../api/hooks";
 import { daysInMonth } from "../../lib/deriveStats";
-import { dayNames, monthNames } from "../../lib/date";
+import { dayIndex, dayIndexOf, dayNames, monthNames } from "../../lib/date";
 import { SkyWash, Card } from "../../components/primitives";
 import Icon from "../../components/Icon";
 
@@ -79,8 +79,17 @@ export default function CalendarScreen() {
     const isCurrentMonth =
         year === now.getFullYear() && month === now.getMonth() + 1;
     const today = now.getDate();
+    const todayIndex = useMemo(() => dayIndex(now), [now]);
+
+    /**
+     * Compared by day index rather than `d > today`, which only holds inside
+     * the current month — paging forward would otherwise render next month's
+     * days as ordinary past days and let them be checked off.
+     */
+    const isFuture = (d: number) => dayIndexOf(year, month, d) > todayIndex;
 
     const { data: raw = [] } = useHabits(year, month);
+    const toggle = useToggleLog(year, month);
 
     // completion fraction per day
     const perDay = useMemo(() => {
@@ -91,6 +100,7 @@ export default function CalendarScreen() {
     }, [raw]);
 
     const [sel, setSel] = useState(today);
+    const selIsFuture = isFuture(sel);
 
     const shiftMonth = (delta: number) => {
         let m = month + delta;
@@ -112,7 +122,7 @@ export default function CalendarScreen() {
     for (let d = 1; d <= dim; d++) cells.push(d);
 
     const completion = (d: number) => {
-        if (isCurrentMonth && d > today) return null; // future
+        if (isFuture(d)) return null;
         if (raw.length === 0) return 0;
         return (perDay[d] ?? 0) / raw.length;
     };
@@ -283,12 +293,24 @@ export default function CalendarScreen() {
                             color: th.muted,
                             fontFamily: th.sansBold,
                             letterSpacing: 0.6,
-                            marginBottom: 10,
                         }}
                     >
                         {isCurrentMonth && sel === today
                             ? "TODAY"
                             : `${monthNames[month - 1]!.toUpperCase()} ${sel}`}
+                    </Text>
+                    <Text
+                        style={{
+                            fontSize: 11.5,
+                            color: th.muted,
+                            fontFamily: th.sans,
+                            marginTop: 3,
+                            marginBottom: 10,
+                        }}
+                    >
+                        {selIsFuture
+                            ? "This day hasn't arrived yet."
+                            : "Tap a habit to fill in a day you missed."}
                     </Text>
                     <Card pad={0} style={{ overflow: "hidden" }}>
                         {raw.length === 0 && (
@@ -299,9 +321,16 @@ export default function CalendarScreen() {
                         {raw.map((h, i) => {
                             const done = h.logs.some((l) => l.day === sel);
                             return (
-                                <View
+                                <Pressable
                                     key={h.id}
-                                    style={{
+                                    disabled={selIsFuture}
+                                    onPress={() =>
+                                        toggle.mutate({
+                                            habitId: h.id,
+                                            day: sel,
+                                        })
+                                    }
+                                    style={({ pressed }) => ({
                                         flexDirection: "row",
                                         alignItems: "center",
                                         gap: 14,
@@ -309,7 +338,12 @@ export default function CalendarScreen() {
                                         paddingHorizontal: 16,
                                         borderTopWidth: i === 0 ? 0 : 1.5,
                                         borderTopColor: th.bg,
-                                    }}
+                                        opacity: selIsFuture
+                                            ? 0.45
+                                            : pressed
+                                              ? 0.6
+                                              : 1,
+                                    })}
                                 >
                                     <View
                                         style={{
@@ -352,7 +386,7 @@ export default function CalendarScreen() {
                                     >
                                         {h.verb ?? ""}
                                     </Text>
-                                </View>
+                                </Pressable>
                             );
                         })}
                     </Card>
