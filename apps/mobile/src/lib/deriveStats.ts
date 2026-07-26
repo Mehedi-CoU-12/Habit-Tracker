@@ -1,5 +1,12 @@
 import { ApiHabit, HabitWithStats, Tod } from "./types";
-import { HeatCell, buildHeatmapGrid, dateKey } from "./date";
+import {
+    DayRange,
+    HeatCell,
+    buildHeatmapGrid,
+    dateKey,
+    dayIndex,
+    dayIndexOf,
+} from "./date";
 
 const TOD_VALUES: Tod[] = ["morning", "afternoon", "evening", "anytime"];
 
@@ -138,4 +145,71 @@ export function deriveHabitStats(
 
 export function daysInMonth(year: number, month: number): number {
     return new Date(year, month, 0).getDate();
+}
+
+/** One habit's completion over an arbitrary day range (the Insights periods). */
+export type RangeHabitStats = {
+    id: string;
+    name: string;
+    icon: string;
+    tod: Tod;
+    /** Distinct days completed inside the range. */
+    completed: number;
+    /** The rate's denominator: days the habit was expected in the range. */
+    days: number;
+    rate: number;
+};
+
+/**
+ * Per-habit completion across a day range, aggregated from the month-scoped
+ * logs `useHabitsHistory` already caches — `deriveHabitStats` sees a single
+ * month, so any window wider or narrower than that comes through here.
+ *
+ * The denominator starts at the habit's creation day (or its earliest logged
+ * day in range, when an earlier day was backfilled), never before it existed:
+ * without that clamp a habit planted in July is scored against every day since
+ * January and can't clear single digits in the Year view.
+ */
+export function deriveRangeStats(
+    history: MonthHabits[],
+    roster: ApiHabit[],
+    range: DayRange,
+): RangeHabitStats[] {
+    const from = dayIndex(range.start);
+    const to = dayIndex(range.end);
+
+    const doneDays = new Map<string, Set<number>>();
+    for (const m of history)
+        for (const h of m.habits)
+            for (const l of h.logs) {
+                const day = dayIndexOf(l.year, l.month, l.day);
+                if (day < from || day > to) continue;
+                let done = doneDays.get(h.id);
+                if (!done) doneDays.set(h.id, (done = new Set()));
+                done.add(day);
+            }
+
+    return roster.map((h) => {
+        const done = doneDays.get(h.id);
+        const planted = dayIndex(new Date(h.createdAt));
+        const expectedFrom = Math.max(
+            from,
+            Math.min(
+                Number.isFinite(planted) ? planted : from,
+                // Non-empty by construction, so Math.min has a seed.
+                done ? Math.min(...done) : Infinity,
+            ),
+        );
+        const days = Math.max(0, to - expectedFrom + 1);
+        const completed = done?.size ?? 0;
+        return {
+            id: h.id,
+            name: h.name,
+            icon: h.icon || "sprout",
+            tod: normalizeTod(h.tod),
+            completed,
+            days,
+            rate: days === 0 ? 0 : Math.round((completed / days) * 100),
+        };
+    });
 }
