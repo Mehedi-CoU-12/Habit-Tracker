@@ -169,3 +169,21 @@ export function fetchFocusStats(year: number, month: number, day: number) {
         `/focus/stats?year=${year}&month=${month}&day=${day}`,
     );
 }
+
+// ── App releases ──────────────────────────────────────────────────────
+/** Published build for one platform; null when nothing has been published. */
+export type AppRelease = {
+    latest: string;
+    minimum: string;
+    url: string;
+    notes: string | null;
+    publishedAt: string;
+} | null;
+
+/**
+ * Public endpoint — reachable signed out and from a build too old to
+ * authenticate, which is exactly the case that needs to hear about an update.
+ */
+export function fetchAppRelease(platform: "android" | "ios") {
+    return apiGet<AppRelease>(`/app/version?platform=${platform}`);
+}
