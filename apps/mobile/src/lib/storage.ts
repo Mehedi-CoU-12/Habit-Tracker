@@ -9,11 +9,6 @@ type Storage = {
 
 const nativeStorage: Storage = {
     async get(key: string): Promise<string | null> {
-        // getItemAsync returns null for an absent key WITHOUT throwing; it only
-        // throws on a real read error (e.g. the keystore not being ready right
-        // after a resume). Retry those transient throws so a temporary failure
-        // is never mistaken for "no token" — otherwise a reconnect right after
-        // wake could read the refresh token as absent and sign the user out.
         for (let attempt = 0; attempt < 3; attempt++) {
             try {
                 return await SecureStore.getItemAsync(key);
@@ -74,4 +69,6 @@ export const KEYS = {
     onboarded: "habitflow.onboarded",
     sound: "habitflow.sound",
     focus: "habitflow.focus",
+    /** Version whose update nudge the user dismissed — re-nags on the next one. */
+    updateDismissed: "habitflow.updateDismissed",
 } as const;

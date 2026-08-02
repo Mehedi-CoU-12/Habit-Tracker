@@ -54,6 +54,11 @@ export default function AdminLayout({
             label: "Users",
             active: pathname.startsWith("/admin/users"),
         },
+        {
+            href: "/admin/releases",
+            label: "Releases",
+            active: pathname.startsWith("/admin/releases"),
+        },
     ];
 
     return (

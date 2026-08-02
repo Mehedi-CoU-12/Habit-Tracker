@@ -18,6 +18,28 @@ enum AccountStatus {
   SUSPENDED
 }
 
+enum AppPlatform {
+  ANDROID
+  IOS
+}
+
+model AppRelease {
+  id       String      @id @default(cuid())
+  platform AppPlatform @unique
+  // Newest published version, e.g. "1.2.0" — surfaces as a dismissible nudge.
+  latest   String
+  // Oldest version still supported. Anything below it gets a blocking prompt,
+  // for when an old client would break against the current API.
+  minimum  String
+  // Where the Update button sends the user: a direct APK link or a store page.
+  url      String
+  notes    String?
+  // Admin who last published, for the dashboard's audit line.
+  updatedBy String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
 model User {
   id              String        @id @default(cuid())
   name            String
@@ -30,9 +52,6 @@ model User {
   statusChangedAt DateTime?
   statusChangedBy String?
   statusNote      String?
-  // Bumped to revoke every outstanding token for this user at once (sign-out,
-  // password change). Embedded in each JWT; JwtStrategy rejects a token whose
-  // version no longer matches. See auth.service.ts / jwt.strategy.ts.
   tokenVersion    Int           @default(0)
   habits          Habit[]
   payments        Payment[]
@@ -73,11 +92,6 @@ model Habit {
   updatedAt     DateTime       @updatedAt
 }
 
-// One completed focus (Pomodoro) session. The habit link survives as history
-// even if the habit is later deleted (SetNull), so dedication stats never
-// shrink retroactively. year/month/day are the CLIENT's local calendar day —
-// same convention as HabitLog — so stats group by the user's day, not the
-// server's timezone.
 model FocusSession {
   id        String   @id @default(cuid())
   userId    String

@@ -28,6 +28,7 @@ import { startSync } from "../offline/sync";
 import { startReminders } from "../notifications";
 import OfflineBar from "../components/OfflineBar";
 import SyncPill from "../components/SyncPill";
+import UpdateGate from "../components/UpdateGate";
 import { useOfflineBarVisible } from "../offline/useSyncView";
 
 function AuthGate() {
@@ -121,6 +122,9 @@ function RootStack() {
                     />
                 </Stack>
             </SafeAreaInsetsContext.Provider>
+            {/* Outside the navigator: an update prompt has to reach the user on
+                whatever screen they land on, including the auth screens. */}
+            <UpdateGate />
         </View>
     );
 }
