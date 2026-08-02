@@ -87,13 +87,25 @@ function Heatmap({
         );
     };
 
-    const fillFor = (d: HeatDay) => (d.level === 0 ? th.surface2 : th.green);
-    const opacityFor = (d: HeatDay) => {
+    // An empty slot must sit *above* the card in dark and *below* it in light,
+    // so the two themes can't share a token: surface2 is darker than the card's
+    // surface in dark mode, which made missed days vanish into it.
+    const empty = th.dark ? "rgba(255,255,255,0.10)" : th.surface2;
+    const ghost = th.dark ? "rgba(255,255,255,0.035)" : th.surface2;
+
+    const cellFill = (level: number, faded: boolean) =>
+        faded ? ghost : level === 0 ? empty : th.green;
+    const cellOpacity = (level: number, faded: boolean) => {
         // Future and pre-planting days barely register: they aren't misses.
-        if (d.future || d.dormant) return th.dark ? 0.16 : 0.24;
-        if (d.level === 0) return th.dark ? 0.42 : 0.55;
-        return Math.min(1, 0.4 + d.level * 0.16);
+        if (faded) return th.dark ? 1 : 0.24;
+        if (level === 0) return th.dark ? 1 : 0.55;
+        // Dark needs a higher floor — low-opacity green muddies into the card.
+        return th.dark
+            ? Math.min(1, 0.52 + level * 0.12)
+            : Math.min(1, 0.4 + level * 0.16);
     };
+
+    const fadedFor = (d: HeatDay) => d.future || d.dormant;
 
     const label = { fontSize: 9.5, color: th.muted, fontFamily: th.sansBold };
 
@@ -190,8 +202,8 @@ function Heatmap({
                             width={cell}
                             height={cell}
                             rx={Math.min(4, cell * 0.28)}
-                            fill={fillFor(d)}
-                            opacity={opacityFor(d)}
+                            fill={cellFill(d.level, fadedFor(d))}
+                            opacity={cellOpacity(d.level, fadedFor(d))}
                         />
                     ))}
                     {/* Rings ride above every fill so a neighbour can't clip them. */}
@@ -272,14 +284,8 @@ function Heatmap({
                                 width: 9,
                                 height: 9,
                                 borderRadius: 2.5,
-                                backgroundColor:
-                                    l === 0 ? th.surface2 : th.green,
-                                opacity:
-                                    l === 0
-                                        ? th.dark
-                                            ? 0.42
-                                            : 0.55
-                                        : Math.min(1, 0.4 + l * 0.16),
+                                backgroundColor: cellFill(l, false),
+                                opacity: cellOpacity(l, false),
                             }}
                         />
                     ))}
