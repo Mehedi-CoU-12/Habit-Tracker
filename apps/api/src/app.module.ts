@@ -16,6 +16,7 @@ import { HabitsModule } from './habits/habits.module.js';
 import { FocusModule } from './focus/focus.module.js';
 import { UsersModule } from './users/users.module.js';
 import { AdminModule } from './admin/admin.module.js';
+import { ReleasesModule } from './releases/releases.module.js';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { AdminModule } from './admin/admin.module.js';
     FocusModule,
     UsersModule,
     AdminModule,
+    ReleasesModule,
   ],
   controllers: [AppController],
   providers: [
