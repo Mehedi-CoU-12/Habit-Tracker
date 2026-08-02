@@ -35,6 +35,10 @@ export function useMe(enabled = true) {
 export function useUploadAvatar() {
     const qc = useQueryClient();
     return useMutation({
+        // The one write with no outbox behind it — it has to reach the server.
+        // Opting out of the client's "always" default lets the library park it
+        // while offline and fire it on reconnect, instead of failing instantly.
+        networkMode: "online",
         mutationFn: api.uploadAvatar,
         onSuccess: (updated) => qc.setQueryData<UserProfile>(["me"], updated),
     });
@@ -77,6 +81,7 @@ export function useHabitsHistory(today: Date, monthsBack = 7): MonthHabits[] {
                 year: m.year,
                 month: m.month,
                 habits: results[i]?.data ?? [],
+                loaded: results[i]?.isSuccess ?? false,
             })),
     });
 }

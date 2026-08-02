@@ -1,52 +1,37 @@
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../theme/ThemeProvider";
 import { useHabits, useHabitsHistory } from "../../api/hooks";
-import { deriveRangeStats, buildActivityCells } from "../../lib/deriveStats";
-import { DayRange, monthsSpanned, startOfDay } from "../../lib/date";
+import { deriveRangeStats } from "../../lib/deriveStats";
+import { monthsSpanned } from "../../lib/date";
+import {
+    HEAT_PERIODS,
+    HeatPeriod,
+    buildActivityHeatmap,
+    heatRange,
+    monthsForHeat,
+} from "../../lib/heatmap";
 import { Tod } from "../../lib/types";
-import { SkyWash, Card } from "../../components/primitives";
+import { SkyWash, Card, Segmented } from "../../components/primitives";
 import Heatmap from "../../components/Heatmap";
 
-const PERIODS = ["Week", "Month", "Year"] as const;
-type Period = (typeof PERIODS)[number];
+/** Floor on the history fetch so switching periods mostly hits warm cache. */
+const MIN_HISTORY_MONTHS = 3;
 
-/** Months of history the 26-week heatmap needs, whatever period is selected. */
-const HEATMAP_MONTHS = 7;
-
-/**
- * The day range a period covers, ending today. Month and Year are calendar
- * aligned to-date, so "This month" keeps meaning the 1st onward. Week is the
- * trailing 7 days instead — matching the focus screen's "last 7 days", and
- * because a Sunday-anchored week collapses to a single day every Sunday, which
- * would swing the headline rate between 0% and 100%.
- */
-function rangeFor(period: Period, today: Date): DayRange {
-    const end = startOfDay(today);
-    switch (period) {
-        case "Month":
-            return {
-                start: new Date(end.getFullYear(), end.getMonth(), 1),
-                end,
-            };
-        case "Year":
-            return { start: new Date(end.getFullYear(), 0, 1), end };
-        default: {
-            const start = startOfDay(today);
-            start.setDate(start.getDate() - 6);
-            return { start, end };
-        }
-    }
-}
-
-const HERO_LABEL: Record<Period, string> = {
+const HERO_LABEL: Record<HeatPeriod, string> = {
     Week: "LAST 7 DAYS",
     Month: "THIS MONTH",
     Year: "THIS YEAR",
 };
 
-const RANK_BLURB: Record<Period, string> = {
+const HEAT_LABEL: Record<HeatPeriod, string> = {
+    Week: "7 DAYS",
+    Month: "THIS MONTH",
+    Year: "THIS YEAR",
+};
+
+const RANK_BLURB: Record<HeatPeriod, string> = {
     Week: "Ranked by completion rate over the last 7 days.",
     Month: "Ranked by completion rate this month.",
     Year: "Ranked by completion rate this year.",
@@ -58,24 +43,34 @@ export default function StatsScreen() {
     const now = useMemo(() => new Date(), []);
     const year = now.getFullYear();
     const month = now.getMonth() + 1;
-    const [period, setPeriod] = useState<Period>("Month");
+    const [period, setPeriod] = useState<HeatPeriod>("Month");
 
-    const range = useMemo(() => rangeFor(period, now), [period, now]);
+    const range = useMemo(() => heatRange(period, now), [period, now]);
 
     const { data: raw = [] } = useHabits(year, month);
     const history = useHabitsHistory(
         now,
-        Math.max(HEATMAP_MONTHS, monthsSpanned(range)),
+        Math.max(
+            MIN_HISTORY_MONTHS,
+            monthsSpanned(range),
+            monthsForHeat(period, now),
+        ),
     );
     const habits = useMemo(
         () => deriveRangeStats(history, raw, range),
         [history, raw, range],
     );
 
-    const activityCells = useMemo(
-        () => buildActivityCells(history, now),
-        [history, now],
+    const activity = useMemo(
+        () => buildActivityHeatmap(history, period, now),
+        [history, period, now],
     );
+
+    // Idle caption for the grid; a tap swaps in that day's own readout.
+    const { completed, expected, perfect = 0 } = activity.summary;
+    const activityCaption = expected
+        ? `${completed} of ${expected} done · ${perfect} perfect day${perfect === 1 ? "" : "s"}`
+        : "Tap a day for detail";
 
     const avgRate = habits.length
         ? Math.round(habits.reduce((s, h) => s + h.rate, 0) / habits.length)
@@ -124,41 +119,11 @@ export default function StatsScreen() {
                     >
                         Insights
                     </Text>
-                    <View
-                        style={{
-                            flexDirection: "row",
-                            gap: 3,
-                            backgroundColor: th.surface2,
-                            borderRadius: 11,
-                            padding: 3,
-                        }}
-                    >
-                        {PERIODS.map((p) => (
-                            <Pressable
-                                key={p}
-                                onPress={() => setPeriod(p)}
-                                style={{
-                                    paddingVertical: 6,
-                                    paddingHorizontal: 12,
-                                    borderRadius: 8,
-                                    backgroundColor:
-                                        period === p
-                                            ? th.surface
-                                            : "transparent",
-                                }}
-                            >
-                                <Text
-                                    style={{
-                                        fontSize: 12,
-                                        fontFamily: th.sansBold,
-                                        color: period === p ? th.ink : th.muted,
-                                    }}
-                                >
-                                    {p}
-                                </Text>
-                            </Pressable>
-                        ))}
-                    </View>
+                    <Segmented
+                        options={HEAT_PERIODS}
+                        value={period}
+                        onChange={setPeriod}
+                    />
                 </View>
 
                 <View
@@ -257,11 +222,15 @@ export default function StatsScreen() {
                                     fontFamily: th.sansBold,
                                 }}
                             >
-                                6 MONTHS
+                                {HEAT_LABEL[period]}
                             </Text>
                         </View>
                         <Card pad={14}>
-                            <Heatmap cells={activityCells} />
+                            <Heatmap
+                                grid={activity.grid}
+                                legend={["None", "All"]}
+                                caption={activityCaption}
+                            />
                         </Card>
                     </View>
 
@@ -277,23 +246,21 @@ export default function StatsScreen() {
                         >
                             By time of day
                         </Text>
+                        {/* The bar's percentage height resolves against the
+                            track, not the whole column — measuring it against
+                            the column let a 100% bar push its own labels out
+                            the top and over the heading. */}
                         <View
                             style={{
                                 flexDirection: "row",
                                 gap: 10,
-                                alignItems: "flex-end",
-                                height: 120,
+                                height: 140,
                             }}
                         >
                             {bars.map((b, i) => (
                                 <View
                                     key={i}
-                                    style={{
-                                        flex: 1,
-                                        alignItems: "center",
-                                        justifyContent: "flex-end",
-                                        height: "100%",
-                                    }}
+                                    style={{ flex: 1, alignItems: "center" }}
                                 >
                                     <Text
                                         style={{
@@ -307,13 +274,21 @@ export default function StatsScreen() {
                                     </Text>
                                     <View
                                         style={{
+                                            flex: 1,
                                             width: "100%",
-                                            height: `${Math.max(b.v * 100, 2)}%`,
-                                            backgroundColor: b.c,
-                                            borderTopLeftRadius: 10,
-                                            borderTopRightRadius: 10,
+                                            justifyContent: "flex-end",
                                         }}
-                                    />
+                                    >
+                                        <View
+                                            style={{
+                                                width: "100%",
+                                                height: `${Math.max(b.v * 100, 2)}%`,
+                                                backgroundColor: b.c,
+                                                borderTopLeftRadius: 10,
+                                                borderTopRightRadius: 10,
+                                            }}
+                                        />
+                                    </View>
                                     <Text
                                         style={{
                                             fontSize: 10.5,
