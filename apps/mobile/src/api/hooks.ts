@@ -77,6 +77,7 @@ export function useHabitsHistory(today: Date, monthsBack = 7): MonthHabits[] {
                 year: m.year,
                 month: m.month,
                 habits: results[i]?.data ?? [],
+                loaded: results[i]?.isSuccess ?? false,
             })),
     });
 }
