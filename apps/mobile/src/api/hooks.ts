@@ -8,6 +8,7 @@ import {
 import * as api from "./endpoints";
 import { ApiHabit, UserProfile } from "../lib/types";
 import { lastNMonths } from "../lib/date";
+import { releasePlatform } from "../lib/version";
 import { MonthHabits } from "../lib/deriveStats";
 import { newId } from "../offline/ids";
 import { enqueue, type HabitPatch } from "../offline/outbox";
@@ -78,6 +79,25 @@ export function useHabitsHistory(today: Date, monthsBack = 7): MonthHabits[] {
                 month: m.month,
                 habits: results[i]?.data ?? [],
             })),
+    });
+}
+
+// ── App releases ────────────────────────────────────────────────────────────
+
+/**
+ * Published build for this platform. Polled rather than pushed: an hour-stale
+ * answer is fine for "there's a new version", and it costs one tiny request
+ * per app launch. `retry: false` keeps a failed check silent — not knowing
+ * about an update must never surface as an error to the user.
+ */
+export function useAppRelease() {
+    const platform = releasePlatform();
+    return useQuery({
+        queryKey: ["appRelease", platform],
+        queryFn: () => api.fetchAppRelease(platform),
+        retry: false,
+        staleTime: 60 * 60 * 1000,
+        refetchOnWindowFocus: true,
     });
 }
 
