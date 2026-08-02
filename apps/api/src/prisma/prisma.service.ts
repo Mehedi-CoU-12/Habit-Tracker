@@ -33,6 +33,10 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     return this.client.focusSession;
   }
 
+  get appRelease() {
+    return this.client.appRelease;
+  }
+
   async onModuleInit() {
     await this.client.$connect();
   }
