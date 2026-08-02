@@ -459,3 +459,42 @@ export async function deleteAdminUser(
     const res = await authedFetch(`/admin/users/${id}`, { method: "DELETE" });
     return handleResponse<{ id: string; deleted: boolean }>(res);
 }
+
+// ── App releases ────────────────────────────────────────────────────────
+export type AppPlatform = "ANDROID" | "IOS";
+
+export type AdminRelease = {
+    id: string;
+    platform: AppPlatform;
+    latest: string;
+    minimum: string;
+    url: string;
+    notes: string | null;
+    updatedBy: string | null;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type UpsertReleaseInput = {
+    latest: string;
+    minimum: string;
+    url: string;
+    notes?: string;
+};
+
+export async function fetchAdminReleases(): Promise<AdminRelease[]> {
+    const res = await authedFetch(`/admin/releases`);
+    return handleResponse<AdminRelease[]>(res);
+}
+
+export async function upsertAdminRelease(
+    platform: AppPlatform,
+    input: UpsertReleaseInput,
+): Promise<AdminRelease> {
+    const res = await authedFetch(`/admin/releases/${platform.toLowerCase()}`, {
+        method: "PUT",
+        headers: JSON_HEADERS,
+        body: JSON.stringify(input),
+    });
+    return handleResponse<AdminRelease>(res);
+}
