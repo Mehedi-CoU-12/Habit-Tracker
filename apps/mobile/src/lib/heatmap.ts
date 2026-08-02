@@ -1,0 +1,487 @@
+/**
+ * Heatmap grid model. Turns the month-scoped logs `useHabitsHistory` caches
+ * into a laid-out grid of day cells plus a summary for the visible window.
+ *
+ * Three periods, three layouts — a week is a labelled strip of 7, a month is a
+ * real calendar block, a year is one row per month. All three emit the same
+ * `HeatDay` shape so `components/Heatmap` renders them with one pass of
+ * geometry.
+ *
+ * The year deliberately isn't the GitHub week-column grid: 53 columns across a
+ * phone leaves ~4px cells, too small to read or tap. Twelve rows of 31 day
+ * cells fits the same width at ~9px, and month boundaries land on rows instead
+ * of a cramped top axis.
+ */
+
+import {
+    DayRange,
+    addDays,
+    dayIndex,
+    dayIndexOf,
+    endOfMonth,
+    monthShort,
+    monthsSpanned,
+    startOfDay,
+} from "./date";
+import { MonthHabits } from "./deriveStats";
+
+export const HEAT_PERIODS = ["Week", "Month", "Year"] as const;
+export type HeatPeriod = (typeof HEAT_PERIODS)[number];
+
+export type HeatLayout = "row" | "calendar" | "months";
+
+export type HeatDay = {
+    /** Days since the epoch — the identity all the streak math runs on. */
+    index: number;
+    col: number;
+    row: number;
+    /** 0 = nothing recorded, 1–4 = increasing intensity. */
+    level: number;
+    done: boolean;
+    /** Past today: nothing could have happened yet. */
+    future: boolean;
+    /** Before the habit existed, or grid padding outside the period. */
+    dormant: boolean;
+    today: boolean;
+    day: number;
+    month: number;
+    year: number;
+    weekday: number;
+    /** Status clause for the tap readout; defaults to done/missed. */
+    detail?: string;
+};
+
+export type HeatGrid = {
+    layout: HeatLayout;
+    cols: number;
+    rows: number;
+    days: HeatDay[];
+    /** Row → month abbreviation, for the year grid's left axis. */
+    rowLabels: { row: number; label: string }[];
+};
+
+export type HeatSummary = {
+    /** Completions inside the window (habit-days, when aggregating). */
+    completed: number;
+    /** The rate's denominator: days the habit(s) were expected in the window. */
+    expected: number;
+    rate: number;
+    /** Longest run of completed days inside the window. */
+    best: number;
+    /** Days where every habit alive that day was completed (activity only). */
+    perfect?: number;
+};
+
+export type HeatResult = {
+    grid: HeatGrid;
+    summary: HeatSummary;
+    range: DayRange;
+};
+
+/**
+ * The inclusive day span a period covers, always ending today. Month and Year
+ * are calendar aligned to-date so they keep matching the Insights hero; Week is
+ * the trailing 7 days rather than Sunday-anchored, which would collapse to a
+ * single day every Sunday.
+ */
+export function heatRange(period: HeatPeriod, today: Date): DayRange {
+    const end = startOfDay(today);
+    switch (period) {
+        case "Month":
+            return {
+                start: new Date(end.getFullYear(), end.getMonth(), 1),
+                end,
+            };
+        case "Year":
+            return { start: new Date(end.getFullYear(), 0, 1), end };
+        default:
+            return { start: addDays(end, -6), end };
+    }
+}
+
+/**
+ * First day the grid *draws*, which can run ahead of the range: Month and Year
+ * both render whole months, so their blocks open on the 1st.
+ */
+function gridStart(period: HeatPeriod, range: DayRange): Date {
+    if (period === "Month")
+        return new Date(range.end.getFullYear(), range.end.getMonth(), 1);
+    if (period === "Year") return range.start;
+    return range.start;
+}
+
+/** Last day drawn — through the end of the current month for both block
+ * layouts, so the remainder of the month shows as unfilled future days. */
+function gridEnd(period: HeatPeriod, range: DayRange): Date {
+    if (period === "Month" || period === "Year") return endOfMonth(range.end);
+    return range.end;
+}
+
+/**
+ * Trailing months of history a period's grid needs — the fetch width for
+ * `useHabitsHistory`. Wider than the range itself, since the drawn grid can
+ * reach back into the previous month (or, for Year, the previous December).
+ */
+export function monthsForHeat(period: HeatPeriod, today: Date): number {
+    const range = heatRange(period, today);
+    return monthsSpanned({ start: gridStart(period, range), end: range.end });
+}
+
+/**
+ * Day indices belonging to months whose logs have actually arrived. Days
+ * outside it render dormant rather than missed: a month still in flight has no
+ * completions to report, and painting it as a solid run of misses is a lie that
+ * flashes on every cold load of the Year view.
+ */
+function loadedDays(history: MonthHabits[]): Set<number> {
+    const known = new Set<number>();
+    for (const m of history) {
+        if (m.loaded === false) continue;
+        const first = dayIndexOf(m.year, m.month, 1);
+        const length = new Date(m.year, m.month, 0).getDate();
+        for (let i = 0; i < length; i++) known.add(first + i);
+    }
+    return known;
+}
+
+/** Per-day verdict the two builders feed into the shared layout pass. */
+type Resolver = (index: number) => {
+    level: number;
+    done: boolean;
+    /** True when the day predates anything being tracked. */
+    dormant: boolean;
+    detail?: string;
+};
+
+function buildGrid(
+    period: HeatPeriod,
+    range: DayRange,
+    today: Date,
+    resolve: Resolver,
+): HeatGrid {
+    const first = gridStart(period, range);
+    const last = gridEnd(period, range);
+    const firstIdx = dayIndex(first);
+    const total = dayIndex(last) - firstIdx + 1;
+    const todayIdx = dayIndex(today);
+    const rangeStartIdx = dayIndex(range.start);
+    // Weekday the month block opens on — the calendar layout's row offset.
+    const monthOffset = first.getDay();
+    const firstMonth = first.getMonth();
+
+    const layout: HeatLayout =
+        period === "Week" ? "row" : period === "Month" ? "calendar" : "months";
+    const cols = period === "Year" ? 31 : 7;
+    const rows =
+        period === "Week"
+            ? 1
+            : period === "Month"
+              ? Math.ceil((monthOffset + total) / 7)
+              : last.getMonth() - firstMonth + 1;
+
+    const days: HeatDay[] = [];
+    const rowLabels: { row: number; label: string }[] = [];
+
+    for (let i = 0; i < total; i++) {
+        const date = addDays(first, i);
+        const index = firstIdx + i;
+        const weekday = date.getDay();
+        const col =
+            period === "Week"
+                ? i
+                : period === "Month"
+                  ? weekday
+                  : date.getDate() - 1;
+        const row =
+            period === "Week"
+                ? 0
+                : period === "Month"
+                  ? ((monthOffset + i) / 7) | 0
+                  : date.getMonth() - firstMonth;
+
+        const future = index > todayIdx;
+        const r = future
+            ? { level: 0, done: false, dormant: false }
+            : resolve(index);
+
+        days.push({
+            index,
+            col,
+            row,
+            level: r.level,
+            done: r.done,
+            future,
+            dormant: r.dormant || index < rangeStartIdx,
+            today: index === todayIdx,
+            day: date.getDate(),
+            month: date.getMonth() + 1,
+            year: date.getFullYear(),
+            weekday,
+            detail: r.detail,
+        });
+
+        if (period === "Year" && date.getDate() === 1)
+            rowLabels.push({ row, label: monthShort[date.getMonth()] });
+    }
+
+    return { layout, cols, rows, days, rowLabels };
+}
+
+// ── Per-habit ───────────────────────────────────────────────────────────────
+
+type HabitDays = {
+    done: Set<number>;
+    /** Day index → length of the completed run *ending* on that day. */
+    depth: Map<number, number>;
+    /** Ascending completed day indices. */
+    sorted: number[];
+};
+
+/**
+ * Every day this habit was logged, across all loaded months, with each day's
+ * run depth. Depth is what shades the grid: an isolated day reads lighter than
+ * the fourth day of a streak, so consistency shows up as solid blocks.
+ */
+function collectHabitDays(history: MonthHabits[], habitId: string): HabitDays {
+    const done = new Set<number>();
+    for (const m of history)
+        for (const h of m.habits)
+            if (h.id === habitId)
+                for (const l of h.logs)
+                    done.add(dayIndexOf(l.year, l.month, l.day));
+
+    const sorted = [...done].sort((a, b) => a - b);
+    const depth = new Map<number, number>();
+    // Ascending, so the previous day's depth is already resolved when needed.
+    for (const d of sorted) depth.set(d, (depth.get(d - 1) ?? 0) + 1);
+    return { done, depth, sorted };
+}
+
+function depthToLevel(depth: number): number {
+    if (depth <= 0) return 0;
+    if (depth === 1) return 2;
+    if (depth <= 3) return 3;
+    return 4;
+}
+
+/**
+ * The first day a habit can fairly be judged on: when it was planted, pulled
+ * back if an earlier day was backfilled. Days before it render dormant rather
+ * than missed — you can't skip a habit that didn't exist yet.
+ */
+function plantedIndex(
+    createdAt: string | undefined,
+    sorted: number[],
+    fallback: number,
+): number {
+    const planted = createdAt ? dayIndex(new Date(createdAt)) : NaN;
+    const earliestLog = sorted.length ? sorted[0] : Infinity;
+    const candidate = Math.min(
+        Number.isFinite(planted) ? planted : Infinity,
+        earliestLog,
+    );
+    return Number.isFinite(candidate) ? candidate : fallback;
+}
+
+export function buildHabitHeatmap(
+    history: MonthHabits[],
+    habitId: string,
+    period: HeatPeriod,
+    today: Date,
+    createdAt?: string,
+): HeatResult {
+    const { done, depth, sorted } = collectHabitDays(history, habitId);
+    const known = loadedDays(history);
+    const todayIdx = dayIndex(today);
+    const planted = plantedIndex(createdAt, sorted, todayIdx);
+    const range = heatRange(period, today);
+
+    const grid = buildGrid(period, range, today, (index) => {
+        const d = depth.get(index) ?? 0;
+        return {
+            level: depthToLevel(d),
+            done: d > 0,
+            dormant: index < planted || !known.has(index),
+            detail: d > 1 ? `done · ${d} day run` : undefined,
+        };
+    });
+
+    // The rate scores only loaded days, for the same reason — an in-flight
+    // month must not drag the denominator down before its logs land.
+    const from = Math.max(dayIndex(range.start), planted);
+    const to = Math.min(dayIndex(range.end), todayIdx);
+    let completed = 0;
+    let expected = 0;
+    let run = 0;
+    let best = 0;
+    for (let d = from; d <= to; d++) {
+        if (!known.has(d)) {
+            run = 0;
+            continue;
+        }
+        expected++;
+        if (done.has(d)) {
+            completed++;
+            run++;
+            if (run > best) best = run;
+        } else {
+            run = 0;
+        }
+    }
+
+    return {
+        grid,
+        range,
+        summary: {
+            completed,
+            expected,
+            best,
+            rate: expected === 0 ? 0 : Math.round((completed / expected) * 100),
+        },
+    };
+}
+
+/**
+ * Streak, best run and overall rate across every month currently loaded — the
+ * habit detail header. `deriveHabitStats` only ever sees one month, so a run
+ * spanning the 1st of the month resets there; this doesn't.
+ */
+export function habitHistoryStats(
+    history: MonthHabits[],
+    habitId: string,
+    today: Date,
+    createdAt?: string,
+): { streak: number; best: number; completed: number; rate: number } {
+    const { depth, sorted } = collectHabitDays(history, habitId);
+    const todayIdx = dayIndex(today);
+    // Today still being open shouldn't read as a broken streak — fall back to
+    // the run that ended yesterday.
+    const streak = depth.get(todayIdx) ?? depth.get(todayIdx - 1) ?? 0;
+    const best = sorted.reduce((m, d) => Math.max(m, depth.get(d) ?? 0), 0);
+
+    const planted = plantedIndex(createdAt, sorted, todayIdx);
+    const completed = sorted.filter(
+        (d) => d >= planted && d <= todayIdx,
+    ).length;
+    const days = Math.max(0, todayIdx - planted + 1);
+
+    return {
+        streak,
+        best,
+        completed,
+        rate: days === 0 ? 0 : Math.round((completed / days) * 100),
+    };
+}
+
+// ── All habits ──────────────────────────────────────────────────────────────
+
+function fracToLevel(frac: number): number {
+    if (frac <= 0) return 0;
+    if (frac <= 0.25) return 1;
+    if (frac <= 0.5) return 2;
+    if (frac <= 0.75) return 3;
+    return 4;
+}
+
+/** How many entries of the ascending `sorted` are ≤ `value`. */
+function countUpTo(sorted: number[], value: number): number {
+    let lo = 0;
+    let hi = sorted.length;
+    while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if (sorted[mid] <= value) lo = mid + 1;
+        else hi = mid;
+    }
+    return lo;
+}
+
+/**
+ * Aggregate activity: a day's level is the share of habits completed out of the
+ * habits that existed *that day* — not out of today's roster. Dividing by the
+ * roster's high-water mark (what this used to do) washes out early months, when
+ * three-of-three completed scored the same as three-of-ten.
+ */
+export function buildActivityHeatmap(
+    history: MonthHabits[],
+    period: HeatPeriod,
+    today: Date,
+): HeatResult {
+    const counts = new Map<number, number>();
+    const planted = new Map<string, number>();
+
+    for (const m of history)
+        for (const h of m.habits) {
+            let earliest = Infinity;
+            for (const l of h.logs) {
+                const d = dayIndexOf(l.year, l.month, l.day);
+                counts.set(d, (counts.get(d) ?? 0) + 1);
+                if (d < earliest) earliest = d;
+            }
+            const created = dayIndex(new Date(h.createdAt));
+            const at = Math.min(
+                Number.isFinite(created) ? created : Infinity,
+                earliest,
+            );
+            if (!Number.isFinite(at)) continue;
+            const prev = planted.get(h.id);
+            if (prev === undefined || at < prev) planted.set(h.id, at);
+        }
+
+    const plantedSorted = [...planted.values()].sort((a, b) => a - b);
+    const firstEver = plantedSorted.length ? plantedSorted[0] : Infinity;
+    const activeOn = (index: number) => countUpTo(plantedSorted, index);
+    const known = loadedDays(history);
+
+    const range = heatRange(period, today);
+    const grid = buildGrid(period, range, today, (index) => {
+        const active = activeOn(index);
+        const c = counts.get(index) ?? 0;
+        return {
+            level: active === 0 ? 0 : fracToLevel(c / active),
+            done: c > 0,
+            dormant: index < firstEver || !known.has(index),
+            detail:
+                active === 0
+                    ? undefined
+                    : `${c} of ${active} habit${active === 1 ? "" : "s"}`,
+        };
+    });
+
+    const todayIdx = dayIndex(today);
+    const from = Math.max(dayIndex(range.start), firstEver);
+    const to = Math.min(dayIndex(range.end), todayIdx);
+    let completed = 0;
+    let expected = 0;
+    let perfect = 0;
+    let run = 0;
+    let best = 0;
+    for (let d = from; d <= to; d++) {
+        if (!known.has(d)) {
+            run = 0;
+            continue;
+        }
+        const active = activeOn(d);
+        const c = counts.get(d) ?? 0;
+        completed += c;
+        expected += active;
+        if (active > 0 && c >= active) perfect++;
+        if (c > 0) {
+            run++;
+            if (run > best) best = run;
+        } else {
+            run = 0;
+        }
+    }
+
+    return {
+        grid,
+        range,
+        summary: {
+            completed,
+            expected,
+            perfect,
+            best,
+            rate: expected === 0 ? 0 : Math.round((completed / expected) * 100),
+        },
+    };
+}

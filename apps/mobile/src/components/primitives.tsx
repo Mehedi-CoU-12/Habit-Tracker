@@ -113,6 +113,65 @@ export function Pill({
     );
 }
 
+/** Inset segmented control — the Week / Month / Year period switches. */
+export function Segmented<T extends string>({
+    options,
+    value,
+    onChange,
+    compact,
+    style,
+}: {
+    options: readonly T[];
+    value: T;
+    onChange: (v: T) => void;
+    compact?: boolean;
+    style?: StyleProp<ViewStyle>;
+}) {
+    const th = useTheme();
+    // The selected pill has to read as raised in both themes. In dark,
+    // `surface` is darker than `surface2`, so reusing the light pairing would
+    // punch the active tab into its track instead of lifting it out.
+    const track = th.dark ? "rgba(255,255,255,0.06)" : th.surface2;
+    const pill = th.dark ? "rgba(255,255,255,0.16)" : th.surface;
+    return (
+        <View
+            style={[
+                {
+                    flexDirection: "row",
+                    gap: 3,
+                    backgroundColor: track,
+                    borderRadius: compact ? 9 : 11,
+                    padding: 3,
+                },
+                style,
+            ]}
+        >
+            {options.map((o) => (
+                <Pressable
+                    key={o}
+                    onPress={() => onChange(o)}
+                    style={{
+                        paddingVertical: compact ? 4 : 6,
+                        paddingHorizontal: compact ? 9 : 12,
+                        borderRadius: compact ? 7 : 8,
+                        backgroundColor: value === o ? pill : "transparent",
+                    }}
+                >
+                    <Text
+                        style={{
+                            fontSize: compact ? 11 : 12,
+                            fontFamily: th.sansBold,
+                            color: value === o ? th.ink : th.muted,
+                        }}
+                    >
+                        {o}
+                    </Text>
+                </Pressable>
+            ))}
+        </View>
+    );
+}
+
 /** 46×27 toggle switch. */
 export function Toggle({ on, onPress }: { on: boolean; onPress?: () => void }) {
     const th = useTheme();
