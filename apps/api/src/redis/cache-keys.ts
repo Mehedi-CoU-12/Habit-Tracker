@@ -14,6 +14,9 @@ export const TTL = {
   adminUsers: 60,
   /** Per-user payment history — invalidated when a payment is recorded. */
   adminPayments: 300,
+  /** Published release per platform — every running app polls this, and it
+   *  only changes when an admin publishes, so cache it hard and bust on write. */
+  appRelease: 600,
 } as const;
 
 export const cacheKeys = {
@@ -55,4 +58,7 @@ export const cacheKeys = {
 
   /** Replay marker for a consumed mobile Google sign-in code. */
   googleCodeUsed: (code: string) => `auth:gcode:${code}`,
+
+  /** Currently published release for one platform. */
+  appRelease: (platform: string) => `app:release:${platform}`,
 } as const;
