@@ -9,15 +9,30 @@ import {
     useToggleLog,
     useDeleteHabit,
 } from "../../api/hooks";
+import { deriveHabitStats, daysInMonth } from "../../lib/deriveStats";
 import {
-    deriveHabitStats,
-    daysInMonth,
-    buildHabitCells,
-} from "../../lib/deriveStats";
-import { SkyWash, Card, Pill, Sparkles } from "../../components/primitives";
+    HEAT_PERIODS,
+    HeatPeriod,
+    buildHabitHeatmap,
+    habitHistoryStats,
+    monthsForHeat,
+} from "../../lib/heatmap";
+import {
+    SkyWash,
+    Card,
+    Pill,
+    Segmented,
+    Sparkles,
+} from "../../components/primitives";
 import Plant from "../../components/Plant";
 import Icon from "../../components/Icon";
 import Heatmap from "../../components/Heatmap";
+
+const PERIOD_CAPTION: Record<HeatPeriod, string> = {
+    Week: "Last 7 days · tap a day",
+    Month: "This month · tap a day",
+    Year: "This year · tap a day",
+};
 
 export default function DetailScreen() {
     const th = useTheme();
@@ -34,16 +49,33 @@ export default function DetailScreen() {
     const toggle = useToggleLog(year, month);
     const del = useDeleteHabit(year, month);
     const [sparkle, setSparkle] = useState(false);
+    const [period, setPeriod] = useState<HeatPeriod>("Month");
 
     const apiHabit = raw.find((h) => h.id === id);
     const h = apiHabit
         ? deriveHabitStats(apiHabit, year, month, dim, now)
         : null;
 
-    const history = useHabitsHistory(now);
-    const cells = useMemo(
-        () => buildHabitCells(history, id ?? "", now),
-        [history, id, now],
+    // A floor of 3 months keeps the header's streak/best honest even in the
+    // Week view, where the grid itself only needs one.
+    const history = useHabitsHistory(
+        now,
+        Math.max(3, monthsForHeat(period, now)),
+    );
+    const heat = useMemo(
+        () =>
+            buildHabitHeatmap(
+                history,
+                id ?? "",
+                period,
+                now,
+                apiHabit?.createdAt,
+            ),
+        [history, id, period, now, apiHabit?.createdAt],
+    );
+    const overall = useMemo(
+        () => habitHistoryStats(history, id ?? "", now, apiHabit?.createdAt),
+        [history, id, now, apiHabit?.createdAt],
     );
 
     const goBack = () =>
@@ -86,9 +118,9 @@ export default function DetailScreen() {
     };
 
     const stage =
-        h.streak >= 25
+        overall.streak >= 25
             ? "in full bloom"
-            : h.streak >= 10
+            : overall.streak >= 10
               ? "growing well"
               : "sprouting";
 
@@ -168,7 +200,7 @@ export default function DetailScreen() {
                 <View style={{ alignItems: "center", marginTop: 8 }}>
                     <View>
                         <Plant
-                            streak={h.streak}
+                            streak={overall.streak}
                             doneToday={h.doneToday}
                             size={176}
                         />
@@ -206,7 +238,7 @@ export default function DetailScreen() {
                                 fontSize: 13,
                             }}
                         >
-                            {h.streak} day streak
+                            {overall.streak} day streak
                         </Text>
                         <Text style={{ color: th.muted, fontSize: 13 }}>
                             · {stage}
@@ -273,9 +305,9 @@ export default function DetailScreen() {
                     }}
                 >
                     {[
-                        { v: `${h.streak}`, l: "streak", c: th.accent },
-                        { v: `${h.best}`, l: "best", c: th.green },
-                        { v: `${h.rate}%`, l: "rate", c: th.sky },
+                        { v: `${overall.streak}`, l: "streak", c: th.accent },
+                        { v: `${overall.best}`, l: "best", c: th.green },
+                        { v: `${overall.completed}`, l: "days", c: th.sky },
                     ].map((s, i) => (
                         <Card
                             key={i}
@@ -314,31 +346,77 @@ export default function DetailScreen() {
                         style={{
                             flexDirection: "row",
                             justifyContent: "space-between",
-                            alignItems: "baseline",
-                            marginBottom: 10,
+                            alignItems: "center",
+                            marginBottom: 12,
                         }}
                     >
+                        {/* Short heading: the segmented control needs ~155px
+                            of the row, and Caprasimo runs wide. */}
                         <Text
                             style={{
                                 fontFamily: th.display,
                                 fontSize: 20 * th.d.font,
                                 color: th.ink,
                             }}
+                            numberOfLines={1}
                         >
-                            The story so far
+                            Your story
                         </Text>
-                        <Text
-                            style={{
-                                fontSize: 11,
-                                color: th.muted,
-                                fontFamily: th.sansBold,
-                            }}
-                        >
-                            6 MO
-                        </Text>
+                        <Segmented
+                            compact
+                            options={HEAT_PERIODS}
+                            value={period}
+                            onChange={setPeriod}
+                        />
                     </View>
                     <Card pad={14}>
-                        <Heatmap cells={cells} />
+                        <View
+                            style={{
+                                flexDirection: "row",
+                                marginBottom: 14,
+                            }}
+                        >
+                            {[
+                                {
+                                    v: `${heat.summary.rate}%`,
+                                    l: "completion",
+                                },
+                                {
+                                    v: `${heat.summary.completed}/${heat.summary.expected}`,
+                                    l: "days done",
+                                },
+                                { v: `${heat.summary.best}`, l: "best run" },
+                            ].map((s, i) => (
+                                <View key={i} style={{ flex: 1 }}>
+                                    <Text
+                                        style={{
+                                            fontFamily: th.sansBold,
+                                            fontSize: 17,
+                                            color: th.ink,
+                                        }}
+                                    >
+                                        {s.v}
+                                    </Text>
+                                    <Text
+                                        style={{
+                                            fontSize: 10.5,
+                                            color: th.muted,
+                                            fontFamily: th.sansBold,
+                                            letterSpacing: 0.4,
+                                            marginTop: 2,
+                                            textTransform: "uppercase",
+                                        }}
+                                    >
+                                        {s.l}
+                                    </Text>
+                                </View>
+                            ))}
+                        </View>
+                        <Heatmap
+                            grid={heat.grid}
+                            legend={["Missed", "Streak"]}
+                            caption={PERIOD_CAPTION[period]}
+                        />
                     </Card>
                 </View>
             </ScrollView>
