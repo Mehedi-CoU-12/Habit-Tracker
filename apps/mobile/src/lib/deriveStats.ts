@@ -1,12 +1,5 @@
 import { ApiHabit, HabitWithStats, Tod } from "./types";
-import {
-    DayRange,
-    HeatCell,
-    buildHeatmapGrid,
-    dateKey,
-    dayIndex,
-    dayIndexOf,
-} from "./date";
+import { DayRange, dayIndex, dayIndexOf } from "./date";
 
 const TOD_VALUES: Tod[] = ["morning", "afternoon", "evening", "anytime"];
 
@@ -15,69 +8,13 @@ export type MonthHabits = {
     year: number;
     month: number;
     habits: ApiHabit[];
+    /**
+     * False while this month's logs are still in flight. The heatmap needs it
+     * to tell "no completions" apart from "not fetched yet" — absent the flag
+     * an unresolved month paints as a solid run of misses.
+     */
+    loaded?: boolean;
 };
-
-function fracToLevel(frac: number): number {
-    if (frac <= 0) return 0;
-    if (frac <= 0.25) return 1;
-    if (frac <= 0.5) return 2;
-    if (frac <= 0.75) return 3;
-    return 4;
-}
-
-/**
- * Aggregate activity heatmap across all habits: each day's level reflects the
- * fraction of habits completed that day (mirrors the Calendar ring math).
- */
-export function buildActivityCells(
-    history: MonthHabits[],
-    today: Date = new Date(),
-): HeatCell[] {
-    const counts = new Map<string, number>();
-    let habitCount = 0;
-    for (const m of history) {
-        habitCount = Math.max(habitCount, m.habits.length);
-        for (const h of m.habits)
-            for (const l of h.logs) {
-                const k = dateKey(l.year, l.month, l.day);
-                counts.set(k, (counts.get(k) ?? 0) + 1);
-            }
-    }
-    return buildHeatmapGrid(today, (date) => {
-        if (habitCount === 0) return 0;
-        const k = dateKey(
-            date.getFullYear(),
-            date.getMonth() + 1,
-            date.getDate(),
-        );
-        const c = counts.get(k) ?? 0;
-        return fracToLevel(c / habitCount);
-    });
-}
-
-/**
- * Single-habit heatmap: a day is fully filled (level 4) when that habit was
- * completed, empty otherwise.
- */
-export function buildHabitCells(
-    history: MonthHabits[],
-    habitId: string,
-    today: Date = new Date(),
-): HeatCell[] {
-    const done = new Set<string>();
-    for (const m of history)
-        for (const h of m.habits)
-            if (h.id === habitId)
-                for (const l of h.logs)
-                    done.add(dateKey(l.year, l.month, l.day));
-    return buildHeatmapGrid(today, (date) =>
-        done.has(
-            dateKey(date.getFullYear(), date.getMonth() + 1, date.getDate()),
-        )
-            ? 4
-            : 0,
-    );
-}
 
 function normalizeTod(tod: string): Tod {
     return (TOD_VALUES as string[]).includes(tod) ? (tod as Tod) : "anytime";
