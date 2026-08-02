@@ -246,23 +246,21 @@ export default function StatsScreen() {
                         >
                             By time of day
                         </Text>
+                        {/* The bar's percentage height resolves against the
+                            track, not the whole column — measuring it against
+                            the column let a 100% bar push its own labels out
+                            the top and over the heading. */}
                         <View
                             style={{
                                 flexDirection: "row",
                                 gap: 10,
-                                alignItems: "flex-end",
-                                height: 120,
+                                height: 140,
                             }}
                         >
                             {bars.map((b, i) => (
                                 <View
                                     key={i}
-                                    style={{
-                                        flex: 1,
-                                        alignItems: "center",
-                                        justifyContent: "flex-end",
-                                        height: "100%",
-                                    }}
+                                    style={{ flex: 1, alignItems: "center" }}
                                 >
                                     <Text
                                         style={{
@@ -276,13 +274,21 @@ export default function StatsScreen() {
                                     </Text>
                                     <View
                                         style={{
+                                            flex: 1,
                                             width: "100%",
-                                            height: `${Math.max(b.v * 100, 2)}%`,
-                                            backgroundColor: b.c,
-                                            borderTopLeftRadius: 10,
-                                            borderTopRightRadius: 10,
+                                            justifyContent: "flex-end",
                                         }}
-                                    />
+                                    >
+                                        <View
+                                            style={{
+                                                width: "100%",
+                                                height: `${Math.max(b.v * 100, 2)}%`,
+                                                backgroundColor: b.c,
+                                                borderTopLeftRadius: 10,
+                                                borderTopRightRadius: 10,
+                                            }}
+                                        />
+                                    </View>
                                     <Text
                                         style={{
                                             fontSize: 10.5,
