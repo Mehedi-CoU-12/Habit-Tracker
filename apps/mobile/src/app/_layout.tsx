@@ -24,6 +24,7 @@ import { startSync } from "../offline/sync";
 import { startReminders } from "../notifications";
 import OfflineBar from "../components/OfflineBar";
 import SyncPill from "../components/SyncPill";
+import UpdateGate from "../components/UpdateGate";
 
 function AuthGate() {
     const th = useTheme();
@@ -101,6 +102,9 @@ function RootStack() {
             >
                 <Stack.Screen name="add" options={{ presentation: "modal" }} />
             </Stack>
+            {/* Outside the navigator: an update prompt has to reach the user on
+                whatever screen they land on, including the auth screens. */}
+            <UpdateGate />
         </View>
     );
 }
