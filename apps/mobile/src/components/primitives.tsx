@@ -128,13 +128,18 @@ export function Segmented<T extends string>({
     style?: StyleProp<ViewStyle>;
 }) {
     const th = useTheme();
+    // The selected pill has to read as raised in both themes. In dark,
+    // `surface` is darker than `surface2`, so reusing the light pairing would
+    // punch the active tab into its track instead of lifting it out.
+    const track = th.dark ? "rgba(255,255,255,0.06)" : th.surface2;
+    const pill = th.dark ? "rgba(255,255,255,0.16)" : th.surface;
     return (
         <View
             style={[
                 {
                     flexDirection: "row",
                     gap: 3,
-                    backgroundColor: th.surface2,
+                    backgroundColor: track,
                     borderRadius: compact ? 9 : 11,
                     padding: 3,
                 },
@@ -149,8 +154,7 @@ export function Segmented<T extends string>({
                         paddingVertical: compact ? 4 : 6,
                         paddingHorizontal: compact ? 9 : 12,
                         borderRadius: compact ? 7 : 8,
-                        backgroundColor:
-                            value === o ? th.surface : "transparent",
+                        backgroundColor: value === o ? pill : "transparent",
                     }}
                 >
                     <Text
