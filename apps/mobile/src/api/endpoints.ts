@@ -24,7 +24,8 @@ export type AuthResult = {
         email: string;
         avatarUrl: string | null;
         role: UserRole;
-        // New signups start PENDING — the auth screens route on this.
+        // ACTIVE for a new signup (auto-approved); the auth screens route on
+        // this so a parked/suspended account still lands on /pending.
         status: AccountStatus;
     };
 };

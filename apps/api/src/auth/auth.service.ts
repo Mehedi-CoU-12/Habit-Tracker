@@ -61,9 +61,19 @@ export class AuthService {
 
     const hashed = await bcrypt.hash(dto.password, 10);
     const user = await this.prisma.user.create({
-      data: { name: dto.name, email: dto.email, password: hashed },
+      // Signups are auto-approved — ACTIVE, not PENDING, so no admin step
+      // stands between signing up and using the app. Set explicitly (the
+      // column default says the same) so the behavior is visible here and
+      // holds even on a database that predates that default. Comment this
+      // line out to restore the manual approval gate.
+      data: {
+        name: dto.name,
+        email: dto.email,
+        password: hashed,
+        status: 'ACTIVE',
+      },
     });
-    // New PENDING accounts must show up in the admin's user list right away.
+    // New accounts must show up in the admin's user list right away.
     await this.cache.bumpVersion(cacheKeys.adminUsersVersion);
 
     return { ...this.issueTokens(user), user: this.publicUser(user) };
@@ -152,11 +162,14 @@ export class AuthService {
       }
     } else {
       user = await this.prisma.user.create({
+        // Same as signup: first-time Google sign-in is auto-approved.
+        // Comment out `status` to restore the manual approval gate.
         data: {
           name: googleUser.name,
           email: googleUser.email,
           googleId: googleUser.googleId,
           avatarUrl: googleUser.avatarUrl,
+          status: 'ACTIVE',
         },
       });
       // Same as signup: surface the new account in the admin list now.

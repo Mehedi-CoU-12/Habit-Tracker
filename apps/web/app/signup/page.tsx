@@ -173,7 +173,9 @@ export default function SignupPage() {
                 return;
             }
             setTokens(data.accessToken, data.refreshToken);
-            // New signups start PENDING — straight to the waiting screen.
+            // Signups are auto-approved, so this normally lands on the
+            // dashboard; the /pending fallback stays for an account an admin
+            // has parked or suspended.
             router.push(
                 data.user?.status === "ACTIVE" ? "/dashboard" : "/pending",
             );

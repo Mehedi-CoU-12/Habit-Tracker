@@ -51,8 +51,8 @@ export default function SignupScreen() {
         setLoading(true);
         try {
             const res = await register(name.trim(), email.trim(), password);
-            // New accounts start PENDING → straight to the waiting screen
-            // (skipping onboarding; it's cosmetic anyway).
+            // Signups are auto-approved, so this normally goes to onboarding;
+            // the /pending fallback stays for a parked/suspended account.
             router.replace(
                 res.user.status === "ACTIVE" ? "/onboarding" : "/pending",
             );
