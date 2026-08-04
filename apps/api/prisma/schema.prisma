@@ -48,7 +48,8 @@ model User {
   googleId        String?       @unique
   avatarUrl       String?
   role            Role          @default(USER)
-  status          AccountStatus @default(PENDING)
+  // status          AccountStatus @default(PENDING)
+  status          AccountStatus @default(ACTIVE)
   statusChangedAt DateTime?
   statusChangedBy String?
   statusNote      String?
