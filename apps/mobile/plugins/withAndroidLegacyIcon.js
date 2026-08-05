@@ -4,18 +4,6 @@ const path = require("path");
 const { withDangerousMod } = require("expo/config-plugins");
 const { generateImageAsync } = require("@expo/image-utils");
 
-// Expo's own icon generator (@expo/prebuild-config withAndroidIcons) derives
-// *every* Android launcher bitmap from `android.adaptiveIcon.foregroundImage`
-// when one is set — `const icon = foregroundImage ?? getIcon(config)`. The
-// foreground is inset to the adaptive mask's safe zone, so ic_launcher.webp
-// and ic_launcher_round.webp end up as a small plant floating on flat cream.
-// Launchers and OEM shells that draw the raw bitmap (rather than the masked
-// adaptive icon) show that instead of the full-bleed `icon`.
-//
-// This runs after withAndroidIcons and rewrites those two legacy bitmaps from
-// the top-level `icon`, matching the sizes/resize mode Expo uses. The adaptive
-// layers are left untouched.
-
 const LEGACY_BASELINE_PIXEL_SIZE = 48;
 const ANDROID_RES_PATH = "android/app/src/main/res";
 const DPI_SCALES = { mdpi: 1, hdpi: 1.5, xhdpi: 2, xxhdpi: 3, xxxhdpi: 4 };

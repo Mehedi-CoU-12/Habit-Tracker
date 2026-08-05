@@ -6,12 +6,6 @@ import { useMe } from "../api/hooks";
 import Plant from "../components/Plant";
 import { Pill } from "../components/primitives";
 
-/**
- * Waiting room for accounts that aren't ACTIVE yet. Refreshing re-reads
- * /users/me (the one endpoint gated accounts may call); the moment the admin
- * approves, the AuthGate in _layout routes back into the app — same session,
- * no re-login. A dead token 401s → central handling signs out to /login.
- */
 export default function PendingScreen() {
     const th = useTheme();
     const insets = useSafeAreaInsets();
