@@ -173,9 +173,6 @@ export default function SignupPage() {
                 return;
             }
             setTokens(data.accessToken, data.refreshToken);
-            // Signups are auto-approved, so this normally lands on the
-            // dashboard; the /pending fallback stays for an account an admin
-            // has parked or suspended.
             router.push(
                 data.user?.status === "ACTIVE" ? "/dashboard" : "/pending",
             );
@@ -230,7 +227,7 @@ export default function SignupPage() {
 
                     <div className="mt-10 grid grid-cols-2 gap-4">
                         {[
-                            { stat: "10k+", label: "Active gardeners" },
+                            { stat: "100+", label: "Active gardeners" },
                             { stat: "98%", label: "Streak retention" },
                             { stat: "50+", label: "Habit seeds" },
                             { stat: "Free", label: "Forever plan" },
@@ -412,33 +409,6 @@ export default function SignupPage() {
                                         )}
                                     </button>
                                 </div>
-                            </div>
-
-                            <div className="flex items-start gap-2">
-                                <input
-                                    id="terms"
-                                    type="checkbox"
-                                    className="mt-0.5 h-4 w-4 cursor-pointer rounded border-line accent-(--bloom-accent)"
-                                />
-                                <label
-                                    htmlFor="terms"
-                                    className="text-sm text-ink2"
-                                >
-                                    I agree to the{" "}
-                                    <Link
-                                        href="#"
-                                        className="font-semibold text-accent transition hover:text-accent-deep"
-                                    >
-                                        Terms of Service
-                                    </Link>{" "}
-                                    and{" "}
-                                    <Link
-                                        href="#"
-                                        className="font-semibold text-accent transition hover:text-accent-deep"
-                                    >
-                                        Privacy Policy
-                                    </Link>
-                                </label>
                             </div>
 
                             {error && (
