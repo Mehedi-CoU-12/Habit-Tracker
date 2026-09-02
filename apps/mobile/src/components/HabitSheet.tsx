@@ -15,8 +15,12 @@ type Actions = {
 
 export default function HabitSheet({
     habit,
+    initialView = "actions",
     ...actions
-}: { habit: HabitWithStats | null } & Actions) {
+}: {
+    habit: HabitWithStats | null;
+    initialView?: "actions" | "archive-confirmation" | "delete-confirmation";
+} & Actions) {
     return (
         <Modal
             visible={!!habit}
@@ -25,7 +29,14 @@ export default function HabitSheet({
             statusBarTranslucent
             onRequestClose={actions.onClose}
         >
-            {habit ? <Sheet key={habit.id} h={habit} {...actions} /> : null}
+            {habit ? (
+                <Sheet
+                    key={`${habit.id}:${initialView}`}
+                    h={habit}
+                    initialView={initialView}
+                    {...actions}
+                />
+            ) : null}
         </Modal>
     );
 }
@@ -35,10 +46,17 @@ function Sheet({
     onClose,
     onArchive,
     onDelete,
-}: { h: HabitWithStats } & Actions) {
+    initialView,
+}: {
+    h: HabitWithStats;
+    initialView: "actions" | "archive-confirmation" | "delete-confirmation";
+} & Actions) {
     const th = useTheme();
     const insets = useSafeAreaInsets();
-    const [confirming, setConfirming] = useState(false);
+    const [confirming, setConfirming] = useState(
+        initialView === "delete-confirmation",
+    );
+    const confirmingArchive = initialView === "archive-confirmation";
     const rise = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
@@ -100,7 +118,48 @@ function Sheet({
                     }}
                 />
 
-                {confirming ? (
+                {confirmingArchive ? (
+                    <>
+                        <Text
+                            style={{
+                                fontFamily: th.display,
+                                fontSize: 21 * th.d.font,
+                                color: th.ink,
+                                marginTop: 8,
+                            }}
+                        >
+                            Archive this habit?
+                        </Text>
+                        <View
+                            style={{
+                                backgroundColor: th.accentSoftBg,
+                                borderRadius: 14,
+                                padding: 14,
+                                marginTop: 10,
+                            }}
+                        >
+                            <Text
+                                style={{
+                                    fontSize: 13.5,
+                                    color: th.ink2,
+                                    lineHeight: 20,
+                                }}
+                            >
+                                “{h.name}” will leave Today and stop sending
+                                reminders. Its history stays safe, and you can
+                                restore it from Settings whenever you want.
+                            </Text>
+                        </View>
+                        <Pill
+                            primary
+                            icon="archive"
+                            label="Archive habit"
+                            onPress={() => onArchive(h.id)}
+                            style={{ marginTop: 14 }}
+                        />
+                        <Cancel label="Cancel" onPress={onClose} />
+                    </>
+                ) : confirming ? (
                     <>
                         <Text
                             style={{
