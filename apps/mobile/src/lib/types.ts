@@ -26,6 +26,18 @@ export type ApiHabit = {
     logs: ApiHabitLog[];
 };
 
+/** GET /notes — one free-text reflection per calendar day. */
+export type ApiDayNote = {
+    id: string;
+    userId: string;
+    year: number;
+    month: number;
+    day: number;
+    text: string;
+    createdAt: string;
+    updatedAt: string;
+};
+
 export type HabitWithStats = {
     id: string;
     name: string;
