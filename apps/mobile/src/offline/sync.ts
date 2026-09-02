@@ -54,6 +54,11 @@ async function dispatch(op: Op): Promise<void> {
                 op.completed,
             );
             return;
+        case "note.set": {
+            const { year, month, day, text } = op.payload;
+            await api.setDayNote(year, month, day, text);
+            return;
+        }
         case "focus.record": {
             // The DTO rejects a null habitId — omit it for unlinked sessions.
             const { habitId, ...rest } = op.payload;
@@ -64,8 +69,9 @@ async function dispatch(op: Op): Promise<void> {
             return;
         }
     }
-    // Exhaustiveness guard: without it a newly added op kind falls through
-    // silently, the drain counts it as delivered, and the write is lost.
+    // Exhaustiveness guard. Without it a newly added op kind falls through
+    // silently, the drain counts it as delivered, and the write is lost —
+    // which is exactly what happened while adding note.set.
     return assertNever(op);
 }
 
