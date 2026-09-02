@@ -1,4 +1,6 @@
 import {
+  ArrayMaxSize,
+  IsArray,
   IsString,
   IsInt,
   Min,
@@ -10,7 +12,7 @@ import {
   IsNotEmpty,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
-import { TIMES_OF_DAY } from './create-habit.dto.js';
+import { TIMES_OF_DAY, normalizeDaysOfWeek } from './create-habit.dto.js';
 
 const trim = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() : value;
@@ -46,4 +48,13 @@ export class UpdateHabitDto {
   @Transform(trim)
   @MaxLength(50)
   verb?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(7)
+  @IsInt({ each: true })
+  @Min(0, { each: true })
+  @Max(6, { each: true })
+  @Transform(normalizeDaysOfWeek)
+  daysOfWeek?: number[];
 }

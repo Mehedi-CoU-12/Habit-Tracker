@@ -201,6 +201,7 @@ export class HabitsService {
         ...(dto.icon ? { icon: dto.icon } : {}),
         ...(dto.tod ? { tod: dto.tod } : {}),
         ...(dto.verb ? { verb: dto.verb } : {}),
+        ...(dto.daysOfWeek ? { daysOfWeek: dto.daysOfWeek } : {}),
       },
     });
     await this.invalidateHabits(userId);
@@ -221,6 +222,7 @@ export class HabitsService {
         ...(dto.icon !== undefined ? { icon: dto.icon } : {}),
         ...(dto.tod !== undefined ? { tod: dto.tod } : {}),
         ...(dto.verb !== undefined ? { verb: dto.verb } : {}),
+        ...(dto.daysOfWeek !== undefined ? { daysOfWeek: dto.daysOfWeek } : {}),
       },
     });
     await this.invalidateHabits(userId);
