@@ -64,6 +64,15 @@ async function dispatch(op: Op): Promise<void> {
             return;
         }
     }
+    // Exhaustiveness guard: without it a newly added op kind falls through
+    // silently, the drain counts it as delivered, and the write is lost.
+    return assertNever(op);
+}
+
+function assertNever(op: never): never {
+    throw new Error(
+        `Unhandled outbox op: ${(op as { kind?: string }).kind ?? "unknown"}`,
+    );
 }
 
 /**
