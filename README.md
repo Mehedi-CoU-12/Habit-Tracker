@@ -4,6 +4,10 @@ A habit tracker where every habit is a plant. Stay consistent and watch it grow 
 
 Built as a monorepo with a shared NestJS API powering both a web app and a mobile app.
 
+> 📖 **New here? Read [docs/README.md](docs/README.md)** — a beginner-friendly tour of the whole
+> architecture with diagrams: how a request travels, how authentication works end to end, the
+> data model, caching, the mobile offline engine, and deployment.
+
 ## What's inside
 
 | App / Package                | Description                                                                                                          |
