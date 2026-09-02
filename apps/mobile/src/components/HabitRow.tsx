@@ -80,7 +80,8 @@ export function HabitRow({
     h: HabitWithStats;
     onToggle: (id: string) => void;
     onOpen: (id: string) => void;
-    /** Hold anywhere on the row — including the check circle — to delete. */
+    /** Hold anywhere on the row — including the check circle — to open the
+        habit's action sheet. */
     onLongPress?: (id: string) => void;
     last?: boolean;
 }) {
