@@ -82,7 +82,7 @@ describe("monthsForHeat", () => {
 describe("buildHabitHeatmap — summary", () => {
     test("scores every day from planting to today", () => {
         const h = habit({ days: [1, 2, 3, 4, 5] });
-        const r = buildHabitHeatmap(sep([h]), "h1", "Month", on(10), h.createdAt);
+        const r = buildHabitHeatmap(sep([h]), "h1", "Month", on(10), h);
         assert.equal(r.summary.completed, 5);
         assert.equal(r.summary.expected, 10); // Sep 1..10
         assert.equal(r.summary.rate, 50);
@@ -94,21 +94,21 @@ describe("buildHabitHeatmap — summary", () => {
             days: [21, 22],
             createdAt: new Date(2026, 8, 20).toISOString(),
         });
-        const r = buildHabitHeatmap(sep([h]), "h1", "Month", on(25), h.createdAt);
+        const r = buildHabitHeatmap(sep([h]), "h1", "Month", on(25), h);
         assert.equal(r.summary.expected, 6); // Sep 20..25
         assert.equal(r.summary.completed, 2);
     });
 
     test("an unloaded month contributes no expected days", () => {
         const h = habit({ days: [1, 2] });
-        const r = buildHabitHeatmap(sep([h], false), "h1", "Month", on(10), h.createdAt);
+        const r = buildHabitHeatmap(sep([h], false), "h1", "Month", on(10), h);
         assert.equal(r.summary.expected, 0);
         assert.equal(r.summary.rate, 0);
     });
 
     test("best is the longest run inside the window", () => {
         const h = habit({ days: [1, 2, 3, 7, 8] });
-        const r = buildHabitHeatmap(sep([h]), "h1", "Month", on(10), h.createdAt);
+        const r = buildHabitHeatmap(sep([h]), "h1", "Month", on(10), h);
         assert.equal(r.summary.best, 3);
     });
 });
@@ -116,7 +116,7 @@ describe("buildHabitHeatmap — summary", () => {
 describe("buildHabitHeatmap — grid", () => {
     const gridFor = (day: number) => {
         const h = habit({ days: [1, 2, 3] });
-        return buildHabitHeatmap(sep([h]), "h1", "Month", on(day), h.createdAt).grid;
+        return buildHabitHeatmap(sep([h]), "h1", "Month", on(day), h).grid;
     };
 
     test("marks days past today as future, never as missed", () => {
@@ -164,19 +164,19 @@ describe("buildHabitHeatmap — grid", () => {
 describe("habitHistoryStats", () => {
     test("streak counts the run ending today", () => {
         const h = habit({ days: [8, 9, 10] });
-        const s = habitHistoryStats(sep([h]), "h1", on(10), h.createdAt);
+        const s = habitHistoryStats(sep([h]), "h1", on(10), h);
         assert.equal(s.streak, 3);
     });
 
     test("today still open falls back to the run ending yesterday", () => {
         const h = habit({ days: [8, 9] });
-        const s = habitHistoryStats(sep([h]), "h1", on(10), h.createdAt);
+        const s = habitHistoryStats(sep([h]), "h1", on(10), h);
         assert.equal(s.streak, 2);
     });
 
     test("a two-day gap zeroes the streak", () => {
         const h = habit({ days: [1, 2, 3] });
-        const s = habitHistoryStats(sep([h]), "h1", on(10), h.createdAt);
+        const s = habitHistoryStats(sep([h]), "h1", on(10), h);
         assert.equal(s.streak, 0);
         assert.equal(s.best, 3);
     });
@@ -202,7 +202,7 @@ describe("habitHistoryStats", () => {
             { year: 2026, month: 8, habits: [h], loaded: true },
             { year: 2026, month: 9, habits: [h], loaded: true },
         ];
-        const s = habitHistoryStats(history, "h1", on(1), h.createdAt);
+        const s = habitHistoryStats(history, "h1", on(1), h);
         assert.equal(s.streak, 3);
         assert.equal(s.best, 3);
     });
@@ -212,7 +212,7 @@ describe("habitHistoryStats", () => {
             days: [20, 21],
             createdAt: new Date(2026, 8, 20).toISOString(),
         });
-        const s = habitHistoryStats(sep([h]), "h1", on(21), h.createdAt);
+        const s = habitHistoryStats(sep([h]), "h1", on(21), h);
         assert.equal(s.completed, 2);
         assert.equal(s.rate, 100); // 2 of Sep 20..21
     });
@@ -252,3 +252,52 @@ describe("buildActivityHeatmap", () => {
     });
 });
 
+/** Sep 2026 opens on a Tuesday; Mon/Wed/Fri is due Wed 2, Fri 4, Mon 7, ... */
+const MWF = [1, 3, 5];
+
+describe("buildHabitHeatmap — weekday schedules", () => {
+    test("expected counts due days only", () => {
+        const h = habit({ days: [2, 4, 7, 9], daysOfWeek: MWF });
+        const r = buildHabitHeatmap(sep([h]), "h1", "Month", on(10), h);
+        // Due days Sep 1..10: Wed 2, Fri 4, Mon 7, Wed 9.
+        assert.equal(r.summary.expected, 4);
+        assert.equal(r.summary.completed, 4);
+        assert.equal(r.summary.rate, 100);
+    });
+
+    test("rest days render dormant, not missed", () => {
+        const h = habit({ days: [2, 4], daysOfWeek: MWF });
+        const grid = buildHabitHeatmap(sep([h]), "h1", "Month", on(10), h).grid;
+        const tue1 = grid.days.find((d) => d.index === idx(1))!;
+        const thu3 = grid.days.find((d) => d.index === idx(3))!;
+        const fri4 = grid.days.find((d) => d.index === idx(4))!;
+        assert.equal(tue1.dormant, true);
+        assert.equal(thu3.dormant, true);
+        assert.equal(fri4.dormant, false);
+        assert.equal(fri4.done, true);
+    });
+
+    test("a missed due day is still shown as missed", () => {
+        const h = habit({ days: [2], daysOfWeek: MWF });
+        const grid = buildHabitHeatmap(sep([h]), "h1", "Month", on(10), h).grid;
+        const fri4 = grid.days.find((d) => d.index === idx(4))!;
+        assert.equal(fri4.dormant, false);
+        assert.equal(fri4.done, false);
+    });
+
+    test("run depth chains across the rest days between due days", () => {
+        const h = habit({ days: [2, 4, 7], daysOfWeek: MWF });
+        const grid = buildHabitHeatmap(sep([h]), "h1", "Month", on(7), h).grid;
+        const mon7 = grid.days.find((d) => d.index === idx(7))!;
+        // Third due day in a row, so it must read as a deeper run than an
+        // isolated day — Tuesday in between is not a gap.
+        assert.equal(mon7.detail, "done · 3 day run");
+    });
+
+    test("the same logs read as a broken run for a daily habit", () => {
+        const h = habit({ days: [2, 4, 7] });
+        const grid = buildHabitHeatmap(sep([h]), "h1", "Month", on(7), h).grid;
+        const mon7 = grid.days.find((d) => d.index === idx(7))!;
+        assert.equal(mon7.detail, undefined); // depth 1, no run
+    });
+});

@@ -24,6 +24,23 @@ import {
     startOfDay,
 } from "./date";
 import { MonthHabits } from "./deriveStats";
+import {
+    expectedDaysBetween,
+    isExpectedOn,
+    normalizeDays,
+    previousExpected,
+} from "./schedule";
+
+/**
+ * The bits of a habit the grid math needs beyond its logs. Passed as one bag
+ * rather than four positional args, and `ApiHabit` satisfies it structurally,
+ * so callers hand over the habit itself.
+ */
+export type HabitSchedule = {
+    createdAt?: string;
+    /** Weekdays the habit is due on, 0 = Sunday. Empty/absent = daily. */
+    daysOfWeek?: number[];
+};
 
 export const HEAT_PERIODS = ["Week", "Month", "Year"] as const;
 export type HeatPeriod = (typeof HEAT_PERIODS)[number];
@@ -241,8 +258,16 @@ type HabitDays = {
  * Every day this habit was logged, across all loaded months, with each day's
  * run depth. Depth is what shades the grid: an isolated day reads lighter than
  * the fourth day of a streak, so consistency shows up as solid blocks.
+ *
+ * A run chains along the days the habit was *due*, not raw calendar days — for
+ * a Mon/Wed/Fri habit, Wednesday continues Monday's run and the Tuesday in
+ * between is not a gap.
  */
-function collectHabitDays(history: MonthHabits[], habitId: string): HabitDays {
+function collectHabitDays(
+    history: MonthHabits[],
+    habitId: string,
+    daysOfWeek: number[] = [],
+): HabitDays {
     const done = new Set<number>();
     for (const m of history)
         for (const h of m.habits)
@@ -252,8 +277,12 @@ function collectHabitDays(history: MonthHabits[], habitId: string): HabitDays {
 
     const sorted = [...done].sort((a, b) => a - b);
     const depth = new Map<number, number>();
-    // Ascending, so the previous day's depth is already resolved when needed.
-    for (const d of sorted) depth.set(d, (depth.get(d - 1) ?? 0) + 1);
+    // Ascending, so the previous due day's depth is already resolved. For a
+    // daily habit previousExpected(d - 1) is just d - 1.
+    for (const d of sorted) {
+        const prev = previousExpected(daysOfWeek, d - 1);
+        depth.set(d, (depth.get(prev) ?? 0) + 1);
+    }
     return { done, depth, sorted };
 }
 
@@ -288,26 +317,36 @@ export function buildHabitHeatmap(
     habitId: string,
     period: HeatPeriod,
     today: Date,
-    createdAt?: string,
+    habit?: HabitSchedule,
 ): HeatResult {
-    const { done, depth, sorted } = collectHabitDays(history, habitId);
+    const daysOfWeek = normalizeDays(habit?.daysOfWeek);
+    const { done, depth, sorted } = collectHabitDays(
+        history,
+        habitId,
+        daysOfWeek,
+    );
     const known = loadedDays(history);
     const todayIdx = dayIndex(today);
-    const planted = plantedIndex(createdAt, sorted, todayIdx);
+    const planted = plantedIndex(habit?.createdAt, sorted, todayIdx);
     const range = heatRange(period, today);
+
+    // A day the habit wasn't due on is dormant too — same reasoning as days
+    // before it was planted: you can't skip something that wasn't asked of you.
+    const due = (index: number) => isExpectedOn(daysOfWeek, index);
 
     const grid = buildGrid(period, range, today, (index) => {
         const d = depth.get(index) ?? 0;
+        const off = index < planted || !due(index);
         return {
             level: depthToLevel(d),
             done: d > 0,
-            dormant: index < planted || !known.has(index),
+            dormant: off || !known.has(index),
             detail: d > 1 ? `done · ${d} day run` : undefined,
         };
     });
 
-    // The rate scores only loaded days, for the same reason — an in-flight
-    // month must not drag the denominator down before its logs land.
+    // The rate scores only loaded, due days — an in-flight month must not drag
+    // the denominator down before its logs land, and a rest day was never owed.
     const from = Math.max(dayIndex(range.start), planted);
     const to = Math.min(dayIndex(range.end), todayIdx);
     let completed = 0;
@@ -319,6 +358,7 @@ export function buildHabitHeatmap(
             run = 0;
             continue;
         }
+        if (!due(d)) continue; // neither owed nor a break in the run
         expected++;
         if (done.has(d)) {
             completed++;
@@ -350,26 +390,34 @@ export function habitHistoryStats(
     history: MonthHabits[],
     habitId: string,
     today: Date,
-    createdAt?: string,
+    habit?: HabitSchedule,
 ): { streak: number; best: number; completed: number; rate: number } {
-    const { depth, sorted } = collectHabitDays(history, habitId);
+    const daysOfWeek = normalizeDays(habit?.daysOfWeek);
+    const { depth, sorted } = collectHabitDays(history, habitId, daysOfWeek);
     const todayIdx = dayIndex(today);
     // Today still being open shouldn't read as a broken streak — fall back to
-    // the run that ended yesterday.
-    const streak = depth.get(todayIdx) ?? depth.get(todayIdx - 1) ?? 0;
+    // the run that ended on the previous day the habit was due (yesterday, for
+    // a daily habit).
+    const streak =
+        depth.get(todayIdx) ??
+        depth.get(previousExpected(daysOfWeek, todayIdx - 1)) ??
+        0;
     const best = sorted.reduce((m, d) => Math.max(m, depth.get(d) ?? 0), 0);
 
-    const planted = plantedIndex(createdAt, sorted, todayIdx);
+    const planted = plantedIndex(habit?.createdAt, sorted, todayIdx);
     const completed = sorted.filter(
         (d) => d >= planted && d <= todayIdx,
     ).length;
-    const days = Math.max(0, todayIdx - planted + 1);
+    const days = expectedDaysBetween(daysOfWeek, planted, todayIdx);
+    const doneOnDue = sorted.filter(
+        (d) => d >= planted && d <= todayIdx && isExpectedOn(daysOfWeek, d),
+    ).length;
 
     return {
         streak,
         best,
         completed,
-        rate: days === 0 ? 0 : Math.round((completed / days) * 100),
+        rate: days === 0 ? 0 : Math.round((doneOnDue / days) * 100),
     };
 }
 
@@ -383,23 +431,18 @@ function fracToLevel(frac: number): number {
     return 4;
 }
 
-/** How many entries of the ascending `sorted` are ≤ `value`. */
-function countUpTo(sorted: number[], value: number): number {
-    let lo = 0;
-    let hi = sorted.length;
-    while (lo < hi) {
-        const mid = (lo + hi) >> 1;
-        if (sorted[mid] <= value) lo = mid + 1;
-        else hi = mid;
-    }
-    return lo;
-}
+/** One habit's start and schedule, for counting what was owed on a day. */
+type ActiveHabit = {
+    planted: number;
+    daysOfWeek: number[];
+};
 
 /**
  * Aggregate activity: a day's level is the share of habits completed out of the
- * habits that existed *that day* — not out of today's roster. Dividing by the
+ * habits that were *due that day* — not out of today's roster. Dividing by the
  * roster's high-water mark (what this used to do) washes out early months, when
- * three-of-three completed scored the same as three-of-ten.
+ * three-of-three completed scored the same as three-of-ten. Weekday schedules
+ * narrow it further: nothing is owed on a rest day.
  */
 export function buildActivityHeatmap(
     history: MonthHabits[],
@@ -407,7 +450,7 @@ export function buildActivityHeatmap(
     today: Date,
 ): HeatResult {
     const counts = new Map<number, number>();
-    const planted = new Map<string, number>();
+    const habits = new Map<string, ActiveHabit>();
 
     for (const m of history)
         for (const h of m.habits) {
@@ -423,13 +466,31 @@ export function buildActivityHeatmap(
                 earliest,
             );
             if (!Number.isFinite(at)) continue;
-            const prev = planted.get(h.id);
-            if (prev === undefined || at < prev) planted.set(h.id, at);
+            const prev = habits.get(h.id);
+            // The same habit appears once per loaded month; keep the earliest
+            // planting seen and the newest schedule.
+            habits.set(h.id, {
+                planted: prev === undefined ? at : Math.min(prev.planted, at),
+                daysOfWeek: normalizeDays(h.daysOfWeek),
+            });
         }
 
-    const plantedSorted = [...planted.values()].sort((a, b) => a - b);
-    const firstEver = plantedSorted.length ? plantedSorted[0] : Infinity;
-    const activeOn = (index: number) => countUpTo(plantedSorted, index);
+    const roster = [...habits.values()];
+    const firstEver = roster.reduce(
+        (min, h) => Math.min(min, h.planted),
+        Infinity,
+    );
+    // O(roster) per day rather than the old binary search, because "was this
+    // owed today" now depends on each habit's own weekday schedule.
+    const activeOn = (index: number) => {
+        let n = 0;
+        for (const h of roster) {
+            if (index < h.planted) continue;
+            if (!isExpectedOn(h.daysOfWeek, index)) continue;
+            n++;
+        }
+        return n;
+    };
     const known = loadedDays(history);
 
     const range = heatRange(period, today);

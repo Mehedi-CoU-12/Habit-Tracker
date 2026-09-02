@@ -63,19 +63,12 @@ export default function DetailScreen() {
         Math.max(3, monthsForHeat(period, now)),
     );
     const heat = useMemo(
-        () =>
-            buildHabitHeatmap(
-                history,
-                id ?? "",
-                period,
-                now,
-                apiHabit?.createdAt,
-            ),
-        [history, id, period, now, apiHabit?.createdAt],
+        () => buildHabitHeatmap(history, id ?? "", period, now, apiHabit),
+        [history, id, period, now, apiHabit],
     );
     const overall = useMemo(
-        () => habitHistoryStats(history, id ?? "", now, apiHabit?.createdAt),
-        [history, id, now, apiHabit?.createdAt],
+        () => habitHistoryStats(history, id ?? "", now, apiHabit),
+        [history, id, now, apiHabit],
     );
 
     const goBack = () =>
