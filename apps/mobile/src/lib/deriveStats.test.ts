@@ -356,3 +356,29 @@ describe("deriveRangeStats — weekday schedules", () => {
     });
 });
 
+describe("deriveRangeStats — archived habits", () => {
+    test("the denominator stops at the archive date", () => {
+        const h = habit({
+            days: [1, 2, 3],
+            archivedAt: new Date(2026, 8, 3).toISOString(),
+        });
+        const [s] = deriveRangeStats(
+            [{ year: SEP.year, month: SEP.month, habits: [h] }],
+            [h],
+            { start: on(1), end: on(30) },
+        );
+        assert.equal(s!.days, 3); // Sep 1..3, not Sep 1..30
+        assert.equal(s!.rate, 100);
+    });
+
+    test("without archiving the same habit keeps accruing misses", () => {
+        const h = habit({ days: [1, 2, 3] });
+        const [s] = deriveRangeStats(
+            [{ year: SEP.year, month: SEP.month, habits: [h] }],
+            [h],
+            { start: on(1), end: on(30) },
+        );
+        assert.equal(s!.days, 30);
+        assert.equal(s!.rate, 10);
+    });
+});

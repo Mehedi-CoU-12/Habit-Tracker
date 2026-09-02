@@ -146,7 +146,8 @@ export type RangeHabitStats = {
  * without that clamp a habit planted in July is scored against every day since
  * January and can't clear single digits in the Year view. It then counts only
  * the days the habit was actually due, so a three-times-a-week habit isn't
- * scored out of seven.
+ * scored out of seven, and stops at the archive date — a habit you put down
+ * must not keep accruing misses, which is the whole point of archiving.
  */
 export function deriveRangeStats(
     history: MonthHabits[],
@@ -179,11 +180,17 @@ export function deriveRangeStats(
             ),
         );
         const daysOfWeek = normalizeDays(h.daysOfWeek);
-        const days = expectedDaysBetween(daysOfWeek, expectedFrom, to);
+        const retired = h.archivedAt
+            ? dayIndex(new Date(h.archivedAt))
+            : Infinity;
+        const expectedTo = Math.min(to, retired);
+        const days = expectedDaysBetween(daysOfWeek, expectedFrom, expectedTo);
         const completed = done?.size ?? 0;
         // Scored on due days only, matching `days` — see deriveHabitStats.
         const doneOnDue = done
-            ? [...done].filter((d) => isExpectedOn(daysOfWeek, d)).length
+            ? [...done].filter(
+                  (d) => d <= expectedTo && isExpectedOn(daysOfWeek, d),
+              ).length
             : 0;
         return {
             id: h.id,
