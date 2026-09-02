@@ -14,6 +14,7 @@ import { StatusGuard } from './auth/status.guard.js';
 import { RolesGuard } from './auth/roles.guard.js';
 import { HabitsModule } from './habits/habits.module.js';
 import { FocusModule } from './focus/focus.module.js';
+import { NotesModule } from './notes/notes.module.js';
 import { UsersModule } from './users/users.module.js';
 import { AdminModule } from './admin/admin.module.js';
 import { ReleasesModule } from './releases/releases.module.js';
@@ -27,6 +28,7 @@ import { ReleasesModule } from './releases/releases.module.js';
     AuthModule,
     HabitsModule,
     FocusModule,
+    NotesModule,
     UsersModule,
     AdminModule,
     ReleasesModule,
