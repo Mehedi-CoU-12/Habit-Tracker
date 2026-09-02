@@ -73,11 +73,14 @@ export function HabitRow({
     h,
     onToggle,
     onOpen,
+    onLongPress,
     last,
 }: {
     h: HabitWithStats;
     onToggle: (id: string) => void;
     onOpen: (id: string) => void;
+    /** Hold anywhere on the row — including the check circle — to delete. */
+    onLongPress?: (id: string) => void;
     last?: boolean;
 }) {
     const th = useTheme();
@@ -91,9 +94,12 @@ export function HabitRow({
         onToggle(h.id);
     };
 
+    const handleLongPress = onLongPress ? () => onLongPress(h.id) : undefined;
+
     return (
         <Pressable
             onPress={() => onOpen(h.id)}
+            onLongPress={handleLongPress}
             style={{
                 flexDirection: "row",
                 alignItems: "center",
@@ -110,6 +116,7 @@ export function HabitRow({
             <View>
                 <Pressable
                     onPress={handleToggle}
+                    onLongPress={handleLongPress}
                     style={{
                         width: 38,
                         height: 38,

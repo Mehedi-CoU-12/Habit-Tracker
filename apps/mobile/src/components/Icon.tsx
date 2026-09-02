@@ -142,6 +142,15 @@ const PATHS: Record<string, (s: string, fill: string) => ReactNode> = {
             <Line x1={18} y1={6} x2={6} y2={18} />
         </>
     ),
+    trash: () => (
+        <>
+            <Line x1={4} y1={7} x2={20} y2={7} />
+            <Path d="M9.5 7 V4.5 h5 V7" />
+            <Path d="M6 7 l1 13 h10 l1 -13" />
+            <Line x1={10} y1={11} x2={10} y2={16.5} />
+            <Line x1={14} y1={11} x2={14} y2={16.5} />
+        </>
+    ),
     list: () => (
         <>
             <Line x1={4} y1={6} x2={20} y2={6} />

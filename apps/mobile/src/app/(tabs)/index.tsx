@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import {
     ActivityIndicator,
+    Alert,
     Pressable,
     ScrollView,
     Text,
@@ -9,7 +10,7 @@ import {
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBloom, useTheme } from "../../theme/ThemeProvider";
-import { useHabits, useToggleLog } from "../../api/hooks";
+import { useDeleteHabit, useHabits, useToggleLog } from "../../api/hooks";
 import { useOnline } from "../../offline/hooks";
 import { deriveHabitStats, daysInMonth } from "../../lib/deriveStats";
 import { HabitWithStats, Tod } from "../../lib/types";
@@ -40,6 +41,7 @@ export default function TodayScreen() {
     const { data: raw = [], isLoading, isError } = useHabits(year, month);
     const online = useOnline();
     const toggle = useToggleLog(year, month);
+    const del = useDeleteHabit(year, month);
 
     const habits: HabitWithStats[] = useMemo(
         () => raw.map((h) => deriveHabitStats(h, year, month, dim, now)),
@@ -49,6 +51,21 @@ export default function TodayScreen() {
     const done = habits.filter((h) => h.doneToday).length;
     const open = (id: string) =>
         router.push({ pathname: "/habit/[id]", params: { id } });
+
+    /** Long-press delete. Same copy as the detail screen's bin button, so a
+        hold is never a shortcut past the confirmation a tap would ask for. */
+    const confirmDelete = (id: string) => {
+        const h = habits.find((x) => x.id === id);
+        if (!h) return;
+        Alert.alert("Delete habit", `Remove "${h.name}" and its history?`, [
+            { text: "Cancel", style: "cancel" },
+            {
+                text: "Delete",
+                style: "destructive",
+                onPress: () => del.mutate(h.id),
+            },
+        ]);
+    };
 
     return (
         <View style={{ flex: 1, backgroundColor: th.bg }}>
@@ -223,6 +240,7 @@ export default function TodayScreen() {
                             <Pressable
                                 key={h.id}
                                 onPress={() => open(h.id)}
+                                onLongPress={() => confirmDelete(h.id)}
                                 style={{
                                     width: "33.33%",
                                     alignItems: "center",
@@ -291,6 +309,7 @@ export default function TodayScreen() {
                                                 })
                                             }
                                             onOpen={open}
+                                            onLongPress={confirmDelete}
                                             last={i === list.length - 1}
                                         />
                                     ))}

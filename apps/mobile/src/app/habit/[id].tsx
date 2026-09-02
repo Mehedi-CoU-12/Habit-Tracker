@@ -180,18 +180,24 @@ export default function DetailScreen() {
                         </Pressable>
                         <Pressable
                             onPress={confirmDelete}
+                            accessibilityLabel="Delete habit"
                             style={{
                                 width: 38,
                                 height: 38,
                                 borderRadius: 19,
-                                backgroundColor: th.surface,
+                                backgroundColor: th.dangerSoft,
                                 borderWidth: 1.5,
-                                borderColor: th.line,
+                                borderColor: th.danger,
                                 alignItems: "center",
                                 justifyContent: "center",
                             }}
                         >
-                            <Icon name="x" size={16} stroke={th.ink} />
+                            <Icon
+                                name="trash"
+                                size={17}
+                                stroke={th.danger}
+                                strokeWidth={1.8}
+                            />
                         </Pressable>
                     </View>
                 </View>
