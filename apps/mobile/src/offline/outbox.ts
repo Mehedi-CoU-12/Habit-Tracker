@@ -13,6 +13,8 @@ export type HabitCreatePayload = {
     icon?: string;
     tod?: string;
     verb?: string;
+    /** Weekdays the habit is due on, 0 = Sunday. Empty/absent = daily. */
+    daysOfWeek?: number[];
 };
 
 export type HabitPatch = {
@@ -21,6 +23,9 @@ export type HabitPatch = {
     icon?: string;
     tod?: string;
     verb?: string;
+    daysOfWeek?: number[];
+    /** Archive (true) or restore (false); the server stamps the date. */
+    archived?: boolean;
 };
 
 export type FocusRecordPayload = {
