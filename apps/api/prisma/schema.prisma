@@ -24,41 +24,42 @@ enum AppPlatform {
 }
 
 model AppRelease {
-  id       String      @id @default(cuid())
-  platform AppPlatform @unique
+  id        String      @id @default(cuid())
+  platform  AppPlatform @unique
   // Newest published version, e.g. "1.2.0" — surfaces as a dismissible nudge.
-  latest   String
+  latest    String
   // Oldest version still supported. Anything below it gets a blocking prompt,
   // for when an old client would break against the current API.
-  minimum  String
+  minimum   String
   // Where the Update button sends the user: a direct APK link or a store page.
-  url      String
-  notes    String?
+  url       String
+  notes     String?
   // Admin who last published, for the dashboard's audit line.
   updatedBy String?
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 }
 
 model User {
-  id              String        @id @default(cuid())
+  id              String         @id @default(cuid())
   name            String
-  email           String        @unique
+  email           String         @unique
   password        String?
-  googleId        String?       @unique
+  googleId        String?        @unique
   avatarUrl       String?
-  role            Role          @default(USER)
+  role            Role           @default(USER)
   // status          AccountStatus @default(PENDING)
-  status          AccountStatus @default(ACTIVE)
+  status          AccountStatus  @default(ACTIVE)
   statusChangedAt DateTime?
   statusChangedBy String?
   statusNote      String?
-  tokenVersion    Int           @default(0)
+  tokenVersion    Int            @default(0)
   habits          Habit[]
   payments        Payment[]
   focusSessions   FocusSession[]
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  dayNotes        DayNote[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
   @@index([status])
   @@index([createdAt])
@@ -87,10 +88,40 @@ model Habit {
   icon          String         @default("sprout")
   tod           String         @default("anytime")
   verb          String?
+  // Weekdays the habit is expected on, 0 = Sunday. An empty list means every
+  // day — which is exactly what every habit predating this column meant, so
+  // the migration needs no backfill.
+  daysOfWeek    Int[]          @default([])
+  // Set when the user archives the habit. It leaves Today and the reminder
+  // schedule but keeps every log, so past stats stay honest — unlike delete,
+  // which cascades the history away.
+  archivedAt    DateTime?
   logs          HabitLog[]
   focusSessions FocusSession[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+
+  @@index([userId, archivedAt])
+}
+
+/// One free-text reflection per calendar day, independent of any habit.
+/// Day-scoped rather than log-scoped on purpose: the note that matters most is
+/// usually "why did I miss this", and a missed day has no HabitLog row to
+/// hang it on.
+model DayNote {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  year      Int
+  month     Int
+  day       Int
+  text      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // One note per day, which makes the client's PUT idempotent.
+  @@unique([userId, year, month, day])
+  @@index([userId, year, month])
 }
 
 model FocusSession {
