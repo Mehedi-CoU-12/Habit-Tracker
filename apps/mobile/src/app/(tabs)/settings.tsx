@@ -108,6 +108,8 @@ export default function SettingsScreen() {
           ).length
         : 0;
 
+    const archivedCount = habits.filter((h) => h.archivedAt).length;
+
     const appVersion = currentAppVersion();
     const {
         data: release,
@@ -608,6 +610,23 @@ export default function SettingsScreen() {
                             />
                         }
                         onPress={() => router.push("/onboarding")}
+                    />
+                    <Row
+                        icon="archive"
+                        label="Archived habits"
+                        hint={
+                            archivedCount === 0
+                                ? "Nothing archived"
+                                : `${archivedCount} put down`
+                        }
+                        right={
+                            <Icon
+                                name="chevronRight"
+                                size={16}
+                                stroke={th.muted}
+                            />
+                        }
+                        onPress={() => router.push("/archived")}
                     />
                     <Row
                         icon="x"
