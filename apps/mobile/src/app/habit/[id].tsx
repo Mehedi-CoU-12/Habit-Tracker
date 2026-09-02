@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../theme/ThemeProvider";
@@ -29,6 +29,8 @@ import {
 import Plant from "../../components/Plant";
 import Icon from "../../components/Icon";
 import Heatmap from "../../components/Heatmap";
+import HabitSheet from "../../components/HabitSheet";
+import type { HabitWithStats } from "../../lib/types";
 
 const PERIOD_CAPTION: Record<HeatPeriod, string> = {
     Week: "Last 7 days · tap a day",
@@ -53,6 +55,10 @@ export default function DetailScreen() {
     const update = useUpdateHabit(year, month);
     const [sparkle, setSparkle] = useState(false);
     const [period, setPeriod] = useState<HeatPeriod>("Month");
+    const [habitPendingDeletion, setHabitPendingDeletion] =
+        useState<HabitWithStats | null>(null);
+    const [habitPendingArchive, setHabitPendingArchive] =
+        useState<HabitWithStats | null>(null);
 
     const apiHabit = raw.find((h) => h.id === id);
     const h = apiHabit
@@ -110,32 +116,23 @@ export default function DetailScreen() {
             update.mutate({ id: h.id, input: { archived: false } });
             return;
         }
-        Alert.alert(
-            "Archive habit",
-            `"${h.name}" leaves Today and stops reminding you. Its history is kept, and you can restore it from Settings.`,
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Archive",
-                    onPress: () =>
-                        update.mutate(
-                            { id: h.id, input: { archived: true } },
-                            { onSuccess: goBack },
-                        ),
-                },
-            ],
+        setHabitPendingArchive(h);
+    };
+
+    const openDeleteSheet = () => setHabitPendingDeletion(h);
+
+    const archiveFromSheet = (habitId: string) => {
+        setHabitPendingDeletion(null);
+        setHabitPendingArchive(null);
+        update.mutate(
+            { id: habitId, input: { archived: true } },
+            { onSuccess: goBack },
         );
     };
 
-    const confirmDelete = () => {
-        Alert.alert("Delete habit", `Remove "${h.name}" and its history?`, [
-            { text: "Cancel", style: "cancel" },
-            {
-                text: "Delete",
-                style: "destructive",
-                onPress: () => del.mutate(h.id, { onSuccess: goBack }),
-            },
-        ]);
+    const deleteFromSheet = (habitId: string) => {
+        setHabitPendingDeletion(null);
+        del.mutate(habitId, { onSuccess: goBack });
     };
 
     const stage =
@@ -225,7 +222,7 @@ export default function DetailScreen() {
                             />
                         </Pressable>
                         <Pressable
-                            onPress={confirmDelete}
+                            onPress={openDeleteSheet}
                             accessibilityLabel="Delete habit"
                             style={{
                                 width: 38,
@@ -491,6 +488,20 @@ export default function DetailScreen() {
                     </Card>
                 </View>
             </ScrollView>
+            <HabitSheet
+                habit={habitPendingDeletion}
+                initialView="delete-confirmation"
+                onClose={() => setHabitPendingDeletion(null)}
+                onArchive={archiveFromSheet}
+                onDelete={deleteFromSheet}
+            />
+            <HabitSheet
+                habit={habitPendingArchive}
+                initialView="archive-confirmation"
+                onClose={() => setHabitPendingArchive(null)}
+                onArchive={archiveFromSheet}
+                onDelete={deleteFromSheet}
+            />
         </View>
     );
 }
