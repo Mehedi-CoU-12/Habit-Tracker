@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useTheme } from "../theme/ThemeProvider";
 import { HabitWithStats } from "../lib/types";
+import { isDaily, scheduleLabel } from "../lib/schedule";
 import Icon from "./Icon";
 import { Sparkles } from "./primitives";
 
@@ -73,11 +74,14 @@ export function HabitRow({
     h,
     onToggle,
     onOpen,
+    onLongPress,
     last,
 }: {
     h: HabitWithStats;
     onToggle: (id: string) => void;
     onOpen: (id: string) => void;
+    /** Hold anywhere on the row — including the check circle — to delete. */
+    onLongPress?: (id: string) => void;
     last?: boolean;
 }) {
     const th = useTheme();
@@ -91,9 +95,12 @@ export function HabitRow({
         onToggle(h.id);
     };
 
+    const handleLongPress = onLongPress ? () => onLongPress(h.id) : undefined;
+
     return (
         <Pressable
             onPress={() => onOpen(h.id)}
+            onLongPress={handleLongPress}
             style={{
                 flexDirection: "row",
                 alignItems: "center",
@@ -110,6 +117,7 @@ export function HabitRow({
             <View>
                 <Pressable
                     onPress={handleToggle}
+                    onLongPress={handleLongPress}
                     style={{
                         width: 38,
                         height: 38,
@@ -152,7 +160,11 @@ export function HabitRow({
                     {h.name}
                 </Text>
                 <Text style={{ fontSize: 11.5, color: th.muted, marginTop: 1 }}>
-                    {h.verb ?? `${h.completed}/${h.goal} this month`}
+                    {isDaily(h.daysOfWeek)
+                        ? (h.verb ?? `${h.completed}/${h.goal} this month`)
+                        : `${scheduleLabel(h.daysOfWeek)}${
+                              h.verb ? ` · ${h.verb}` : ""
+                          }`}
                 </Text>
             </View>
 

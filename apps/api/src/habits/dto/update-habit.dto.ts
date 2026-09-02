@@ -1,4 +1,7 @@
 import {
+  ArrayMaxSize,
+  IsArray,
+  IsBoolean,
   IsString,
   IsInt,
   Min,
@@ -10,7 +13,7 @@ import {
   IsNotEmpty,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
-import { TIMES_OF_DAY } from './create-habit.dto.js';
+import { TIMES_OF_DAY, normalizeDaysOfWeek } from './create-habit.dto.js';
 
 const trim = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() : value;
@@ -46,4 +49,20 @@ export class UpdateHabitDto {
   @Transform(trim)
   @MaxLength(50)
   verb?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(7)
+  @IsInt({ each: true })
+  @Min(0, { each: true })
+  @Max(6, { each: true })
+  @Transform(normalizeDaysOfWeek)
+  daysOfWeek?: number[];
+
+  // Archive (true) or restore (false). Modelled as a boolean rather than an
+  // exposed timestamp so the client can't invent an archive date; the server
+  // stamps it. Archiving keeps every log — deleting is the destructive path.
+  @IsOptional()
+  @IsBoolean()
+  archived?: boolean;
 }

@@ -7,6 +7,8 @@ export const TTL = {
   habits: 600,
   /** Focus stats for one (user, local day) — invalidated when a session is recorded. */
   focusStats: 600,
+  /** Day notes for one month — invalidated via the user's version. */
+  dayNotes: 600,
   /** Admin dashboard aggregates — changes with every log write; TTL-only. */
   adminStats: 30,
   /** Admin user list/detail — versioned, plus TTL to cover name/avatar
@@ -30,6 +32,11 @@ export const cacheKeys = {
   habitsVersion: (userId: string) => `habits:${userId}`,
   /** Subkey (joined with the version by CacheService) for one month view. */
   habitsMonth: (year: number, month: number) => `${year}-${month}`,
+
+  /** Version namespace covering all cached day-note months of one user. */
+  dayNotesVersion: (userId: string) => `daynotes:${userId}`,
+  /** Subkey for one month of day notes. */
+  dayNotesMonth: (year: number, month: number) => `${year}-${month}`,
 
   /** Version namespace covering a user's focus stats. */
   focusVersion: (userId: string) => `focus:${userId}`,

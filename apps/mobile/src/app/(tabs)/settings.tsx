@@ -15,7 +15,12 @@ import * as ImagePicker from "expo-image-picker";
 import { useBloom, useTheme } from "../../theme/ThemeProvider";
 import { ACCENTS, AccentKey } from "../../theme/tokens";
 import { useAuth } from "../../api/AuthProvider";
-import { useMe, useHabits, useUploadAvatar } from "../../api/hooks";
+import {
+    useAppRelease,
+    useMe,
+    useHabits,
+    useUploadAvatar,
+} from "../../api/hooks";
 import { useOnline } from "../../offline/hooks";
 import {
     requestPermission,
@@ -25,6 +30,7 @@ import {
 import { setEnabled, setQuietHours } from "../../notifications/store";
 import { effectiveReminder } from "../../notifications/types";
 import type { Tod } from "../../lib/types";
+import { currentAppVersion, isOlderThan } from "../../lib/version";
 import { SOUND_STYLES, useSoundPrefs } from "../../sound";
 import { Card, Toggle } from "../../components/primitives";
 import Icon from "../../components/Icon";
@@ -101,6 +107,28 @@ export default function SettingsScreen() {
               (h) => effectiveReminder(h.id, asTod(h.tod), reminders).enabled,
           ).length
         : 0;
+
+    const archivedCount = habits.filter((h) => h.archivedAt).length;
+
+    const appVersion = currentAppVersion();
+    const {
+        data: release,
+        isFetching: checkingUpdate,
+        refetch: recheckUpdate,
+    } = useAppRelease();
+    const updateReady = !!(
+        appVersion &&
+        release &&
+        isOlderThan(appVersion, release.latest)
+    );
+
+    const versionHint = !appVersion
+        ? "Unknown"
+        : !release
+          ? appVersion
+          : updateReady
+            ? `${appVersion} · ${release.latest} available`
+            : `${appVersion} · up to date`;
 
     async function toggleReminders() {
         if (reminders.enabled) {
@@ -584,6 +612,23 @@ export default function SettingsScreen() {
                         onPress={() => router.push("/onboarding")}
                     />
                     <Row
+                        icon="archive"
+                        label="Archived habits"
+                        hint={
+                            archivedCount === 0
+                                ? "Nothing archived"
+                                : `${archivedCount} put down`
+                        }
+                        right={
+                            <Icon
+                                name="chevronRight"
+                                size={16}
+                                stroke={th.muted}
+                            />
+                        }
+                        onPress={() => router.push("/archived")}
+                    />
+                    <Row
                         icon="x"
                         label="Sign out"
                         right={
@@ -594,6 +639,38 @@ export default function SettingsScreen() {
                             />
                         }
                         onPress={signOut}
+                    />
+                </Section>
+
+                <Section title="ABOUT">
+                    <Row
+                        first
+                        icon="sprout"
+                        label="Version"
+                        hint={versionHint}
+                        right={
+                            checkingUpdate ? (
+                                <ActivityIndicator
+                                    size="small"
+                                    color={th.muted}
+                                />
+                            ) : updateReady ? (
+                                <Icon
+                                    name="arrowRight"
+                                    size={16}
+                                    stroke={th.accent}
+                                />
+                            ) : undefined
+                        }
+                        onPress={() => {
+                            if (updateReady && release) {
+                                void Linking.openURL(release.url).catch(
+                                    () => {},
+                                );
+                                return;
+                            }
+                            void recheckUpdate();
+                        }}
                     />
                 </Section>
 

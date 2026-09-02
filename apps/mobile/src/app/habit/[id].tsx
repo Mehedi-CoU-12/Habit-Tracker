@@ -8,7 +8,9 @@ import {
     useHabitsHistory,
     useToggleLog,
     useDeleteHabit,
+    useUpdateHabit,
 } from "../../api/hooks";
+import { isDaily, scheduleLabel } from "../../lib/schedule";
 import { deriveHabitStats, daysInMonth } from "../../lib/deriveStats";
 import {
     HEAT_PERIODS,
@@ -48,6 +50,7 @@ export default function DetailScreen() {
     const { data: raw = [] } = useHabits(year, month);
     const toggle = useToggleLog(year, month);
     const del = useDeleteHabit(year, month);
+    const update = useUpdateHabit(year, month);
     const [sparkle, setSparkle] = useState(false);
     const [period, setPeriod] = useState<HeatPeriod>("Month");
 
@@ -63,19 +66,12 @@ export default function DetailScreen() {
         Math.max(3, monthsForHeat(period, now)),
     );
     const heat = useMemo(
-        () =>
-            buildHabitHeatmap(
-                history,
-                id ?? "",
-                period,
-                now,
-                apiHabit?.createdAt,
-            ),
-        [history, id, period, now, apiHabit?.createdAt],
+        () => buildHabitHeatmap(history, id ?? "", period, now, apiHabit),
+        [history, id, period, now, apiHabit],
     );
     const overall = useMemo(
-        () => habitHistoryStats(history, id ?? "", now, apiHabit?.createdAt),
-        [history, id, now, apiHabit?.createdAt],
+        () => habitHistoryStats(history, id ?? "", now, apiHabit),
+        [history, id, now, apiHabit],
     );
 
     const goBack = () =>
@@ -104,6 +100,31 @@ export default function DetailScreen() {
             setTimeout(() => setSparkle(false), 700);
         }
         toggle.mutate({ habitId: h.id, day: now.getDate() });
+    };
+
+    const archived = !!apiHabit?.archivedAt;
+
+    const toggleArchive = () => {
+        if (!h) return;
+        if (archived) {
+            update.mutate({ id: h.id, input: { archived: false } });
+            return;
+        }
+        Alert.alert(
+            "Archive habit",
+            `"${h.name}" leaves Today and stops reminding you. Its history is kept, and you can restore it from Settings.`,
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Archive",
+                    onPress: () =>
+                        update.mutate(
+                            { id: h.id, input: { archived: true } },
+                            { onSuccess: goBack },
+                        ),
+                },
+            ],
+        );
     };
 
     const confirmDelete = () => {
@@ -179,19 +200,50 @@ export default function DetailScreen() {
                             <Icon name="pen" size={16} stroke={th.ink} />
                         </Pressable>
                         <Pressable
-                            onPress={confirmDelete}
+                            onPress={toggleArchive}
+                            accessibilityLabel={
+                                archived ? "Restore habit" : "Archive habit"
+                            }
                             style={{
                                 width: 38,
                                 height: 38,
                                 borderRadius: 19,
-                                backgroundColor: th.surface,
+                                backgroundColor: archived
+                                    ? th.accentSoftBg
+                                    : th.surface,
                                 borderWidth: 1.5,
-                                borderColor: th.line,
+                                borderColor: archived ? th.accent : th.line,
                                 alignItems: "center",
                                 justifyContent: "center",
                             }}
                         >
-                            <Icon name="x" size={16} stroke={th.ink} />
+                            <Icon
+                                name={archived ? "sprout" : "archive"}
+                                size={16}
+                                stroke={archived ? th.deep : th.ink}
+                                strokeWidth={1.8}
+                            />
+                        </Pressable>
+                        <Pressable
+                            onPress={confirmDelete}
+                            accessibilityLabel="Delete habit"
+                            style={{
+                                width: 38,
+                                height: 38,
+                                borderRadius: 19,
+                                backgroundColor: th.dangerSoft,
+                                borderWidth: 1.5,
+                                borderColor: th.danger,
+                                alignItems: "center",
+                                justifyContent: "center",
+                            }}
+                        >
+                            <Icon
+                                name="trash"
+                                size={17}
+                                stroke={th.danger}
+                                strokeWidth={1.8}
+                            />
                         </Pressable>
                     </View>
                 </View>
@@ -244,6 +296,25 @@ export default function DetailScreen() {
                             · {stage}
                         </Text>
                     </View>
+                    {(!isDaily(h.daysOfWeek) || archived) && (
+                        <Text
+                            style={{
+                                fontSize: 12,
+                                color: th.muted,
+                                fontFamily: th.sansBold,
+                                marginTop: 6,
+                            }}
+                        >
+                            {[
+                                archived ? "Archived" : null,
+                                isDaily(h.daysOfWeek)
+                                    ? null
+                                    : scheduleLabel(h.daysOfWeek),
+                            ]
+                                .filter(Boolean)
+                                .join(" · ")}
+                        </Text>
+                    )}
                 </View>
 
                 {/* done button */}

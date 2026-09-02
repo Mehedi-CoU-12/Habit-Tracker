@@ -8,6 +8,7 @@ import {
 } from "./client";
 import {
     AccountStatus,
+    ApiDayNote,
     ApiHabit,
     FocusStats,
     UserProfile,
@@ -187,4 +188,27 @@ export type AppRelease = {
  */
 export function fetchAppRelease(platform: "android" | "ios") {
     return apiGet<AppRelease>(`/app/version?platform=${platform}`);
+}
+
+// ── Day notes ─────────────────────────────────────────────────────────────
+export function fetchDayNotes(year: number, month: number) {
+    return apiGet<ApiDayNote[]>(`/notes?year=${year}&month=${month}`);
+}
+
+/**
+ * Absolute write for one day. Blank text clears the day, which is what makes
+ * a replayed outbox op converge instead of duplicating or 404ing.
+ */
+export function setDayNote(
+    year: number,
+    month: number,
+    day: number,
+    text: string,
+) {
+    return apiPut<{ day: number; text: string | null }>("/notes", {
+        year,
+        month,
+        day,
+        text,
+    });
 }

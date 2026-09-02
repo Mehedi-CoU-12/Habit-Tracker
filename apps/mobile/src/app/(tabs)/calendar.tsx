@@ -1,9 +1,15 @@
-import { useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, G } from "react-native-svg";
 import { useTheme } from "../../theme/ThemeProvider";
-import { useHabits, useToggleLog } from "../../api/hooks";
+import {
+    useDayNotes,
+    useHabits,
+    useSetDayNote,
+    useToggleLog,
+} from "../../api/hooks";
+import { isExpectedOnDate, normalizeDays } from "../../lib/schedule";
 import { daysInMonth } from "../../lib/deriveStats";
 import { dayIndex, dayIndexOf, dayNames, monthNames } from "../../lib/date";
 import { SkyWash, Card } from "../../components/primitives";
@@ -90,6 +96,8 @@ export default function CalendarScreen() {
 
     const { data: raw = [] } = useHabits(year, month);
     const toggle = useToggleLog(year, month);
+    const { data: notes = [] } = useDayNotes(year, month);
+    const saveNote = useSetDayNote(year, month);
 
     // completion fraction per day
     const perDay = useMemo(() => {
@@ -99,8 +107,54 @@ export default function CalendarScreen() {
         return counts;
     }, [raw]);
 
+    /** How many habits were due on each day of this month. */
+    const duePerDay = useMemo(() => {
+        const due: Record<number, number> = {};
+        for (let d = 1; d <= dim; d++) {
+            const date = new Date(year, month - 1, d);
+            let n = 0;
+            for (const h of raw) {
+                if (h.archivedAt && new Date(h.archivedAt) < date) continue;
+                if (!isExpectedOnDate(normalizeDays(h.daysOfWeek), date))
+                    continue;
+                n++;
+            }
+            due[d] = n;
+        }
+        return due;
+    }, [raw, year, month, dim]);
+
     const [sel, setSel] = useState(today);
     const selIsFuture = isFuture(sel);
+
+    /** Habits that were actually due on the selected day. */
+    const dueOnSel = useMemo(
+        () =>
+            raw.filter(
+                (h) =>
+                    !h.archivedAt &&
+                    isExpectedOnDate(
+                        normalizeDays(h.daysOfWeek),
+                        new Date(year, month - 1, sel),
+                    ),
+            ),
+        [raw, year, month, sel],
+    );
+
+    /** Days in this month that carry a note, for the grid's dot markers. */
+    const noteDays = useMemo(
+        () => new Set(notes.filter((n) => n.text.trim()).map((n) => n.day)),
+        [notes],
+    );
+
+    const savedNote = notes.find((n) => n.day === sel)?.text ?? "";
+    // Local draft so typing doesn't round-trip; re-seeded whenever the
+    // selected day (or the note that arrives for it) changes.
+    const [noteDraft, setNoteDraft] = useState(savedNote);
+    useEffect(() => {
+        setNoteDraft(savedNote);
+    }, [savedNote, sel, year, month]);
+    const noteDirty = noteDraft.trim() !== savedNote.trim();
 
     const shiftMonth = (delta: number) => {
         let m = month + delta;
@@ -123,8 +177,11 @@ export default function CalendarScreen() {
 
     const completion = (d: number) => {
         if (isFuture(d)) return null;
-        if (raw.length === 0) return 0;
-        return (perDay[d] ?? 0) / raw.length;
+        // Scored against what was due that day, so a rest day with nothing
+        // owed doesn't read as a failure.
+        const due = duePerDay[d] ?? 0;
+        if (due === 0) return 0;
+        return Math.min(1, (perDay[d] ?? 0) / due);
     };
 
     return (
@@ -280,6 +337,20 @@ export default function CalendarScreen() {
                                         today={isToday}
                                     />
                                 )}
+                                {/* A note is worth nothing if you can't find
+                                    it again from the month view. */}
+                                {noteDays.has(d) && (
+                                    <View
+                                        style={{
+                                            position: "absolute",
+                                            bottom: 4,
+                                            width: 4,
+                                            height: 4,
+                                            borderRadius: 2,
+                                            backgroundColor: th.sky,
+                                        }}
+                                    />
+                                )}
                             </Pressable>
                         );
                     })}
@@ -318,7 +389,12 @@ export default function CalendarScreen() {
                                 No habits yet.
                             </Text>
                         )}
-                        {raw.map((h, i) => {
+                        {raw.length > 0 && dueOnSel.length === 0 && (
+                            <Text style={{ color: th.muted, padding: 16 }}>
+                                Nothing was due on this day.
+                            </Text>
+                        )}
+                        {dueOnSel.map((h, i) => {
                             const done = h.logs.some((l) => l.day === sel);
                             return (
                                 <Pressable
@@ -389,6 +465,105 @@ export default function CalendarScreen() {
                                 </Pressable>
                             );
                         })}
+                    </Card>
+
+                    {/* Day note. Deliberately day-scoped rather than attached
+                        to a habit log: the note worth writing is usually about
+                        a day you missed, and a missed day has no log to hang
+                        it on. */}
+                    <Text
+                        style={{
+                            fontSize: 11,
+                            color: th.muted,
+                            fontFamily: th.sansBold,
+                            letterSpacing: 0.8,
+                            marginTop: 22,
+                            marginBottom: 8,
+                        }}
+                    >
+                        NOTE
+                    </Text>
+                    <Card pad={14}>
+                        <TextInput
+                            value={noteDraft}
+                            onChangeText={setNoteDraft}
+                            placeholder={
+                                selIsFuture
+                                    ? "Plan a note for this day…"
+                                    : "How did today go? What got in the way?"
+                            }
+                            placeholderTextColor={th.muted}
+                            multiline
+                            maxLength={2000}
+                            style={{
+                                fontFamily: th.sans,
+                                fontSize: 14,
+                                color: th.ink,
+                                minHeight: 66,
+                                textAlignVertical: "top",
+                                padding: 0,
+                            }}
+                        />
+                        {(noteDirty || savedNote.length > 0) && (
+                            <View
+                                style={{
+                                    flexDirection: "row",
+                                    justifyContent: "flex-end",
+                                    alignItems: "center",
+                                    gap: 8,
+                                    marginTop: 12,
+                                }}
+                            >
+                                {noteDirty && (
+                                    <Pressable
+                                        onPress={() => setNoteDraft(savedNote)}
+                                        style={{
+                                            paddingVertical: 8,
+                                            paddingHorizontal: 12,
+                                        }}
+                                    >
+                                        <Text
+                                            style={{
+                                                fontSize: 13,
+                                                fontFamily: th.sansBold,
+                                                color: th.muted,
+                                            }}
+                                        >
+                                            Discard
+                                        </Text>
+                                    </Pressable>
+                                )}
+                                <Pressable
+                                    disabled={!noteDirty}
+                                    onPress={() =>
+                                        saveNote.mutate({
+                                            day: sel,
+                                            text: noteDraft,
+                                        })
+                                    }
+                                    style={{
+                                        paddingVertical: 8,
+                                        paddingHorizontal: 16,
+                                        borderRadius: 14,
+                                        backgroundColor: noteDirty
+                                            ? th.accent
+                                            : th.surface2,
+                                    }}
+                                >
+                                    <Text
+                                        style={{
+                                            fontSize: 13,
+                                            fontFamily: th.sansBold,
+                                            color: noteDirty
+                                                ? "#fff"
+                                                : th.muted,
+                                        }}
+                                    >
+                                        {noteDraft.trim() ? "Save" : "Clear"}
+                                    </Text>
+                                </Pressable>
+                            </View>
+                        )}
                     </Card>
                 </View>
             </ScrollView>

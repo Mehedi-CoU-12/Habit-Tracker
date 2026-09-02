@@ -18,10 +18,24 @@ export type ApiHabit = {
     icon: string;
     tod: string;
     verb: string | null;
+    daysOfWeek?: number[];
+    archivedAt?: string | null;
     userId: string;
     createdAt: string;
     updatedAt: string;
     logs: ApiHabitLog[];
+};
+
+/** GET /notes — one free-text reflection per calendar day. */
+export type ApiDayNote = {
+    id: string;
+    userId: string;
+    year: number;
+    month: number;
+    day: number;
+    text: string;
+    createdAt: string;
+    updatedAt: string;
 };
 
 export type HabitWithStats = {
@@ -31,6 +45,11 @@ export type HabitWithStats = {
     icon: string;
     tod: Tod;
     verb: string | null;
+    /** Normalized schedule: weekday numbers, or empty for daily. */
+    daysOfWeek: number[];
+    archivedAt: string | null;
+    /** False on days this habit isn't scheduled for. */
+    scheduledToday: boolean;
     completed: number;
     left: number;
     percent: number;

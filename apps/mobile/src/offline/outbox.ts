@@ -13,6 +13,8 @@ export type HabitCreatePayload = {
     icon?: string;
     tod?: string;
     verb?: string;
+    /** Weekdays the habit is due on, 0 = Sunday. Empty/absent = daily. */
+    daysOfWeek?: number[];
 };
 
 export type HabitPatch = {
@@ -21,6 +23,17 @@ export type HabitPatch = {
     icon?: string;
     tod?: string;
     verb?: string;
+    daysOfWeek?: number[];
+    /** Archive (true) or restore (false); the server stamps the date. */
+    archived?: boolean;
+};
+
+/** One day's note. Absolute like log.set — empty text clears the day. */
+export type DayNotePayload = {
+    year: number;
+    month: number;
+    day: number;
+    text: string;
 };
 
 export type FocusRecordPayload = {
@@ -46,6 +59,7 @@ export type Op = { key: string; ts: number } & (
           day: number;
           completed: boolean;
       }
+    | { kind: "note.set"; payload: DayNotePayload }
     | { kind: "focus.record"; payload: FocusRecordPayload }
 );
 
@@ -62,6 +76,7 @@ export type NewOp =
           day: number;
           completed: boolean;
       }
+    | { kind: "note.set"; payload: DayNotePayload }
     | { kind: "focus.record"; payload: FocusRecordPayload };
 
 type State = { ops: Op[]; counter: number };
@@ -158,6 +173,8 @@ function touchesHabit(o: Op, id: string): boolean {
         // Dedication history outlives the habit: deleting a habit must not
         // drop its queued sessions — the server records them unlinked.
         case "focus.record":
+        // A day note belongs to the day, not to any habit.
+        case "note.set":
             return false;
     }
 }
@@ -241,6 +258,23 @@ export async function enqueue(input: NewOp): Promise<void> {
                 if (!bornOffline) {
                     ops.push({ ...input, key: nextKey(), ts: Date.now() });
                 }
+                break;
+            }
+            case "note.set": {
+                // One note per day, so an earlier queued edit for the same day
+                // is superseded — except an in-flight one, whose body is
+                // already sent; the idempotent PUT converges on the next drain.
+                ops = ops.filter(
+                    (o) =>
+                        o.key === inFlightKey ||
+                        !(
+                            o.kind === "note.set" &&
+                            o.payload.year === input.payload.year &&
+                            o.payload.month === input.payload.month &&
+                            o.payload.day === input.payload.day
+                        ),
+                );
+                ops.push({ ...input, key: nextKey(), ts: Date.now() });
                 break;
             }
             case "habit.create":

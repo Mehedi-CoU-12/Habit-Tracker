@@ -6,7 +6,7 @@ import {
     useQueryClient,
 } from "@tanstack/react-query";
 import * as api from "./endpoints";
-import { ApiHabit, UserProfile } from "../lib/types";
+import { ApiDayNote, ApiHabit, UserProfile } from "../lib/types";
 import { lastNMonths } from "../lib/date";
 import { releasePlatform } from "../lib/version";
 import { MonthHabits } from "../lib/deriveStats";
@@ -222,6 +222,7 @@ export function useCreateHabit(_year: number, _month: number) {
             icon?: string;
             tod?: string;
             verb?: string;
+            daysOfWeek?: number[];
         }) => {
             const id = newId();
             const now = new Date().toISOString();
@@ -233,6 +234,8 @@ export function useCreateHabit(_year: number, _month: number) {
                 icon: input.icon ?? "sprout",
                 tod: input.tod ?? "anytime",
                 verb: input.verb ?? null,
+                daysOfWeek: input.daysOfWeek ?? [],
+                archivedAt: null,
                 userId: me?.id ?? "",
                 createdAt: now,
                 updatedAt: now,
@@ -251,6 +254,9 @@ export function useCreateHabit(_year: number, _month: number) {
                     icon: input.icon,
                     tod: input.tod,
                     verb: input.verb,
+                    ...(input.daysOfWeek
+                        ? { daysOfWeek: input.daysOfWeek }
+                        : {}),
                 },
             });
             void runSync();
@@ -273,14 +279,75 @@ export function useUpdateHabit(_year: number, _month: number) {
         }) => {
             const patch = definedOnly(input);
             const now = new Date().toISOString();
+            // `archived` is an instruction, not a field: mirror the server's
+            // stamping locally so the cache matches what will come back.
+            const { archived, ...columns } = patch;
+            const archiveFields =
+                archived === undefined
+                    ? {}
+                    : { archivedAt: archived ? now : null };
             qc.setQueriesData<ApiHabit[]>({ queryKey: ["habits"] }, (old) =>
                 old?.map((h) =>
-                    h.id === id ? { ...h, ...patch, updatedAt: now } : h,
+                    h.id === id
+                        ? { ...h, ...columns, ...archiveFields, updatedAt: now }
+                        : h,
                 ),
             );
             await enqueue({ kind: "habit.update", id, patch });
             void runSync();
+            // Archiving or rescheduling changes which reminders are due.
             void syncReminders();
+        },
+    });
+}
+
+export function dayNotesKey(year: number, month: number) {
+    return ["dayNotes", year, month] as const;
+}
+
+/** One month of day notes — the window the calendar screen shows. */
+export function useDayNotes(year: number, month: number) {
+    return useQuery({
+        queryKey: dayNotesKey(year, month),
+        queryFn: () => api.fetchDayNotes(year, month),
+        retry: false,
+    });
+}
+
+/**
+ * Write one day's note. Optimistic and outbox-backed like the log writes, so
+ * a note typed offline survives a cold start and lands on reconnect. Blank
+ * text clears the day.
+ */
+export function useSetDayNote(year: number, month: number) {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: async ({ day, text }: { day: number; text: string }) => {
+            const trimmed = text.trim();
+            const now = new Date().toISOString();
+            qc.setQueryData<ApiDayNote[]>(dayNotesKey(year, month), (old) => {
+                const rest = (old ?? []).filter((n) => n.day !== day);
+                if (!trimmed) return rest;
+                const existing = old?.find((n) => n.day === day);
+                const note: ApiDayNote = {
+                    id: existing?.id ?? `local-note-${year}-${month}-${day}`,
+                    userId: existing?.userId ?? "",
+                    year,
+                    month,
+                    day,
+                    text: trimmed,
+                    createdAt: existing?.createdAt ?? now,
+                    updatedAt: now,
+                };
+                return [...rest, note].sort((a, b) => a.day - b.day);
+            });
+
+            await enqueue({
+                kind: "note.set",
+                payload: { year, month, day, text: trimmed },
+            });
+            void runSync();
+            return { day, text: trimmed };
         },
     });
 }

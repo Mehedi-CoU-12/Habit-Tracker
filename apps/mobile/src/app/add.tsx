@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../theme/ThemeProvider";
 import { useCreateHabit, useHabits, useUpdateHabit } from "../api/hooks";
 import { Tod } from "../lib/types";
+import { normalizeDays, scheduleLabel } from "../lib/schedule";
 import {
     requestPermission,
     syncReminders,
@@ -47,6 +48,9 @@ const ICONS = [
     "flame",
     "sprout",
 ];
+
+/** Weekday chip labels, index = weekday number (0 = Sunday). */
+const DOW = ["S", "M", "T", "W", "T", "F", "S"];
 
 const WHEN: { l: string; i: string; v: Tod }[] = [
     { l: "Morning", i: "sun", v: "morning" },
@@ -148,6 +152,9 @@ export default function AddScreen() {
     const [icon, setIcon] = useState("sprout");
     const [tod, setTod] = useState<Tod>("morning");
     const [goal, setGoal] = useState(20);
+    // Weekday schedule, 0 = Sunday. Empty means daily, which is also what a
+    // habit created before scheduling existed carries.
+    const [daysOfWeek, setDaysOfWeek] = useState<number[]>([]);
 
     const [goalDraft, setGoalDraft] = useState<string | null>(null);
     const changeGoal = (t: string) => {
@@ -182,6 +189,7 @@ export default function AddScreen() {
             setIcon(editing.icon);
             setTod(editing.tod as Tod);
             setGoal(editing.goal);
+            setDaysOfWeek(normalizeDays(editing.daysOfWeek));
             const eff = effectiveReminder(
                 editing.id,
                 editing.tod as Tod,
@@ -249,6 +257,7 @@ export default function AddScreen() {
             icon,
             tod,
             verb: verb.trim() || undefined,
+            daysOfWeek: normalizeDays(daysOfWeek),
         };
         // Message is committed even while the reminder is off so it survives
         // an off/on round-trip; empty string overwrites (clears) an old one.
@@ -484,6 +493,91 @@ export default function AddScreen() {
                                         }}
                                     >
                                         {o.l}
+                                    </Text>
+                                </Pressable>
+                            );
+                        })}
+                    </View>
+                </View>
+
+                {/* repeat schedule */}
+                <View style={{ paddingHorizontal: th.d.pad, marginBottom: 22 }}>
+                    <View
+                        style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            marginBottom: 8,
+                        }}
+                    >
+                        <Text
+                            style={{
+                                fontSize: 11,
+                                color: th.muted,
+                                fontFamily: th.sansBold,
+                                letterSpacing: 0.8,
+                            }}
+                        >
+                            REPEATS
+                        </Text>
+                        <Text
+                            style={{
+                                fontSize: 12,
+                                color: th.ink2,
+                                fontFamily: th.sansBold,
+                            }}
+                        >
+                            {scheduleLabel(daysOfWeek)}
+                        </Text>
+                    </View>
+                    <View style={{ flexDirection: "row", gap: 6 }}>
+                        {DOW.map((label, dow) => {
+                            // No days selected means daily, so every chip reads
+                            // as on — that is what the habit actually does.
+                            const on =
+                                daysOfWeek.length === 0 ||
+                                daysOfWeek.includes(dow);
+                            return (
+                                <Pressable
+                                    key={dow}
+                                    onPress={() =>
+                                        setDaysOfWeek((prev) => {
+                                            // The first tap out of "daily"
+                                            // starts from every day, so
+                                            // switching one day off leaves the
+                                            // other six on rather than wiping
+                                            // the whole week.
+                                            const base = prev.length
+                                                ? prev
+                                                : [0, 1, 2, 3, 4, 5, 6];
+                                            const next = base.includes(dow)
+                                                ? base.filter((d) => d !== dow)
+                                                : [...base, dow];
+                                            // Every day off isn't a habit —
+                                            // normalizeDays folds it to daily.
+                                            return normalizeDays(next);
+                                        })
+                                    }
+                                    style={{
+                                        flex: 1,
+                                        paddingVertical: 11,
+                                        borderRadius: 13,
+                                        alignItems: "center",
+                                        backgroundColor: on
+                                            ? th.accentSoftBg
+                                            : th.surface,
+                                        borderWidth: 1.5,
+                                        borderColor: on ? th.accent : th.line,
+                                    }}
+                                >
+                                    <Text
+                                        style={{
+                                            fontSize: 12,
+                                            fontFamily: th.sansBold,
+                                            color: on ? th.deep : th.muted,
+                                        }}
+                                    >
+                                        {label}
                                     </Text>
                                 </Pressable>
                             );

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import {
     ActivityIndicator,
+    Alert,
     Pressable,
     ScrollView,
     Text,
@@ -9,7 +10,12 @@ import {
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBloom, useTheme } from "../../theme/ThemeProvider";
-import { useHabits, useToggleLog } from "../../api/hooks";
+import {
+    useDeleteHabit,
+    useHabits,
+    useToggleLog,
+    useUpdateHabit,
+} from "../../api/hooks";
 import { useOnline } from "../../offline/hooks";
 import { deriveHabitStats, daysInMonth } from "../../lib/deriveStats";
 import { HabitWithStats, Tod } from "../../lib/types";
@@ -40,15 +46,63 @@ export default function TodayScreen() {
     const { data: raw = [], isLoading, isError } = useHabits(year, month);
     const online = useOnline();
     const toggle = useToggleLog(year, month);
+    const del = useDeleteHabit(year, month);
+    const update = useUpdateHabit(year, month);
 
-    const habits: HabitWithStats[] = useMemo(
+    const all: HabitWithStats[] = useMemo(
         () => raw.map((h) => deriveHabitStats(h, year, month, dim, now)),
         [raw, year, month, dim, now],
     );
 
+    // An archived habit is off this screen entirely; a habit that isn't due
+    // today is off it just for today. Both still exist in Stats and history.
+    const active = useMemo(() => all.filter((h) => !h.archivedAt), [all]);
+    const habits = useMemo(
+        () => active.filter((h) => h.scheduledToday),
+        [active],
+    );
+    /** Habits exist, but none of them are due today. */
+    const restDay = active.length > 0 && habits.length === 0;
+
     const done = habits.filter((h) => h.doneToday).length;
     const open = (id: string) =>
         router.push({ pathname: "/habit/[id]", params: { id } });
+
+    /** Same copy as the detail screen's bin button, so a hold is never a
+        shortcut past the confirmation a tap would ask for. Deleting keeps its
+        own confirm: it sits next to Archive and it cannot be undone. */
+    const confirmDelete = (h: HabitWithStats) =>
+        Alert.alert("Delete habit", `Remove "${h.name}" and its history?`, [
+            { text: "Cancel", style: "cancel" },
+            {
+                text: "Delete",
+                style: "destructive",
+                onPress: () => del.mutate(h.id),
+            },
+        ]);
+
+    /** Long-press menu. Archive leads, because it's the one that's reversible. */
+    const promptActions = (id: string) => {
+        const h = habits.find((x) => x.id === id);
+        if (!h) return;
+        Alert.alert(
+            h.name,
+            "Archiving hides it from Today and keeps its history. Deleting removes the habit and its history for good.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Archive",
+                    onPress: () =>
+                        update.mutate({ id: h.id, input: { archived: true } }),
+                },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: () => confirmDelete(h),
+                },
+            ],
+        );
+    };
 
     return (
         <View style={{ flex: 1, backgroundColor: th.bg }}>
@@ -185,7 +239,7 @@ export default function TodayScreen() {
                     </Card>
                 )}
 
-                {online && !isLoading && !isError && habits.length === 0 && (
+                {online && !isLoading && !isError && active.length === 0 && (
                     <Card
                         style={{
                             margin: th.d.pad,
@@ -209,6 +263,33 @@ export default function TodayScreen() {
                     </Card>
                 )}
 
+                {/* Habits exist but none are due today — a scheduled rest day
+                    is a success state, not an empty one. */}
+                {!isLoading && restDay && (
+                    <Card
+                        style={{
+                            margin: th.d.pad,
+                            alignItems: "center",
+                            gap: 8,
+                        }}
+                    >
+                        <Plant streak={3} doneToday size={96} />
+                        <Text
+                            style={{
+                                fontFamily: th.display,
+                                fontSize: 20,
+                                color: th.ink,
+                            }}
+                        >
+                            Nothing due today
+                        </Text>
+                        <Text style={{ color: th.muted, textAlign: "center" }}>
+                            Rest is part of the schedule. Your habits are back
+                            on their next day.
+                        </Text>
+                    </Card>
+                )}
+
                 {/* Garden grid */}
                 {layout === "garden" && habits.length > 0 && (
                     <View
@@ -223,6 +304,7 @@ export default function TodayScreen() {
                             <Pressable
                                 key={h.id}
                                 onPress={() => open(h.id)}
+                                onLongPress={() => promptActions(h.id)}
                                 style={{
                                     width: "33.33%",
                                     alignItems: "center",
@@ -291,6 +373,7 @@ export default function TodayScreen() {
                                                 })
                                             }
                                             onOpen={open}
+                                            onLongPress={promptActions}
                                             last={i === list.length - 1}
                                         />
                                     ))}

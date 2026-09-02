@@ -2,6 +2,7 @@ import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import { queryClient } from "../api/queryClient";
 import type { ApiHabit, Tod } from "../lib/types";
+import { isExpectedOnDate, normalizeDays } from "../lib/schedule";
 import { hasPermission } from "./permissions";
 import { getPrefs, loadPrefs } from "./store";
 import {
@@ -21,7 +22,14 @@ function normalizeTod(tod: string): Tod {
     return (TOD_VALUES as string[]).includes(tod) ? (tod as Tod) : "anytime";
 }
 
-type HabitLite = { id: string; name: string; tod: Tod; doneToday: boolean };
+type HabitLite = {
+    id: string;
+    name: string;
+    tod: Tod;
+    doneToday: boolean;
+    /** Weekdays it is due on, 0 = Sunday. Empty = daily. */
+    daysOfWeek: number[];
+};
 
 // The habits query is keyed ["habits", year, month] (see api/hooks habitsKey);
 // inlined here to keep this module free of a cycle back into the React hooks.
@@ -36,12 +44,19 @@ function readHabits(now: Date): HabitLite[] {
             habitsKey(now.getFullYear(), now.getMonth() + 1),
         ) ?? [];
     const today = now.getDate();
-    return list.map((h) => ({
-        id: h.id,
-        name: h.name,
-        tod: normalizeTod(h.tod),
-        doneToday: h.logs.some((l) => l.day === today),
-    }));
+    return (
+        list
+            // An archived habit is retired: no nudges for something the user
+            // has explicitly put down.
+            .filter((h) => !h.archivedAt)
+            .map((h) => ({
+                id: h.id,
+                name: h.name,
+                tod: normalizeTod(h.tod),
+                doneToday: h.logs.some((l) => l.day === today),
+                daysOfWeek: normalizeDays(h.daysOfWeek),
+            }))
+    );
 }
 
 function pad(n: number): string {
@@ -106,9 +121,10 @@ type Desired = Map<
 
 /**
  * The desired set of pending notifications over the horizon. Coalesces every
- * habit sharing a (day, time) into a single summary, skips completed habits for
- * today, skips times already passed today and quiet hours, and enforces the iOS
- * budget by keeping the earliest occurrences.
+ * habit sharing a (day, time) into a single summary, skips habits not due on
+ * that weekday, skips completed habits for today, skips times already passed
+ * today and quiet hours, and enforces the iOS budget by keeping the earliest
+ * occurrences.
  */
 export function computeDesired(
     habits: HabitLite[],
@@ -121,9 +137,18 @@ export function computeDesired(
         const items = new Map<TimeStr, { name: string; message?: string }[]>();
         const ids = new Map<TimeStr, string[]>();
 
+        // The local date this offset lands on, for the weekday check below.
+        const dayDate = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate() + off,
+        );
+
         for (const h of habits) {
             const eff = effectiveReminder(h.id, h.tod, prefs);
             if (!eff.enabled) continue;
+            // Nothing is owed on a rest day, so nothing should be nudged.
+            if (!isExpectedOnDate(h.daysOfWeek, dayDate)) continue;
             // Today, only remind about what's NOT done yet; future days are all
             // pending (a fresh day starts with nothing completed).
             if (off === 0 && h.doneToday) continue;
