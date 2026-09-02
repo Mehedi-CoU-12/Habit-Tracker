@@ -234,3 +234,125 @@ describe("deriveRangeStats", () => {
     });
 });
 
+/**
+ * September 2026 opens on a Tuesday, so a Mon/Wed/Fri habit is due on
+ * Wed 2, Fri 4, Mon 7, Wed 9, Fri 11, ... and resting on everything else.
+ */
+const MWF = [1, 3, 5];
+
+describe("deriveHabitStats — weekday schedules", () => {
+    const stats = (days: number[], todayDom: number, over = {}) =>
+        deriveHabitStats(
+            habit({ days, daysOfWeek: MWF, ...over }),
+            SEP.year,
+            SEP.month,
+            SEP.dim,
+            on(todayDom),
+        );
+
+    test("a rest day neither extends nor breaks the streak", () => {
+        // Due days done: Wed 2, Fri 4, Mon 7. Today is Tue 8 — a rest day.
+        const s = stats([2, 4, 7], 8);
+        assert.equal(s.streak, 3);
+        assert.equal(s.scheduledToday, false);
+    });
+
+    test("an open due day falls back to the previous due day", () => {
+        // Today is Wed 9, due but not yet done.
+        const s = stats([2, 4, 7], 9);
+        assert.equal(s.streak, 3);
+        assert.equal(s.scheduledToday, true);
+        assert.equal(s.doneToday, false);
+    });
+
+    test("missing a due day does break the streak", () => {
+        // Fri 4 was due and skipped.
+        const s = stats([2, 7], 7);
+        assert.equal(s.streak, 1);
+    });
+
+    test("the rate is scored out of due days, not calendar days", () => {
+        // All three due days through Mon 7 were done.
+        const s = stats([2, 4, 7], 7);
+        assert.equal(s.rate, 100);
+        // The same logs judged as a daily habit would be 3 of 7.
+        const asDaily = deriveHabitStats(
+            habit({ days: [2, 4, 7] }),
+            SEP.year,
+            SEP.month,
+            SEP.dim,
+            on(7),
+        );
+        assert.equal(asDaily.rate, 43);
+    });
+
+    test("a bonus completion on a rest day cannot push the rate over 100", () => {
+        // Tue 1 is a rest day; the three due days are all done.
+        const s = stats([1, 2, 4, 7], 7);
+        assert.equal(s.completed, 4); // still counted for goal progress
+        assert.equal(s.rate, 100);
+    });
+
+    test("best chains along due days", () => {
+        // Wed 2, Fri 4, Mon 7, Wed 9 is an unbroken run of 4 due days.
+        const s = stats([2, 4, 7, 9], 9);
+        assert.equal(s.best, 4);
+    });
+
+    test("all seven days is the same as no schedule", () => {
+        const every = deriveHabitStats(
+            habit({ days: [1, 2, 3], daysOfWeek: [0, 1, 2, 3, 4, 5, 6] }),
+            SEP.year,
+            SEP.month,
+            SEP.dim,
+            on(3),
+        );
+        const none = deriveHabitStats(
+            habit({ days: [1, 2, 3] }),
+            SEP.year,
+            SEP.month,
+            SEP.dim,
+            on(3),
+        );
+        assert.deepEqual(every.daysOfWeek, []);
+        assert.equal(every.streak, none.streak);
+        assert.equal(every.rate, none.rate);
+    });
+
+    test("archivedAt is surfaced for the caller to filter on", () => {
+        const iso = new Date(2026, 8, 5).toISOString();
+        const s = deriveHabitStats(
+            habit({ archivedAt: iso }),
+            SEP.year,
+            SEP.month,
+            SEP.dim,
+            on(10),
+        );
+        assert.equal(s.archivedAt, iso);
+    });
+});
+
+describe("deriveRangeStats — weekday schedules", () => {
+    test("denominator counts due days only", () => {
+        const h = habit({ days: [2, 4, 7], daysOfWeek: MWF });
+        const [s] = deriveRangeStats(
+            [{ year: SEP.year, month: SEP.month, habits: [h] }],
+            [h],
+            { start: on(1), end: on(7) },
+        );
+        assert.equal(s!.days, 3); // Wed 2, Fri 4, Mon 7
+        assert.equal(s!.rate, 100);
+    });
+
+    test("a full month of a Mon/Wed/Fri habit is scored out of 13", () => {
+        const h = habit({ days: [], daysOfWeek: MWF });
+        const [s] = deriveRangeStats(
+            [{ year: SEP.year, month: SEP.month, habits: [h] }],
+            [h],
+            { start: on(1), end: on(30) },
+        );
+        assert.equal(s!.days, 13);
+        assert.equal(s!.rate, 0);
+    });
+});
+
