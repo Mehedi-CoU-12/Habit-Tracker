@@ -222,6 +222,7 @@ export function useCreateHabit(_year: number, _month: number) {
             icon?: string;
             tod?: string;
             verb?: string;
+            daysOfWeek?: number[];
         }) => {
             const id = newId();
             const now = new Date().toISOString();
@@ -233,6 +234,8 @@ export function useCreateHabit(_year: number, _month: number) {
                 icon: input.icon ?? "sprout",
                 tod: input.tod ?? "anytime",
                 verb: input.verb ?? null,
+                daysOfWeek: input.daysOfWeek ?? [],
+                archivedAt: null,
                 userId: me?.id ?? "",
                 createdAt: now,
                 updatedAt: now,
@@ -251,6 +254,9 @@ export function useCreateHabit(_year: number, _month: number) {
                     icon: input.icon,
                     tod: input.tod,
                     verb: input.verb,
+                    ...(input.daysOfWeek
+                        ? { daysOfWeek: input.daysOfWeek }
+                        : {}),
                 },
             });
             void runSync();
@@ -273,13 +279,23 @@ export function useUpdateHabit(_year: number, _month: number) {
         }) => {
             const patch = definedOnly(input);
             const now = new Date().toISOString();
+            // `archived` is an instruction, not a field: mirror the server's
+            // stamping locally so the cache matches what will come back.
+            const { archived, ...columns } = patch;
+            const archiveFields =
+                archived === undefined
+                    ? {}
+                    : { archivedAt: archived ? now : null };
             qc.setQueriesData<ApiHabit[]>({ queryKey: ["habits"] }, (old) =>
                 old?.map((h) =>
-                    h.id === id ? { ...h, ...patch, updatedAt: now } : h,
+                    h.id === id
+                        ? { ...h, ...columns, ...archiveFields, updatedAt: now }
+                        : h,
                 ),
             );
             await enqueue({ kind: "habit.update", id, patch });
             void runSync();
+            // Archiving or rescheduling changes which reminders are due.
             void syncReminders();
         },
     });
