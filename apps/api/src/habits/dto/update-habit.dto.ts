@@ -1,6 +1,7 @@
 import {
   ArrayMaxSize,
   IsArray,
+  IsBoolean,
   IsString,
   IsInt,
   Min,
@@ -57,4 +58,11 @@ export class UpdateHabitDto {
   @Max(6, { each: true })
   @Transform(normalizeDaysOfWeek)
   daysOfWeek?: number[];
+
+  // Archive (true) or restore (false). Modelled as a boolean rather than an
+  // exposed timestamp so the client can't invent an archive date; the server
+  // stamps it. Archiving keeps every log — deleting is the destructive path.
+  @IsOptional()
+  @IsBoolean()
+  archived?: boolean;
 }

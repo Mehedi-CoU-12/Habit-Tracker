@@ -223,6 +223,16 @@ export class HabitsService {
         ...(dto.tod !== undefined ? { tod: dto.tod } : {}),
         ...(dto.verb !== undefined ? { verb: dto.verb } : {}),
         ...(dto.daysOfWeek !== undefined ? { daysOfWeek: dto.daysOfWeek } : {}),
+        // The server owns the timestamp; the client only says which way.
+        // Re-archiving an already-archived habit keeps the original date, so
+        // a replayed offline op can't quietly move it.
+        ...(dto.archived !== undefined
+          ? {
+              archivedAt: dto.archived
+                ? (habit.archivedAt ?? new Date())
+                : null,
+            }
+          : {}),
       },
     });
     await this.invalidateHabits(userId);
