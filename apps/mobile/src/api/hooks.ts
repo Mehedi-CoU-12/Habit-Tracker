@@ -6,7 +6,7 @@ import {
     useQueryClient,
 } from "@tanstack/react-query";
 import * as api from "./endpoints";
-import { ApiHabit, UserProfile } from "../lib/types";
+import { ApiDayNote, ApiHabit, UserProfile } from "../lib/types";
 import { lastNMonths } from "../lib/date";
 import { releasePlatform } from "../lib/version";
 import { MonthHabits } from "../lib/deriveStats";
@@ -281,6 +281,57 @@ export function useUpdateHabit(_year: number, _month: number) {
             await enqueue({ kind: "habit.update", id, patch });
             void runSync();
             void syncReminders();
+        },
+    });
+}
+
+export function dayNotesKey(year: number, month: number) {
+    return ["dayNotes", year, month] as const;
+}
+
+/** One month of day notes — the window the calendar screen shows. */
+export function useDayNotes(year: number, month: number) {
+    return useQuery({
+        queryKey: dayNotesKey(year, month),
+        queryFn: () => api.fetchDayNotes(year, month),
+        retry: false,
+    });
+}
+
+/**
+ * Write one day's note. Optimistic and outbox-backed like the log writes, so
+ * a note typed offline survives a cold start and lands on reconnect. Blank
+ * text clears the day.
+ */
+export function useSetDayNote(year: number, month: number) {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: async ({ day, text }: { day: number; text: string }) => {
+            const trimmed = text.trim();
+            const now = new Date().toISOString();
+            qc.setQueryData<ApiDayNote[]>(dayNotesKey(year, month), (old) => {
+                const rest = (old ?? []).filter((n) => n.day !== day);
+                if (!trimmed) return rest;
+                const existing = old?.find((n) => n.day === day);
+                const note: ApiDayNote = {
+                    id: existing?.id ?? `local-note-${year}-${month}-${day}`,
+                    userId: existing?.userId ?? "",
+                    year,
+                    month,
+                    day,
+                    text: trimmed,
+                    createdAt: existing?.createdAt ?? now,
+                    updatedAt: now,
+                };
+                return [...rest, note].sort((a, b) => a.day - b.day);
+            });
+
+            await enqueue({
+                kind: "note.set",
+                payload: { year, month, day, text: trimmed },
+            });
+            void runSync();
+            return { day, text: trimmed };
         },
     });
 }
