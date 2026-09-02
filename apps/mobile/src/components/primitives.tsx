@@ -65,6 +65,7 @@ export function Pill({
     label,
     icon,
     primary,
+    danger,
     onPress,
     style,
     textStyle,
@@ -72,12 +73,15 @@ export function Pill({
     label: string;
     icon?: string;
     primary?: boolean;
+    /** Destructive tone: the fill turns red, or the label does when outlined. */
+    danger?: boolean;
     onPress?: () => void;
     style?: StyleProp<ViewStyle>;
     textStyle?: StyleProp<TextStyle>;
 }) {
     const th = useTheme();
-    const fg = primary ? "#fff" : th.ink;
+    const tint = danger ? th.danger : th.accent;
+    const fg = primary ? "#fff" : danger ? th.danger : th.ink;
     return (
         <Pressable
             onPress={onPress}
@@ -90,9 +94,9 @@ export function Pill({
                     borderRadius: 28,
                     paddingVertical: 13,
                     paddingHorizontal: 20,
-                    backgroundColor: primary ? th.accent : th.surface,
+                    backgroundColor: primary ? tint : th.surface,
                     borderWidth: primary ? 0 : 1.5,
-                    borderColor: th.line,
+                    borderColor: danger ? hexA(th.danger, 0.38) : th.line,
                     opacity: pressed ? 0.85 : 1,
                 },
                 style,

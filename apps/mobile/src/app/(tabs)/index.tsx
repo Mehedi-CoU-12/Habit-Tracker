@@ -1,7 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
     Pressable,
     ScrollView,
     Text,
@@ -24,6 +23,7 @@ import { SkyWash, Card } from "../../components/primitives";
 import { HabitRow, RoutineHeader } from "../../components/HabitRow";
 import Plant from "../../components/Plant";
 import Icon from "../../components/Icon";
+import HabitSheet from "../../components/HabitSheet";
 
 const ROUTINES: { tod: Tod; icon: string; label: string }[] = [
     { tod: "morning", icon: "sun", label: "Morning" },
@@ -68,40 +68,23 @@ export default function TodayScreen() {
     const open = (id: string) =>
         router.push({ pathname: "/habit/[id]", params: { id } });
 
-    /** Same copy as the detail screen's bin button, so a hold is never a
-        shortcut past the confirmation a tap would ask for. Deleting keeps its
-        own confirm: it sits next to Archive and it cannot be undone. */
-    const confirmDelete = (h: HabitWithStats) =>
-        Alert.alert("Delete habit", `Remove "${h.name}" and its history?`, [
-            { text: "Cancel", style: "cancel" },
-            {
-                text: "Delete",
-                style: "destructive",
-                onPress: () => del.mutate(h.id),
-            },
-        ]);
+    /** The habit being held, read back out of `habits` so one that leaves the
+        list — archived, deleted — takes its sheet with it. */
+    const [heldId, setHeldId] = useState<string | null>(null);
+    const held = useMemo(
+        () => habits.find((h) => h.id === heldId) ?? null,
+        [habits, heldId],
+    );
 
-    /** Long-press menu. Archive leads, because it's the one that's reversible. */
-    const promptActions = (id: string) => {
-        const h = habits.find((x) => x.id === id);
-        if (!h) return;
-        Alert.alert(
-            h.name,
-            "Archiving hides it from Today and keeps its history. Deleting removes the habit and its history for good.",
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Archive",
-                    onPress: () =>
-                        update.mutate({ id: h.id, input: { archived: true } }),
-                },
-                {
-                    text: "Delete",
-                    style: "destructive",
-                    onPress: () => confirmDelete(h),
-                },
-            ],
-        );
+    /** Archive leads in the sheet, because it's the one that's reversible.
+        Deleting keeps its own confirm step in there: it cannot be undone. */
+    const archive = (id: string) => {
+        setHeldId(null);
+        update.mutate({ id, input: { archived: true } });
+    };
+    const remove = (id: string) => {
+        setHeldId(null);
+        del.mutate(id);
     };
 
     return (
@@ -304,7 +287,7 @@ export default function TodayScreen() {
                             <Pressable
                                 key={h.id}
                                 onPress={() => open(h.id)}
-                                onLongPress={() => promptActions(h.id)}
+                                onLongPress={() => setHeldId(h.id)}
                                 style={{
                                     width: "33.33%",
                                     alignItems: "center",
@@ -373,7 +356,7 @@ export default function TodayScreen() {
                                                 })
                                             }
                                             onOpen={open}
-                                            onLongPress={promptActions}
+                                            onLongPress={setHeldId}
                                             last={i === list.length - 1}
                                         />
                                     ))}
@@ -383,6 +366,13 @@ export default function TodayScreen() {
                     })}
                 </View>
             </ScrollView>
+
+            <HabitSheet
+                habit={held}
+                onClose={() => setHeldId(null)}
+                onArchive={archive}
+                onDelete={remove}
+            />
         </View>
     );
 }
