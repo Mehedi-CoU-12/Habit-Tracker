@@ -301,3 +301,82 @@ describe("buildHabitHeatmap — weekday schedules", () => {
         assert.equal(mon7.detail, undefined); // depth 1, no run
     });
 });
+describe("buildHabitHeatmap — archived habits", () => {
+    const archived = (day: number) => new Date(2026, 8, day).toISOString();
+
+    test("days after archiving are dormant and not owed", () => {
+        const h = habit({ days: [1, 2, 3, 4, 5], archivedAt: archived(5) });
+        const r = buildHabitHeatmap(sep([h]), "h1", "Month", on(20), h);
+        assert.equal(r.summary.expected, 5); // Sep 1..5 only
+        assert.equal(r.summary.completed, 5);
+        assert.equal(r.summary.rate, 100);
+        const after = r.grid.days.find((d) => d.index === idx(12))!;
+        assert.equal(after.dormant, true);
+    });
+
+    test("without archiving the same habit accrues misses", () => {
+        const h = habit({ days: [1, 2, 3, 4, 5] });
+        const r = buildHabitHeatmap(sep([h]), "h1", "Month", on(20), h);
+        assert.equal(r.summary.expected, 20);
+        assert.equal(r.summary.rate, 25);
+    });
+});
+
+describe("habitHistoryStats — schedules and archiving", () => {
+    test("streak chains across rest days", () => {
+        const h = habit({ days: [2, 4, 7], daysOfWeek: MWF });
+        // Today is Tue 8, a rest day: the run through Mon 7 still stands.
+        assert.equal(habitHistoryStats(sep([h]), "h1", on(8), h).streak, 3);
+    });
+
+    test("rate is scored out of due days", () => {
+        const h = habit({ days: [2, 4, 7], daysOfWeek: MWF });
+        const s = habitHistoryStats(sep([h]), "h1", on(8), h);
+        assert.equal(s.rate, 100);
+    });
+
+    test("archiving freezes the denominator at the archive day", () => {
+        const h = habit({
+            days: [1, 2],
+            archivedAt: new Date(2026, 8, 2).toISOString(),
+        });
+        const s = habitHistoryStats(sep([h]), "h1", on(20), h);
+        assert.equal(s.completed, 2);
+        assert.equal(s.rate, 100);
+    });
+});
+
+describe("buildActivityHeatmap — schedules and archiving", () => {
+    test("a habit resting today is not counted as owed", () => {
+        const daily = habit({ id: "a", days: [1] });
+        const mwf = habit({ id: "b", days: [], daysOfWeek: MWF });
+        // Tue 1 is a rest day for the Mon/Wed/Fri habit.
+        const r = buildActivityHeatmap(sep([daily, mwf]), "Month", on(1));
+        assert.equal(r.summary.expected, 1);
+        assert.equal(r.summary.completed, 1);
+        assert.equal(r.summary.perfect, 1);
+    });
+
+    test("both are owed on a day they share", () => {
+        const daily = habit({ id: "a", days: [2] });
+        const mwf = habit({ id: "b", days: [2], daysOfWeek: MWF });
+        // Wed 2 is due for both.
+        const r = buildActivityHeatmap(sep([daily, mwf]), "Month", on(2));
+        assert.equal(r.summary.expected, 3); // Sep 1 (daily only) + Sep 2 (both)
+        assert.equal(r.summary.completed, 2);
+    });
+
+    test("an archived habit stops being owed", () => {
+        const live = habit({ id: "a", days: [1, 2, 3] });
+        const gone = habit({
+            id: "b",
+            days: [1],
+            archivedAt: new Date(2026, 8, 1).toISOString(),
+        });
+        const r = buildActivityHeatmap(sep([live, gone]), "Month", on(3));
+        // b is owed only on Sep 1; a on Sep 1-3. 4 habit-days, all done.
+        assert.equal(r.summary.expected, 4);
+        assert.equal(r.summary.completed, 4);
+        assert.equal(r.summary.rate, 100);
+    });
+});

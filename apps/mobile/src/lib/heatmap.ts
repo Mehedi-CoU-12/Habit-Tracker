@@ -40,6 +40,8 @@ export type HabitSchedule = {
     createdAt?: string;
     /** Weekdays the habit is due on, 0 = Sunday. Empty/absent = daily. */
     daysOfWeek?: number[];
+    /** Days after this are dormant: the habit was retired, not missed. */
+    archivedAt?: string | null;
 };
 
 export const HEAT_PERIODS = ["Week", "Month", "Year"] as const;
@@ -328,6 +330,11 @@ export function buildHabitHeatmap(
     const known = loadedDays(history);
     const todayIdx = dayIndex(today);
     const planted = plantedIndex(habit?.createdAt, sorted, todayIdx);
+    // After archiving the habit was retired, so those days are dormant rather
+    // than a growing wall of misses.
+    const retired = habit?.archivedAt
+        ? dayIndex(new Date(habit.archivedAt))
+        : Infinity;
     const range = heatRange(period, today);
 
     // A day the habit wasn't due on is dormant too — same reasoning as days
@@ -336,7 +343,7 @@ export function buildHabitHeatmap(
 
     const grid = buildGrid(period, range, today, (index) => {
         const d = depth.get(index) ?? 0;
-        const off = index < planted || !due(index);
+        const off = index < planted || index > retired || !due(index);
         return {
             level: depthToLevel(d),
             done: d > 0,
@@ -348,7 +355,7 @@ export function buildHabitHeatmap(
     // The rate scores only loaded, due days — an in-flight month must not drag
     // the denominator down before its logs land, and a rest day was never owed.
     const from = Math.max(dayIndex(range.start), planted);
-    const to = Math.min(dayIndex(range.end), todayIdx);
+    const to = Math.min(dayIndex(range.end), todayIdx, retired);
     let completed = 0;
     let expected = 0;
     let run = 0;
@@ -405,12 +412,14 @@ export function habitHistoryStats(
     const best = sorted.reduce((m, d) => Math.max(m, depth.get(d) ?? 0), 0);
 
     const planted = plantedIndex(habit?.createdAt, sorted, todayIdx);
-    const completed = sorted.filter(
-        (d) => d >= planted && d <= todayIdx,
-    ).length;
-    const days = expectedDaysBetween(daysOfWeek, planted, todayIdx);
+    const retired = habit?.archivedAt
+        ? dayIndex(new Date(habit.archivedAt))
+        : Infinity;
+    const to = Math.min(todayIdx, retired);
+    const completed = sorted.filter((d) => d >= planted && d <= to).length;
+    const days = expectedDaysBetween(daysOfWeek, planted, to);
     const doneOnDue = sorted.filter(
-        (d) => d >= planted && d <= todayIdx && isExpectedOn(daysOfWeek, d),
+        (d) => d >= planted && d <= to && isExpectedOn(daysOfWeek, d),
     ).length;
 
     return {
@@ -431,9 +440,11 @@ function fracToLevel(frac: number): number {
     return 4;
 }
 
-/** One habit's start and schedule, for counting what was owed on a day. */
+/** One habit's window and schedule, for counting what was owed on a day. */
 type ActiveHabit = {
     planted: number;
+    /** Day it was archived; days after this are no longer owed. */
+    retired: number;
     daysOfWeek: number[];
 };
 
@@ -442,7 +453,7 @@ type ActiveHabit = {
  * habits that were *due that day* — not out of today's roster. Dividing by the
  * roster's high-water mark (what this used to do) washes out early months, when
  * three-of-three completed scored the same as three-of-ten. Weekday schedules
- * narrow it further: nothing is owed on a rest day.
+ * and archiving narrow it further: a rest day and a retired habit are not owed.
  */
 export function buildActivityHeatmap(
     history: MonthHabits[],
@@ -468,9 +479,12 @@ export function buildActivityHeatmap(
             if (!Number.isFinite(at)) continue;
             const prev = habits.get(h.id);
             // The same habit appears once per loaded month; keep the earliest
-            // planting seen and the newest schedule.
+            // planting seen and the newest schedule/archive state.
             habits.set(h.id, {
                 planted: prev === undefined ? at : Math.min(prev.planted, at),
+                retired: h.archivedAt
+                    ? dayIndex(new Date(h.archivedAt))
+                    : Infinity,
                 daysOfWeek: normalizeDays(h.daysOfWeek),
             });
         }
@@ -485,7 +499,7 @@ export function buildActivityHeatmap(
     const activeOn = (index: number) => {
         let n = 0;
         for (const h of roster) {
-            if (index < h.planted) continue;
+            if (index < h.planted || index > h.retired) continue;
             if (!isExpectedOn(h.daysOfWeek, index)) continue;
             n++;
         }
