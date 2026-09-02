@@ -24,6 +24,9 @@ export const TIMES_OF_DAY = [
 const trim = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() : value;
 
+const isUnknownArray = (value: unknown): value is unknown[] =>
+  Array.isArray(value);
+
 /**
  * Canonicalize a weekday schedule: dedupe, sort, and collapse "all seven days"
  * to the empty list, which is the single stored spelling of "daily". Anything
@@ -31,13 +34,15 @@ const trim = ({ value }: { value: unknown }) =>
  * validators below report it rather than this silently swallowing it.
  */
 export const normalizeDaysOfWeek = ({ value }: { value: unknown }) => {
-  if (!Array.isArray(value)) return value;
-  const clean = value.every(
-    (v) => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 6,
+  if (!isUnknownArray(value)) return value;
+  const days = value.filter(
+    (v): v is number =>
+      typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 6,
   );
-  if (!clean) return value;
-  const days = [...new Set(value as number[])].sort((a, b) => a - b);
-  return days.length === 7 ? [] : days;
+
+  if (days.length !== value.length) return value;
+  const unique = [...new Set(days)].sort((a, b) => a - b);
+  return unique.length === 7 ? [] : unique;
 };
 
 export class CreateHabitDto {
