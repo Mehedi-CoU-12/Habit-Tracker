@@ -10,7 +10,7 @@ import { ApiDayNote, ApiHabit, UserProfile } from "../lib/types";
 import { lastNMonths } from "../lib/date";
 import { releasePlatform } from "../lib/version";
 import { MonthHabits } from "../lib/deriveStats";
-import { isDayComplete } from "../lib/completion";
+import { isDayComplete, targetOf } from "../lib/completion";
 import { newId } from "../offline/ids";
 import { enqueue, type HabitPatch } from "../offline/outbox";
 import { runSync } from "../offline/sync";
@@ -37,10 +37,6 @@ export function useMe(enabled = true) {
 export function useUploadAvatar() {
     const qc = useQueryClient();
     return useMutation({
-        // The one write with no outbox behind it — it has to reach the server.
-        // Opting out of the client's "always" default lets the library park it
-        // while offline and fire it on reconnect, instead of failing instantly.
-        networkMode: "online",
         mutationFn: api.uploadAvatar,
         onSuccess: (updated) => qc.setQueryData<UserProfile>(["me"], updated),
     });
@@ -58,13 +54,6 @@ export function useHabits(year: number, month: number) {
     });
 }
 
-/**
- * Fetch the trailing `monthsBack` months of habit logs in parallel, reusing the
- * per-month `habitsKey` cache so the current month is shared with `useHabits`
- * and a completion toggle refreshes the heatmaps too. 7 months (not 6) ensures
- * the leftmost week-column of the 26-week grid always has data. Returns one
- * entry per month for the heatmap builders in `deriveStats`.
- */
 export function useHabitsHistory(today: Date, monthsBack = 7): MonthHabits[] {
     const months = useMemo(
         () => lastNMonths(today, monthsBack),
@@ -90,12 +79,6 @@ export function useHabitsHistory(today: Date, monthsBack = 7): MonthHabits[] {
 
 // ── App releases ────────────────────────────────────────────────────────────
 
-/**
- * Published build for this platform. Polled rather than pushed: an hour-stale
- * answer is fine for "there's a new version", and it costs one tiny request
- * per app launch. `retry: false` keeps a failed check silent — not knowing
- * about an update must never surface as an error to the user.
- */
 export function useAppRelease() {
     const platform = releasePlatform();
     return useQuery({
@@ -191,6 +174,7 @@ export function useToggleLog(year: number, month: number) {
                                 year,
                                 month,
                                 day,
+                                amount: targetOf(h),
                                 createdAt: new Date().toISOString(),
                             },
                         ],
@@ -213,10 +197,6 @@ export function useToggleLog(year: number, month: number) {
     });
 }
 
-/**
- * Set an absolute amount for one (habit, day). Zero clears the day.
- * Optimistic like useToggleLog, and offline-first through the same outbox.
- */
 export function useSetLogAmount(year: number, month: number) {
     const qc = useQueryClient();
     const key = habitsKey(year, month);
