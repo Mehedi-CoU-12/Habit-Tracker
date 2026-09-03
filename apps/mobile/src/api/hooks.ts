@@ -112,6 +112,10 @@ export function useFocusStats() {
  * Queue a finished focus session through the outbox, so a session completed
  * offline still reaches the dedication history. Stats refresh once the drain
  * actually lands (an immediate invalidate would race the POST).
+ *
+ * Habits are invalidated alongside the stats because a session bound to a
+ * `fillFromFocus` habit writes a HabitLog server-side — without this the ring
+ * doesn't move until the next pull-to-refresh.
  */
 export function useRecordFocusSession() {
     const qc = useQueryClient();
@@ -132,9 +136,10 @@ export function useRecordFocusSession() {
                     day: d.getDate(),
                 },
             });
-            void runSync().then(() =>
-                qc.invalidateQueries({ queryKey: ["focusStats"] }),
-            );
+            void runSync().then(async () => {
+                await qc.invalidateQueries({ queryKey: ["focusStats"] });
+                await qc.invalidateQueries({ queryKey: ["habits"] });
+            });
         },
     });
 }
@@ -255,6 +260,63 @@ export function useSetLogAmount(year: number, month: number) {
     });
 }
 
+/**
+ * Spend or release one skip on a (habit, date) cell — streak insurance.
+ *
+ * Optimistic and outbox-backed like the log writes, so a skip spent offline
+ * survives a cold start. The allowance check here is a courtesy that keeps the
+ * UI honest; the server enforces it, and a refused op is dropped as permanent
+ * by the sync worker, which then reconciles the optimistic guess away.
+ */
+export function useSetSkip(year: number, month: number) {
+    const qc = useQueryClient();
+    const key = habitsKey(year, month);
+    return useMutation({
+        mutationFn: async ({
+            habitId,
+            day,
+            used,
+        }: {
+            habitId: string;
+            day: number;
+            used: boolean;
+        }) => {
+            await qc.cancelQueries({ queryKey: key });
+            const me = qc.getQueryData<UserProfile>(["me"]);
+
+            qc.setQueryData<ApiHabit[]>(key, (old = []) =>
+                old.map((h) => {
+                    if (h.id !== habitId) return h;
+                    const skips = (h.skips ?? []).filter((s) => s.day !== day);
+                    if (!used) return { ...h, skips };
+                    return {
+                        ...h,
+                        skips: [
+                            ...skips,
+                            {
+                                id: `local-skip-${habitId}-${day}`,
+                                habitId,
+                                userId: h.userId || (me?.id ?? ""),
+                                year,
+                                month,
+                                day,
+                                createdAt: new Date().toISOString(),
+                            },
+                        ].sort((a, b) => a.day - b.day),
+                    };
+                }),
+            );
+
+            await enqueue({ kind: "skip.set", habitId, year, month, day, used });
+            void runSync();
+            // A forgiven day changes what is still pending today, and the
+            // reminder summary counts pending habits.
+            void syncReminders();
+            return { used };
+        },
+    });
+}
+
 export function useCreateHabit(_year: number, _month: number) {
     const qc = useQueryClient();
     return useMutation({
@@ -267,6 +329,7 @@ export function useCreateHabit(_year: number, _month: number) {
             target?: number | null;
             unit?: string | null;
             step?: number;
+            fillFromFocus?: boolean;
             daysOfWeek?: number[];
         }) => {
             const id = newId();
@@ -282,6 +345,7 @@ export function useCreateHabit(_year: number, _month: number) {
                 target: input.target ?? null,
                 unit: input.unit ?? null,
                 step: input.step ?? 1,
+                fillFromFocus: input.fillFromFocus ?? false,
                 daysOfWeek: input.daysOfWeek ?? [],
                 archivedAt: null,
                 userId: me?.id ?? "",
@@ -305,6 +369,9 @@ export function useCreateHabit(_year: number, _month: number) {
                     target: input.target,
                     unit: input.unit,
                     step: input.step,
+                    ...(input.fillFromFocus !== undefined
+                        ? { fillFromFocus: input.fillFromFocus }
+                        : {}),
                     ...(input.daysOfWeek
                         ? { daysOfWeek: input.daysOfWeek }
                         : {}),
