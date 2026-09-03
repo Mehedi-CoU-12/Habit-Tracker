@@ -16,6 +16,7 @@ export type HabitCreatePayload = {
     target?: number | null;
     unit?: string | null;
     step?: number;
+    fillFromFocus?: boolean;
     /** Weekdays the habit is due on, 0 = Sunday. Empty/absent = daily. */
     daysOfWeek?: number[];
 };
@@ -29,6 +30,7 @@ export type HabitPatch = {
     target?: number | null;
     unit?: string | null;
     step?: number;
+    fillFromFocus?: boolean;
     daysOfWeek?: number[];
     /** Archive (true) or restore (false); the server stamps the date. */
     archived?: boolean;
@@ -73,6 +75,14 @@ export type Op = { key: string; ts: number } & (
           day: number;
           amount: number;
       }
+    | {
+          kind: "skip.set";
+          habitId: string;
+          year: number;
+          month: number;
+          day: number;
+          used: boolean;
+      }
     | { kind: "note.set"; payload: DayNotePayload }
     | { kind: "focus.record"; payload: FocusRecordPayload }
 );
@@ -97,6 +107,14 @@ export type NewOp =
           month: number;
           day: number;
           amount: number;
+      }
+    | {
+          kind: "skip.set";
+          habitId: string;
+          year: number;
+          month: number;
+          day: number;
+          used: boolean;
       }
     | { kind: "note.set"; payload: DayNotePayload }
     | { kind: "focus.record"; payload: FocusRecordPayload };
@@ -192,6 +210,7 @@ function touchesHabit(o: Op, id: string): boolean {
             return o.id === id;
         case "log.set":
         case "log.amount":
+        case "skip.set":
             return o.habitId === id;
         // Dedication history outlives the habit: deleting a habit must not
         // drop its queued sessions — the server records them unlinked.
@@ -218,6 +237,26 @@ export async function enqueue(input: NewOp): Promise<void> {
         let ops = state.ops.slice();
 
         switch (input.kind) {
+            case "skip.set": {
+                // One skip state per (habit, date), so an earlier queued write
+                // for the same cell is superseded — except an in-flight one,
+                // whose body is already sent; the idempotent PUT converges on
+                // the next drain. Deliberately NOT coalesced against log.set:
+                // a skip and a completion are different facts about the day.
+                ops = ops.filter(
+                    (o) =>
+                        o.key === inFlightKey ||
+                        !(
+                            o.kind === "skip.set" &&
+                            o.habitId === input.habitId &&
+                            o.year === input.year &&
+                            o.month === input.month &&
+                            o.day === input.day
+                        ),
+                );
+                ops.push({ ...input, key: nextKey(), ts: Date.now() });
+                break;
+            }
             case "log.set":
             case "log.amount": {
                 // Supersede any earlier queued write for this cell, but keep an
