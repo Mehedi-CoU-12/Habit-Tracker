@@ -31,6 +31,7 @@ export default function DashboardContent({
     dailyData,
     weeklyData,
     onToggle,
+    onSkip,
     onToggleToday,
     onEdit,
     onDelete,
@@ -46,6 +47,7 @@ export default function DashboardContent({
     dailyData: DailyData;
     weeklyData: WeeklyData;
     onToggle: (habitId: string, day: number) => void;
+    onSkip: (habitId: string, day: number, used: boolean) => void;
     onToggleToday: (habitId: string) => void;
     onEdit: (habit: HabitWithStats) => void;
     onDelete: (habit: HabitWithStats) => void;
@@ -92,6 +94,7 @@ export default function DashboardContent({
                 year={year}
                 month={month}
                 onToggle={onToggle}
+                onSkip={onSkip}
                 onDelete={onDelete}
                 onEdit={onEdit}
             />
