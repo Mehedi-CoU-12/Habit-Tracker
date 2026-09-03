@@ -161,20 +161,6 @@ export function HabitRow({
                         borderColor: th.accent,
                     }}
                 >
-                    {/* A quantified habit fills from the bottom as the day
-                        progresses, so the circle doubles as its own gauge. */}
-                    {quantified && !h.doneToday && progress > 0 && (
-                        <View
-                            style={{
-                                position: "absolute",
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                height: `${progress * 100}%`,
-                                backgroundColor: th.greenSoft,
-                            }}
-                        />
-                    )}
                     {h.doneToday ? (
                         <Icon
                             name="check"
@@ -215,6 +201,28 @@ export function HabitRow({
                 <Text style={{ fontSize: 11.5, color: th.muted, marginTop: 1 }}>
                     {subtitle(h)}
                 </Text>
+                {quantified && (
+                    <View
+                        style={{
+                            height: 4,
+                            borderRadius: 2,
+                            marginTop: 5,
+                            backgroundColor: th.surface2,
+                            overflow: "hidden",
+                        }}
+                    >
+                        <View
+                            style={{
+                                width: `${progress * 100}%`,
+                                height: "100%",
+                                borderRadius: 2,
+                                backgroundColor: h.doneToday
+                                    ? th.green
+                                    : th.accent,
+                            }}
+                        />
+                    </View>
+                )}
             </View>
 
             <View
