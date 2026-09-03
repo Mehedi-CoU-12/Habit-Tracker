@@ -8,11 +8,11 @@ import { deriveHabitStats, deriveRangeStats, daysInMonth } from "./deriveStats";
  * year/month on each log row only has to match what the caller asks for.
  */
 function habit(
-    over: Partial<ApiHabit> & { days?: number[] } = {},
+    over: Partial<ApiHabit> & { days?: number[]; skipped?: number[] } = {},
     year = 2026,
     month = 9,
 ): ApiHabit {
-    const { days = [], ...rest } = over;
+    const { days = [], skipped = [], ...rest } = over;
     return {
         id: "h1",
         name: "Read",
@@ -25,6 +25,15 @@ function habit(
         updatedAt: "2026-09-01T00:00:00.000Z",
         logs: days.map((day) => ({
             id: `l${day}`,
+            habitId: "h1",
+            userId: "u1",
+            year,
+            month,
+            day,
+            createdAt: "2026-09-01T00:00:00.000Z",
+        })),
+        skips: skipped.map((day) => ({
+            id: `s${day}`,
             habitId: "h1",
             userId: "u1",
             year,
@@ -380,5 +389,72 @@ describe("deriveRangeStats — archived habits", () => {
         );
         assert.equal(s!.days, 30);
         assert.equal(s!.rate, 10);
+    });
+});
+
+describe("deriveHabitStats — streak insurance", () => {
+    const stats = (over: Parameters<typeof habit>[0], day: number) =>
+        deriveHabitStats(
+            habit(over),
+            SEP.year,
+            SEP.month,
+            SEP.dim,
+            on(day),
+        );
+
+    test("a habit with no skips is byte-identical to before", () => {
+        const withField = stats({ days: [1, 2, 3, 4, 5] }, 5);
+        const withoutField = deriveHabitStats(
+            { ...habit({ days: [1, 2, 3, 4, 5] }), skips: undefined },
+            SEP.year,
+            SEP.month,
+            SEP.dim,
+            on(5),
+        );
+        assert.deepEqual(
+            { ...withField, skippedDays: [], skipsLeft: 1 },
+            { ...withoutField, skippedDays: [], skipsLeft: 1 },
+        );
+        assert.equal(withField.streak, 5);
+    });
+
+    test("a spent skip spans the gap", () => {
+        // Missed the 3rd; without the skip the streak would be 2 (4th, 5th).
+        assert.equal(stats({ days: [1, 2, 4, 5] }, 5).streak, 2);
+        assert.equal(stats({ days: [1, 2, 4, 5], skipped: [3] }, 5).streak, 4);
+    });
+
+    test("the rate is unchanged by a skip — it is not a completion", () => {
+        const plain = stats({ days: [1, 2, 4, 5] }, 5);
+        const forgiven = stats({ days: [1, 2, 4, 5], skipped: [3] }, 5);
+        assert.equal(forgiven.rate, plain.rate);
+        assert.equal(forgiven.rate, 80); // 4 of 5 elapsed days
+        assert.equal(forgiven.completed, plain.completed);
+    });
+
+    test("a skip does not extend best", () => {
+        const forgiven = stats({ days: [1, 2, 4, 5], skipped: [3] }, 5);
+        assert.equal(forgiven.streak, 4);
+        assert.equal(forgiven.best, 2); // the honest high-water mark
+    });
+
+    test("reports the days forgiven and the allowance left", () => {
+        assert.deepEqual(stats({ days: [1], skipped: [3] }, 5).skippedDays, [
+            3,
+        ]);
+        assert.equal(stats({ days: [1], skipped: [3] }, 5).skipsLeft, 0);
+        assert.equal(stats({ days: [1] }, 5).skipsLeft, 1);
+    });
+
+    test("a run of two forgiven days is bridged too", () => {
+        assert.equal(
+            stats({ days: [1, 2, 5], skipped: [3, 4] }, 5).streak,
+            3,
+        );
+    });
+
+    test("an unforgiven miss still breaks the run", () => {
+        // The 3rd is forgiven, the 2nd is simply missed.
+        assert.equal(stats({ days: [1, 4, 5], skipped: [3] }, 5).streak, 2);
     });
 });
