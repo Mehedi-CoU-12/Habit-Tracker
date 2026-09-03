@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CacheService } from '../redis/cache.service.js';
 import { cacheKeys, TTL } from '../redis/cache-keys.js';
+import { HabitsService } from '../habits/habits.service.js';
 import { RecordSessionDto } from './dto/record-session.dto.js';
 
 type DayTotals = { sessions: number; minutes: number };
@@ -34,12 +35,20 @@ export class FocusService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cache: CacheService,
+    private readonly habits: HabitsService,
   ) {}
 
   /**
    * Idempotent by client-generated id (same contract as habit create): the
    * mobile outbox may replay a session after a crash, and a replay must not
    * double-count dedication.
+   *
+   * This early return is also what makes auto-log safe. `PUT /habits/logs/
+   * amount` is absolute by design so replays converge, but "a 25-minute
+   * session adds 25 minutes" is relative — composing the two naively double-
+   * counts on every replay. Putting the increment *after* this guard, inside
+   * the same transaction as the session row, means a replayed session
+   * increments exactly once with no new idempotency machinery.
    */
   async recordSession(userId: string, dto: RecordSessionDto) {
     if (dto.id) {
@@ -54,29 +63,78 @@ export class FocusService {
 
     // A habit deleted before an offline replay lands is history, not an
     // error — record the session unlinked so the dedication still counts.
-    let habitId: string | null = null;
+    let habit: { id: string; target: number | null } | null = null;
     if (dto.habitId) {
-      const habit = await this.prisma.habit.findUnique({
+      const found = await this.prisma.habit.findUnique({
         where: { id: dto.habitId },
+        select: {
+          id: true,
+          userId: true,
+          target: true,
+          fillFromFocus: true,
+        },
       });
-      if (habit) {
-        if (habit.userId !== userId) throw new ForbiddenException();
-        habitId = habit.id;
+      if (found) {
+        if (found.userId !== userId) throw new ForbiddenException();
+        // A null target here means "link the session, log nothing": either the
+        // habit is opted out, or it is binary and has no amount to add minutes
+        // to. Both keep the old client-driven behaviour.
+        habit = {
+          id: found.id,
+          target: found.fillFromFocus ? found.target : null,
+        };
       }
     }
 
-    const session = await this.prisma.focusSession.create({
-      data: {
-        ...(dto.id ? { id: dto.id } : {}),
-        userId,
-        habitId,
-        minutes: dto.minutes,
-        year: dto.year,
-        month: dto.month,
-        day: dto.day,
-      },
+    const { session, logged } = await this.prisma.transaction(async (tx) => {
+      const session = await tx.focusSession.create({
+        data: {
+          ...(dto.id ? { id: dto.id } : {}),
+          userId,
+          habitId: habit?.id ?? null,
+          minutes: dto.minutes,
+          year: dto.year,
+          month: dto.month,
+          day: dto.day,
+        },
+      });
+
+      if (!habit || habit.target === null) return { session, logged: false };
+
+      // Clamped at the target: 50 minutes against a 30-minute target logs 30.
+      // Letting it overflow renders as a broken progress bar in three places.
+      const where = {
+        habitId_year_month_day: {
+          habitId: habit.id,
+          year: dto.year,
+          month: dto.month,
+          day: dto.day,
+        },
+      };
+      const current = await tx.habitLog.findUnique({ where });
+      const amount = Math.min(
+        habit.target,
+        (current?.amount ?? 0) + dto.minutes,
+      );
+      await tx.habitLog.upsert({
+        where,
+        create: {
+          habitId: habit.id,
+          userId,
+          year: dto.year,
+          month: dto.month,
+          day: dto.day,
+          amount,
+        },
+        update: { amount },
+      });
+      return { session, logged: true };
     });
+
     await this.cache.bumpVersion(cacheKeys.focusVersion(userId));
+    // The habits cache is stale too now — forgetting this is the bug where
+    // the ring doesn't move until you pull to refresh.
+    if (logged) await this.habits.invalidateHabits(userId);
     return session;
   }
 
