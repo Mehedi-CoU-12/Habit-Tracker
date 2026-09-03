@@ -115,12 +115,18 @@ function cancelEndNotification(): void {
     void Notifications.dismissNotificationAsync(FOCUS_NOTIF_ID).catch(() => {});
 }
 
+/** This habit as the cache currently has it, or undefined if it isn't there. */
+function cachedHabit(habitId: string, now: Date): ApiHabit | undefined {
+    return queryClient
+        .getQueryData<ApiHabit[]>(
+            habitsKey(now.getFullYear(), now.getMonth() + 1),
+        )
+        ?.find((h) => h.id === habitId);
+}
+
 /** Is this habit already logged for today? (read straight from the cache) */
 function isDoneToday(habitId: string, now: Date): boolean {
-    const list = queryClient.getQueryData<ApiHabit[]>(
-        habitsKey(now.getFullYear(), now.getMonth() + 1),
-    );
-    const habit = list?.find((h) => h.id === habitId);
+    const habit = cachedHabit(habitId, now);
     return !!habit && isDayComplete(habit, now.getDate());
 }
 
@@ -202,10 +208,18 @@ export default function FocusScreen() {
         void storage.set(KEYS.focus, JSON.stringify(data));
     }, []);
 
-    /** Water the habit (mark done today) — never un-completes. */
+    /**
+     * Water the habit (mark done today) — never un-completes.
+     *
+     * A `fillFromFocus` habit is deliberately skipped: the server logs the
+     * session's minutes inside recordSession, so watering here as well would
+     * be a double write — and a *wrong* one, since it completes the whole day
+     * where the server only credits the minutes actually spent.
+     */
     const waterHabit = useCallback(
         (id: string) => {
             const d = new Date();
+            if (cachedHabit(id, d)?.fillFromFocus) return;
             if (!isDoneToday(id, d)) {
                 toggle.mutate({ habitId: id, day: d.getDate() });
             }
