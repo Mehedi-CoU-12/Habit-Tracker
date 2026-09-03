@@ -13,6 +13,7 @@ import {
     createHabit,
     updateHabit,
     deleteHabit,
+    setSkip,
     toggleLog,
     fetchMe,
     applyTemplate,
@@ -144,6 +145,60 @@ export function useDashboard() {
         onSettled: () => queryClient.invalidateQueries({ queryKey }),
     });
 
+    /**
+     * Spend or release one skip on a (habit, date) cell — streak insurance.
+     * Optimistic like the toggle; the server enforces the monthly allowance,
+     * and a refusal rolls the optimistic write back and surfaces the reason.
+     */
+    const skipMutation = useMutation({
+        mutationFn: ({
+            habitId,
+            day,
+            used,
+        }: {
+            habitId: string;
+            day: number;
+            used: boolean;
+        }) => setSkip(habitId, selectedYear, selectedMonth, day, used),
+        onMutate: async ({ habitId, day, used }) => {
+            await queryClient.cancelQueries({ queryKey });
+            const prev = queryClient.getQueryData<ApiHabit[]>(queryKey);
+            queryClient.setQueryData<ApiHabit[]>(queryKey, (old = []) =>
+                old.map((habit) => {
+                    if (habit.id !== habitId) return habit;
+                    const skips = (habit.skips ?? []).filter(
+                        (s) => s.day !== day,
+                    );
+                    if (!used) return { ...habit, skips };
+                    return {
+                        ...habit,
+                        skips: [
+                            ...skips,
+                            {
+                                id: "temp",
+                                habitId,
+                                userId: "",
+                                year: selectedYear,
+                                month: selectedMonth,
+                                day,
+                                createdAt: "",
+                            },
+                        ].sort((a, b) => a.day - b.day),
+                    };
+                }),
+            );
+            return { prev };
+        },
+        onError: (err, _vars, ctx) => {
+            if (ctx?.prev) queryClient.setQueryData(queryKey, ctx.prev);
+            toast.error(
+                err instanceof Error ? err.message : "Could not use a skip",
+            );
+        },
+        onSettled: () => queryClient.invalidateQueries({ queryKey }),
+        meta: { suppressErrorToast: true },
+    });
+
     const createMutation = useMutation({
         mutationFn: (input: CreateHabitInput) => createHabit(input),
         onSuccess: () => {
@@ -227,6 +282,7 @@ export function useDashboard() {
 
         // mutations
         toggleMutation,
+        skipMutation,
         createMutation,
         updateMutation,
         templateMutation,
