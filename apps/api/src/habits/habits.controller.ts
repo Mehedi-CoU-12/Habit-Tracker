@@ -16,6 +16,7 @@ import { UpdateHabitDto } from './dto/update-habit.dto.js';
 import { ToggleLogDto } from './dto/toggle-log.dto.js';
 import { SetLogDto } from './dto/set-log.dto.js';
 import { SetLogAmountDto } from './dto/set-log-amount.dto.js';
+import { SetSkipDto } from './dto/set-skip.dto.js';
 import { HabitsService } from './habits.service.js';
 
 // Auth comes from the global guard stack (app.module.ts) — no @UseGuards.
@@ -84,6 +85,14 @@ export class HabitsController {
   @Put('logs')
   setLog(@Request() req: { user: { id: string } }, @Body() dto: SetLogDto) {
     return this.habitsService.setLog(req.user.id, dto);
+  }
+
+  // Absolute, idempotent skip write — the streak-insurance sibling of
+  // PUT /logs. PUT because it sets a state for the (habit, date) cell, which
+  // is what makes an outbox replay converge.
+  @Put('skips')
+  setSkip(@Request() req: { user: { id: string } }, @Body() dto: SetSkipDto) {
+    return this.habitsService.setSkip(req.user.id, dto);
   }
 
   // Absolute amount counterpart for quantified habits. A sibling of PUT /logs
