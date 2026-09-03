@@ -56,6 +56,20 @@ export function fetchMe() {
     return apiGet<UserProfile>("/users/me");
 }
 
+/**
+ * Erase the account and everything cascading from it. Irreversible.
+ *
+ * A password account proves intent with its current password; a Google-only
+ * account has none, so it sends the typed word DELETE instead. The server
+ * decides which one this account owes.
+ */
+export function deleteAccount(input: {
+    password?: string;
+    confirmation?: string;
+}) {
+    return apiDelete<{ deleted: boolean }>("/users/me", input);
+}
+
 /** Picked image asset, as returned by expo-image-picker. */
 export type AvatarAsset = {
     uri: string;
@@ -93,6 +107,8 @@ export function createHabit(input: {
     target?: number | null;
     unit?: string | null;
     step?: number;
+    fillFromFocus?: boolean;
+    daysOfWeek?: number[];
 }) {
     return apiPost<ApiHabit>("/habits", input);
 }
@@ -108,6 +124,9 @@ export function updateHabit(
         target?: number | null;
         unit?: string | null;
         step?: number;
+        fillFromFocus?: boolean;
+        daysOfWeek?: number[];
+        archived?: boolean;
     },
 ) {
     return apiPatch<ApiHabit>(`/habits/${id}`, input);
@@ -172,6 +191,27 @@ export function setLogAmount(
             amount,
         },
     );
+}
+
+/**
+ * Spend or release one skip on a (habit, date) cell — streak insurance.
+ * Absolute and idempotent like setLog, so an outbox replay converges to one
+ * row. The monthly allowance is enforced server-side.
+ */
+export function setSkip(
+    habitId: string,
+    year: number,
+    month: number,
+    day: number,
+    used: boolean,
+) {
+    return apiPut<{ used: boolean; remaining: number }>("/habits/skips", {
+        habitId,
+        year,
+        month,
+        day,
+        used,
+    });
 }
 
 export function applyTemplate(templateId: string) {
