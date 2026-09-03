@@ -1,7 +1,7 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { ApiHabit } from "./types";
-import { MonthHabits } from "./deriveStats";
+import { deriveHabitStats, MonthHabits } from "./deriveStats";
 import { dayIndexOf } from "./date";
 import {
     buildActivityHeatmap,
@@ -11,8 +11,10 @@ import {
     monthsForHeat,
 } from "./heatmap";
 
-function habit(over: Partial<ApiHabit> & { days?: number[] } = {}): ApiHabit {
-    const { days = [], ...rest } = over;
+function habit(
+    over: Partial<ApiHabit> & { days?: number[]; skipped?: number[] } = {},
+): ApiHabit {
+    const { days = [], skipped = [], ...rest } = over;
     const year = 2026;
     const month = 9;
     return {
@@ -27,6 +29,15 @@ function habit(over: Partial<ApiHabit> & { days?: number[] } = {}): ApiHabit {
         updatedAt: new Date(2026, 8, 1).toISOString(),
         logs: days.map((day) => ({
             id: `l${day}`,
+            habitId: (rest.id as string) ?? "h1",
+            userId: "u1",
+            year,
+            month,
+            day,
+            createdAt: new Date(2026, 8, day).toISOString(),
+        })),
+        skips: skipped.map((day) => ({
+            id: `s${day}`,
             habitId: (rest.id as string) ?? "h1",
             userId: "u1",
             year,
@@ -378,5 +389,112 @@ describe("buildActivityHeatmap — schedules and archiving", () => {
         assert.equal(r.summary.expected, 4);
         assert.equal(r.summary.completed, 4);
         assert.equal(r.summary.rate, 100);
+    });
+});
+
+describe("streak insurance — habitHistoryStats", () => {
+    test("a spent skip spans the gap", () => {
+        // Missed the 3rd. Without the skip the run is 2 (the 4th and 5th).
+        assert.equal(
+            habitHistoryStats(sep([habit({ days: [1, 2, 4, 5] })]), "h1", on(5))
+                .streak,
+            2,
+        );
+        assert.equal(
+            habitHistoryStats(
+                sep([habit({ days: [1, 2, 4, 5], skipped: [3] })]),
+                "h1",
+                on(5),
+            ).streak,
+            4,
+        );
+    });
+
+    test("a skip does not extend best, and does not move the rate", () => {
+        const plain = habitHistoryStats(
+            sep([habit({ days: [1, 2, 4, 5] })]),
+            "h1",
+            on(5),
+        );
+        const forgiven = habitHistoryStats(
+            sep([habit({ days: [1, 2, 4, 5], skipped: [3] })]),
+            "h1",
+            on(5),
+        );
+        assert.equal(forgiven.best, plain.best);
+        assert.equal(forgiven.best, 2);
+        assert.equal(forgiven.rate, plain.rate);
+        assert.equal(forgiven.completed, plain.completed);
+    });
+
+    test("a skip on the previous day still finds the run behind it", () => {
+        // Nothing today; yesterday forgiven; the run ended on the 3rd.
+        assert.equal(
+            habitHistoryStats(
+                sep([habit({ days: [1, 2, 3], skipped: [4] })]),
+                "h1",
+                on(5),
+            ).streak,
+            3,
+        );
+    });
+
+    test("the two streak implementations agree — the D3.6 regression", () => {
+        // deriveHabitStats is month-scoped, habitHistoryStats is not; inside
+        // one month they must report the same number, or the Today row and the
+        // habit detail screen contradict each other on adjacent screens.
+        for (const spec of [
+            { days: [1, 2, 4, 5], skipped: [3] },
+            { days: [1, 2, 5], skipped: [3, 4] },
+            { days: [1, 4, 5], skipped: [3] },
+            { days: [1, 2, 3], skipped: [4] },
+            { days: [1, 2, 3, 4, 5], skipped: [] },
+        ]) {
+            const h = habit(spec);
+            const month = deriveHabitStats(h, 2026, 9, 30, on(5));
+            const history = habitHistoryStats(sep([h]), "h1", on(5), h);
+            assert.equal(
+                history.streak,
+                month.streak,
+                `streak disagrees for ${JSON.stringify(spec)}`,
+            );
+            assert.equal(
+                history.best,
+                month.best,
+                `best disagrees for ${JSON.stringify(spec)}`,
+            );
+        }
+    });
+});
+
+describe("streak insurance — the grid", () => {
+    test("a forgiven day is marked skipped, not completed", () => {
+        const { grid } = buildHabitHeatmap(
+            sep([habit({ days: [1, 2, 4, 5], skipped: [3] })]),
+            "h1",
+            "Month",
+            on(5),
+        );
+        const cell = grid.days.find((d) => d.index === idx(3))!;
+        assert.equal(cell.skipped, true);
+        assert.equal(cell.done, false);
+        assert.equal(cell.level, 0);
+        assert.equal(cell.detail, "skipped · streak kept");
+    });
+
+    test("the window rate still counts a forgiven day as a miss", () => {
+        const plain = buildHabitHeatmap(
+            sep([habit({ days: [1, 2, 4, 5] })]),
+            "h1",
+            "Month",
+            on(5),
+        ).summary;
+        const forgiven = buildHabitHeatmap(
+            sep([habit({ days: [1, 2, 4, 5], skipped: [3] })]),
+            "h1",
+            "Month",
+            on(5),
+        ).summary;
+        assert.deepEqual(forgiven, plain);
     });
 });
