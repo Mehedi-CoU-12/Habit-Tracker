@@ -10,6 +10,7 @@ import { ApiDayNote, ApiHabit, UserProfile } from "../lib/types";
 import { lastNMonths } from "../lib/date";
 import { releasePlatform } from "../lib/version";
 import { MonthHabits } from "../lib/deriveStats";
+import { isDayComplete } from "../lib/completion";
 import { newId } from "../offline/ids";
 import { enqueue, type HabitPatch } from "../offline/outbox";
 import { runSync } from "../offline/sync";
@@ -169,11 +170,10 @@ export function useToggleLog(year: number, month: number) {
             day: number;
         }) => {
             await qc.cancelQueries({ queryKey: key });
-            const list = qc.getQueryData<ApiHabit[]>(key);
-            const has = !!list
-                ?.find((h) => h.id === habitId)
-                ?.logs.some((l) => l.day === day);
-            const completed = !has;
+            const habit = qc
+                .getQueryData<ApiHabit[]>(key)
+                ?.find((h) => h.id === habitId);
+            const completed = !(habit && isDayComplete(habit, day));
 
             qc.setQueryData<ApiHabit[]>(key, (old = []) =>
                 old.map((h) => {
@@ -213,6 +213,68 @@ export function useToggleLog(year: number, month: number) {
     });
 }
 
+/**
+ * Set an absolute amount for one (habit, day). Zero clears the day.
+ * Optimistic like useToggleLog, and offline-first through the same outbox.
+ */
+export function useSetLogAmount(year: number, month: number) {
+    const qc = useQueryClient();
+    const key = habitsKey(year, month);
+    return useMutation({
+        mutationFn: async ({
+            habitId,
+            day,
+            amount,
+        }: {
+            habitId: string;
+            day: number;
+            amount: number;
+        }) => {
+            await qc.cancelQueries({ queryKey: key });
+            const next = Math.max(0, Math.round(amount));
+
+            qc.setQueryData<ApiHabit[]>(key, (old = []) =>
+                old.map((h) => {
+                    if (h.id !== habitId) return h;
+                    const logs = h.logs.filter((l) => l.day !== day);
+                    if (next === 0) return { ...h, logs };
+                    const existing = h.logs.find((l) => l.day === day);
+                    return {
+                        ...h,
+                        logs: [
+                            ...logs,
+                            {
+                                id: existing?.id ?? `local-${habitId}-${day}`,
+                                habitId,
+                                userId: h.userId,
+                                year,
+                                month,
+                                day,
+                                amount: next,
+                                createdAt:
+                                    existing?.createdAt ??
+                                    new Date().toISOString(),
+                            },
+                        ],
+                    };
+                }),
+            );
+
+            await enqueue({
+                kind: "log.amount",
+                habitId,
+                year,
+                month,
+                day,
+                amount: next,
+            });
+            void runSync();
+            void syncReminders();
+            return { amount: next };
+        },
+    });
+}
+
 export function useCreateHabit(_year: number, _month: number) {
     const qc = useQueryClient();
     return useMutation({
@@ -222,6 +284,9 @@ export function useCreateHabit(_year: number, _month: number) {
             icon?: string;
             tod?: string;
             verb?: string;
+            target?: number | null;
+            unit?: string | null;
+            step?: number;
             daysOfWeek?: number[];
         }) => {
             const id = newId();
@@ -234,6 +299,9 @@ export function useCreateHabit(_year: number, _month: number) {
                 icon: input.icon ?? "sprout",
                 tod: input.tod ?? "anytime",
                 verb: input.verb ?? null,
+                target: input.target ?? null,
+                unit: input.unit ?? null,
+                step: input.step ?? 1,
                 daysOfWeek: input.daysOfWeek ?? [],
                 archivedAt: null,
                 userId: me?.id ?? "",
@@ -254,6 +322,9 @@ export function useCreateHabit(_year: number, _month: number) {
                     icon: input.icon,
                     tod: input.tod,
                     verb: input.verb,
+                    target: input.target,
+                    unit: input.unit,
+                    step: input.step,
                     ...(input.daysOfWeek
                         ? { daysOfWeek: input.daysOfWeek }
                         : {}),
