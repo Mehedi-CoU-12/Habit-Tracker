@@ -7,6 +7,9 @@ export type Habit = {
     icon: string;
     tod: Tod;
     verb: string | null;
+    /** Weekdays it is due on, 0 = Sunday. Empty means every day. */
+    daysOfWeek: number[];
+    archivedAt: string | null;
 };
 
 export type HabitWithStats = Habit & {
@@ -18,6 +21,8 @@ export type HabitWithStats = Habit & {
     best: number;
     rate: number;
     doneToday: boolean;
+    /** False on days this habit isn't scheduled for. */
+    scheduledToday: boolean;
 };
 
 export type HabitLog = {
@@ -34,6 +39,9 @@ export type ApiHabit = {
     icon: string;
     tod: string;
     verb: string | null;
+    /** Optional on the wire: absent for habits cached before scheduling. */
+    daysOfWeek?: number[];
+    archivedAt?: string | null;
     userId: string;
     createdAt: string;
     updatedAt: string;
