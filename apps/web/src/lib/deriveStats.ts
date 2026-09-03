@@ -23,12 +23,13 @@ export function deriveHabitStats(
     year: number,
     month: number,
     daysInMonth: number,
+    today: Date = new Date(),
 ): HabitWithStats {
     const completedDays = new Set(h.logs.map((l) => l.day));
     const completed = completedDays.size;
     const daysOfWeek = normalizeDays(h.daysOfWeek);
 
-    const now = new Date();
+    const now = today;
     const isCurrentMonth =
         now.getFullYear() === year && now.getMonth() + 1 === month;
     const refDay = isCurrentMonth
