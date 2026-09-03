@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -33,6 +33,7 @@ import type { Tod } from "../../lib/types";
 import { currentAppVersion, isOlderThan } from "../../lib/version";
 import { SOUND_STYLES, useSoundPrefs } from "../../sound";
 import { Card, Toggle } from "../../components/primitives";
+import DeleteAccountSheet from "../../components/DeleteAccountSheet";
 import Icon from "../../components/Icon";
 
 const TODS: Tod[] = ["morning", "afternoon", "evening", "anytime"];
@@ -44,7 +45,7 @@ export default function SettingsScreen() {
     const bloom = useBloom();
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const { signOut } = useAuth();
+    const { signOut, deleteAccount } = useAuth();
     const { data: me } = useMe();
     const uploadAvatar = useUploadAvatar();
     const online = useOnline();
@@ -91,6 +92,8 @@ export default function SettingsScreen() {
             },
         );
     }
+
+    const [confirmingDelete, setConfirmingDelete] = useState(false);
 
     const now = useMemo(() => new Date(), []);
     const { data: habits = [] } = useHabits(
@@ -642,6 +645,37 @@ export default function SettingsScreen() {
                     />
                 </Section>
 
+                {/* Deliberately its own section, below Sign out and below the
+                    fold: irreversible, and nothing near it should be
+                    mis-tappable into it. */}
+                <Section title="DANGER ZONE">
+                    <Row
+                        first
+                        icon="trash"
+                        label="Delete account"
+                        hint="Erases every habit, check-in and note. No undo."
+                        right={
+                            <Icon
+                                name="chevronRight"
+                                size={16}
+                                stroke={th.danger}
+                            />
+                        }
+                        onPress={() => {
+                            // A server-only, irreversible action: refuse it
+                            // offline rather than queue it.
+                            if (!online) {
+                                Alert.alert(
+                                    "You're offline",
+                                    "Deleting your account needs a connection. Try again once you're back online.",
+                                );
+                                return;
+                            }
+                            setConfirmingDelete(true);
+                        }}
+                    />
+                </Section>
+
                 <Section title="ABOUT">
                     <Row
                         first
@@ -688,6 +722,17 @@ export default function SettingsScreen() {
                     Plant something today. ☿
                 </Text>
             </ScrollView>
+
+            <DeleteAccountSheet
+                visible={confirmingDelete}
+                // Absent on a profile cached before this field existed; a
+                // password account is the safe assumption, since it asks for
+                // strictly more proof than the typed word.
+                hasPassword={me?.hasPassword !== false}
+                email={me?.email}
+                onClose={() => setConfirmingDelete(false)}
+                onConfirm={deleteAccount}
+            />
         </View>
     );
 }
