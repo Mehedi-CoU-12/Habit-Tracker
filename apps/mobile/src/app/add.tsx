@@ -396,10 +396,12 @@ export default function AddScreen() {
                             fontFamily: th.display,
                             fontSize: 30,
                             color: th.ink,
-                            // Android places the caret on the right when an
-                            // empty TextInput is center-aligned; only center
-                            // once there's text so typing always starts left.
-                            textAlign: name ? "center" : "left",
+                            // Left, and left in every state: this screen is the
+                            // edit screen too, so a centered field would render
+                            // centered the moment an existing name hydrates and
+                            // left for a new one. Matches the web modal and the
+                            // Today list, where the name also reads from left.
+                            textAlign: "left",
                             paddingVertical: 4,
                         }}
                     />
@@ -419,7 +421,7 @@ export default function AddScreen() {
                             fontFamily: th.sans,
                             fontSize: 13,
                             color: th.ink2,
-                            textAlign: verb ? "center" : "left",
+                            textAlign: "left",
                             marginTop: 10,
                         }}
                     />
