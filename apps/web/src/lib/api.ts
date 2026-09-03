@@ -11,6 +11,12 @@ export type UserProfile = {
     role: UserRole;
     status: AccountStatus;
     createdAt: string;
+    /**
+     * False for a Google-only account. Account deletion asks a password
+     * account for its password and a Google one for the typed word, so the
+     * confirmation UI has to know which it is.
+     */
+    hasPassword?: boolean;
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
@@ -134,9 +140,15 @@ async function handleResponse<T>(res: Response): Promise<T> {
         // Reached here only after a refresh attempt already failed (or there was
         // no refresh token): the session is truly dead.
         if (typeof window !== "undefined") {
-            const isAuthPage = ["/", "/login", "/signup"].includes(
-                window.location.pathname,
-            );
+            // /account/delete is deliberately in here: it is the public URL
+            // Play's Data Safety form points at, so an expired session must
+            // land on its signed-out explainer rather than bounce to /login.
+            const isAuthPage = [
+                "/",
+                "/login",
+                "/signup",
+                "/account/delete",
+            ].includes(window.location.pathname);
             if (!isAuthPage) {
                 clearTokens();
                 window.location.href = "/login";
@@ -211,6 +223,29 @@ export async function updateProfile(data: {
     return handleResponse<UserProfile>(res);
 }
 
+/**
+ * Erase the account and everything cascading from it. Irreversible.
+ *
+ * A password account proves intent with its current password; a Google-only
+ * account has none, so it sends the typed word DELETE instead. The server
+ * decides which one this account owes. Tokens are cleared locally on success —
+ * they are already dead server-side (the row the JWT strategy looks up is
+ * gone), this just stops the client from replaying them.
+ */
+export async function deleteAccount(input: {
+    password?: string;
+    confirmation?: string;
+}): Promise<{ deleted: boolean }> {
+    const res = await authedFetch(`/users/me`, {
+        method: "DELETE",
+        headers: JSON_HEADERS,
+        body: JSON.stringify(input),
+    });
+    const out = await handleResponse<{ deleted: boolean }>(res);
+    clearTokens();
+    return out;
+}
+
 export async function uploadAvatar(file: File): Promise<UserProfile> {
     const form = new FormData();
     form.append("avatar", file);
@@ -240,6 +275,8 @@ export type CreateHabitInput = {
     target?: number | null;
     unit?: string | null;
     step?: number;
+    /** Auto-log a bound focus session's minutes against this habit. */
+    fillFromFocus?: boolean;
 };
 
 export async function createHabit(input: CreateHabitInput): Promise<ApiHabit> {
@@ -268,6 +305,26 @@ export async function updateHabit(
 export async function deleteHabit(id: string): Promise<void> {
     const res = await authedFetch(`/habits/${id}`, { method: "DELETE" });
     return handleResponse<void>(res);
+}
+
+/**
+ * Spend or release one skip on a (habit, date) cell — streak insurance.
+ * Absolute and idempotent, so a replayed write converges to one row. The
+ * monthly allowance is enforced server-side.
+ */
+export async function setSkip(
+    habitId: string,
+    year: number,
+    month: number,
+    day: number,
+    used: boolean,
+): Promise<{ used: boolean; remaining: number }> {
+    const res = await authedFetch(`/habits/skips`, {
+        method: "PUT",
+        headers: JSON_HEADERS,
+        body: JSON.stringify({ habitId, year, month, day, used }),
+    });
+    return handleResponse<{ used: boolean; remaining: number }>(res);
 }
 
 export async function applyTemplate(
