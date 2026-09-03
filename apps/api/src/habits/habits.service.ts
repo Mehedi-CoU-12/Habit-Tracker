@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -11,6 +12,7 @@ import { UpdateHabitDto } from './dto/update-habit.dto.js';
 import { ToggleLogDto } from './dto/toggle-log.dto.js';
 import { SetLogDto } from './dto/set-log.dto.js';
 import { SetLogAmountDto } from './dto/set-log-amount.dto.js';
+import { SetSkipDto } from './dto/set-skip.dto.js';
 
 type TemplateHabit = {
   name: string;
@@ -184,6 +186,21 @@ export const TEMPLATES: Record<string, TemplateHabit[]> = {
 /** IDs of the built-in templates, used for request validation. */
 export const TEMPLATE_IDS = Object.keys(TEMPLATES);
 
+/**
+ * Skips one habit may spend per calendar month.
+ *
+ * Per-habit because habits differ in difficulty; monthly because the clients'
+ * month-scoped stats already break there, so the allowance and the maths share
+ * a natural boundary. A shared per-account pool would mean a hard habit's skip
+ * is stolen from an easy one, and users would have to budget.
+ */
+export const SKIPS_PER_MONTH = 1;
+
+/** Weekday (0 = Sunday) of a y/m/d triplet, without building a local Date. */
+function weekdayOf(year: number, month: number, day: number): number {
+  return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+}
+
 @Injectable()
 export class HabitsService {
   constructor(
@@ -205,6 +222,9 @@ export class HabitsService {
           where: { userId },
           include: {
             logs: { where: { year, month } },
+            // The clients cannot compute a forgiven streak without these, and
+            // they are month-scoped exactly like the logs.
+            skips: { where: { year, month } },
           },
           orderBy: { createdAt: 'asc' },
         }),
@@ -246,6 +266,9 @@ export class HabitsService {
               target: dto.target,
               ...(dto.unit ? { unit: dto.unit } : {}),
               ...(dto.step ? { step: dto.step } : {}),
+              ...(dto.fillFromFocus !== undefined
+                ? { fillFromFocus: dto.fillFromFocus }
+                : {}),
             }
           : {}),
         ...(dto.daysOfWeek ? { daysOfWeek: dto.daysOfWeek } : {}),
@@ -272,11 +295,16 @@ export class HabitsService {
         // Clearing the target reverts the habit to binary, so unit and step go
         // with it rather than lingering as orphans.
         ...(dto.target === null
-          ? { target: null, unit: null, step: 1 }
+          ? // Auto-fill is meaningless without a target, so it goes with it
+            // rather than lingering as a flag nothing can act on.
+            { target: null, unit: null, step: 1, fillFromFocus: false }
           : {
               ...(dto.target !== undefined ? { target: dto.target } : {}),
               ...(dto.unit !== undefined ? { unit: dto.unit } : {}),
               ...(dto.step !== undefined ? { step: dto.step } : {}),
+              ...(dto.fillFromFocus !== undefined
+                ? { fillFromFocus: dto.fillFromFocus }
+                : {}),
             }),
         ...(dto.daysOfWeek !== undefined ? { daysOfWeek: dto.daysOfWeek } : {}),
         // The server owns the timestamp; the client only says which way.
@@ -392,6 +420,84 @@ export class HabitsService {
     }
     await this.invalidateHabits(userId);
     return { completed };
+  }
+
+  /**
+   * Spend or release one skip on a (habit, date) cell. Absolute and idempotent
+   * like setLog, so a replayed offline op converges to one row rather than
+   * toggling the skip off again.
+   *
+   * The monthly allowance is enforced here rather than in the UI: a client-side
+   * check is a suggestion.
+   */
+  async setSkip(userId: string, dto: SetSkipDto) {
+    const { habitId, year, month, day, used } = dto;
+
+    const habit = await this.prisma.habit.findUnique({
+      where: { id: habitId },
+    });
+    if (!habit) throw new NotFoundException('Habit not found');
+    if (habit.userId !== userId) throw new ForbiddenException();
+
+    const where = { habitId_year_month_day: { habitId, year, month, day } };
+
+    if (!used) {
+      // deleteMany so releasing an unspent day is a no-op, never a 404.
+      await this.prisma.habitSkip.deleteMany({
+        where: { habitId, year, month, day },
+      });
+      await this.invalidateHabits(userId);
+      return {
+        used: false,
+        remaining: await this.skipsLeft(habitId, year, month),
+      };
+    }
+
+    // A rest day already behaves like a skip, so there is nothing to buy.
+    // Refusing rather than silently accepting keeps the allowance honest.
+    if (
+      habit.daysOfWeek.length > 0 &&
+      !habit.daysOfWeek.includes(weekdayOf(year, month, day))
+    ) {
+      throw new BadRequestException(
+        'This habit was not due that day — a skip would change nothing',
+      );
+    }
+
+    const existing = await this.prisma.habitSkip.findUnique({ where });
+    if (existing) {
+      // Already spent on this exact day: a replay, not a second skip.
+      return {
+        used: true,
+        remaining: await this.skipsLeft(habitId, year, month),
+      };
+    }
+
+    const spent = await this.prisma.habitSkip.count({
+      where: { habitId, year, month },
+    });
+    if (spent >= SKIPS_PER_MONTH) {
+      throw new BadRequestException(
+        `You have used your skip for this habit in ${month}/${year}`,
+      );
+    }
+
+    await this.prisma.habitSkip.create({
+      data: { habitId, userId, year, month, day },
+    });
+    await this.invalidateHabits(userId);
+    return {
+      used: true,
+      remaining: await this.skipsLeft(habitId, year, month),
+    };
+  }
+
+  /** Skips this habit has left in one calendar month, never below zero. */
+  private async skipsLeft(habitId: string, year: number, month: number) {
+    const spent = await this.prisma.habitSkip.count({
+      where: { habitId, year, month },
+    });
+    return Math.max(0, SKIPS_PER_MONTH - spent);
   }
 
   /** Absolute amount write. Zero clears the cell; completion is derived. */
