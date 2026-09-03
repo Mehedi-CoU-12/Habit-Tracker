@@ -41,6 +41,13 @@ export default function HabitRow({
         );
     }
 
+    /** 0..1 of the day's target — 0 when nothing was logged. */
+    function progress(day: number) {
+        const log = logs.find((l) => l.habitId === habit.id && l.day === day);
+        if (!log) return 0;
+        return Math.min(1, log.amount / Math.max(1, habit.target ?? 1));
+    }
+
     const bg = isEven ? "bg-surface" : "bg-surface2/30";
 
     return (
@@ -96,6 +103,7 @@ export default function HabitRow({
             {DAYS.map((day) => {
                 const checked = isChecked(day);
                 const future = isFutureDay(year, month, day);
+                const part = checked ? 0 : progress(day);
 
                 return (
                     <td key={day} className="w-6 py-2 text-center">
@@ -105,7 +113,7 @@ export default function HabitRow({
                             title={
                                 future ? "Cannot log future days" : undefined
                             }
-                            className={`mx-auto flex h-5 w-5 items-center justify-center rounded-md border transition-colors ${
+                            className={`relative mx-auto flex h-5 w-5 items-center justify-center overflow-hidden rounded-md border transition-colors ${
                                 future
                                     ? checked
                                         ? "cursor-not-allowed border-green/60 bg-green/60 opacity-60"
@@ -114,8 +122,20 @@ export default function HabitRow({
                                       ? "cursor-pointer border-green bg-green hover:brightness-95"
                                       : "cursor-pointer border-line hover:border-accent"
                             }`}
-                            aria-label={`Day ${day}${future ? " (future, locked)" : ""}`}
+                            aria-label={`Day ${day}${
+                                part > 0
+                                    ? ` (${Math.round(part * 100)}% of target)`
+                                    : ""
+                            }${future ? " (future, locked)" : ""}`}
                         >
+                            {/* A part-filled day fills from the bottom, so
+                                progress is visible without reading as done. */}
+                            {part > 0 && (
+                                <span
+                                    className="absolute inset-x-0 bottom-0 rounded-b-[3px] bg-green/40"
+                                    style={{ height: `${part * 100}%` }}
+                                />
+                            )}
                             {checked && (
                                 <BloomIcon
                                     name="check"

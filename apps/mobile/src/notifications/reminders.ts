@@ -3,6 +3,7 @@ import * as Notifications from "expo-notifications";
 import { queryClient } from "../api/queryClient";
 import type { ApiHabit, Tod } from "../lib/types";
 import { isExpectedOnDate, normalizeDays } from "../lib/schedule";
+import { amountOn, isDayComplete, targetOf } from "../lib/completion";
 import { hasPermission } from "./permissions";
 import { getPrefs, loadPrefs } from "./store";
 import {
@@ -27,6 +28,8 @@ type HabitLite = {
     name: string;
     tod: Tod;
     doneToday: boolean;
+    /** "2 cups to go" for a part-filled quantified habit, else undefined. */
+    remaining?: string;
     /** Weekdays it is due on, 0 = Sunday. Empty = daily. */
     daysOfWeek: number[];
 };
@@ -35,6 +38,15 @@ type HabitLite = {
 // inlined here to keep this module free of a cycle back into the React hooks.
 function habitsKey(year: number, month: number) {
     return ["habits", year, month] as const;
+}
+
+/** "3 cups to go", for a quantified habit with progress already logged. */
+function remainingLabel(h: ApiHabit, day: number): string | undefined {
+    if (h.target == null) return undefined;
+    const done = amountOn(h, day);
+    if (done <= 0) return undefined;
+    const left = targetOf(h) - done;
+    return left > 0 ? `${left}${h.unit ? ` ${h.unit}` : ""} to go` : undefined;
 }
 
 /** Read the current month's habits from the cache + whether each is done today. */
@@ -53,7 +65,8 @@ function readHabits(now: Date): HabitLite[] {
                 id: h.id,
                 name: h.name,
                 tod: normalizeTod(h.tod),
-                doneToday: h.logs.some((l) => l.day === today),
+                doneToday: isDayComplete(h, today),
+                remaining: remainingLabel(h, today),
                 daysOfWeek: normalizeDays(h.daysOfWeek),
             }))
     );
@@ -92,7 +105,9 @@ function idFor(dKey: string, time: TimeStr): string {
 /** Human-facing title/body for a slot, coalescing multiple habits into one. */
 // A habit's custom message only shows when it's alone in its slot — a coalesced
 // summary can't speak in one habit's voice, so it falls back to the name list.
-function renderCopy(items: { name: string; message?: string }[]): {
+function renderCopy(
+    items: { name: string; message?: string; remaining?: string }[],
+): {
     title: string;
     body: string;
 } {
@@ -100,7 +115,9 @@ function renderCopy(items: { name: string; message?: string }[]): {
         return {
             title: items[0].name,
             body:
-                items[0].message?.trim() || "You haven't done this yet today.",
+                items[0].message?.trim() ||
+                items[0].remaining ||
+                "You haven't done this yet today.",
         };
     }
     return {
@@ -134,7 +151,10 @@ export function computeDesired(
     const desired: Desired = new Map();
 
     for (let off = 0; off <= HORIZON_DAYS; off++) {
-        const items = new Map<TimeStr, { name: string; message?: string }[]>();
+        const items = new Map<
+            TimeStr,
+            { name: string; message?: string; remaining?: string }[]
+        >();
         const ids = new Map<TimeStr, string[]>();
 
         // The local date this offset lands on, for the weekday check below.
@@ -160,6 +180,8 @@ export function computeDesired(
                 items.get(time)!.push({
                     name: h.name,
                     message: prefs.overrides[h.id]?.message,
+                    // Only today's progress is known; future days start empty.
+                    remaining: off === 0 ? h.remaining : undefined,
                 });
                 ids.get(time)!.push(h.id);
             }
@@ -293,19 +315,23 @@ export function markDoneInCache(habitId: string, now: Date): void {
     const day = now.getDate();
     queryClient.setQueryData<ApiHabit[]>(key, (old) =>
         old?.map((h) => {
-            if (h.id !== habitId || h.logs.some((l) => l.day === day)) return h;
+            if (h.id !== habitId || isDayComplete(h, day)) return h;
+            // A part-filled day already has a row: raise it to the target
+            // rather than appending a second row for the same day.
+            const existing = h.logs.find((l) => l.day === day);
             return {
                 ...h,
                 logs: [
-                    ...h.logs,
+                    ...h.logs.filter((l) => l.day !== day),
                     {
-                        id: `local-${habitId}-${day}`,
+                        id: existing?.id ?? `local-${habitId}-${day}`,
                         habitId,
                         userId: h.userId,
                         year: now.getFullYear(),
                         month: now.getMonth() + 1,
                         day,
-                        createdAt: now.toISOString(),
+                        amount: targetOf(h),
+                        createdAt: existing?.createdAt ?? now.toISOString(),
                     },
                 ],
             };

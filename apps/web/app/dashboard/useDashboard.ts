@@ -7,6 +7,7 @@ import dayjs from "dayjs";
 import { calculateDailyProgress } from "../../src/utils/dailyProgress";
 import { calculateWeeklyProgress } from "../../src/utils/weeklyProgress";
 import { deriveHabitStats } from "../../src/lib/deriveStats";
+import { amountOn, isDayComplete } from "../../src/lib/completion";
 import {
     fetchHabits,
     createHabit,
@@ -81,7 +82,12 @@ export function useDashboard() {
     );
 
     const logs: HabitLog[] = liveHabits.flatMap((h) =>
-        h.logs.map((l) => ({ habitId: h.id, day: l.day, completed: true })),
+        h.logs.map((l) => ({
+            habitId: h.id,
+            day: l.day,
+            completed: isDayComplete(h, l.day),
+            amount: amountOn(h, l.day),
+        })),
     );
 
     const totalCompleted = habits.reduce((s, h) => s + h.completed, 0);

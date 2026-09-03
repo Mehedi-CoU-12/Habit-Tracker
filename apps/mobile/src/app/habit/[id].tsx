@@ -7,10 +7,12 @@ import {
     useHabits,
     useHabitsHistory,
     useToggleLog,
+    useSetLogAmount,
     useDeleteHabit,
     useUpdateHabit,
 } from "../../api/hooks";
 import { isDaily, scheduleLabel } from "../../lib/schedule";
+import { isQuantified } from "../../lib/completion";
 import { deriveHabitStats, daysInMonth } from "../../lib/deriveStats";
 import {
     HEAT_PERIODS,
@@ -51,6 +53,7 @@ export default function DetailScreen() {
 
     const { data: raw = [] } = useHabits(year, month);
     const toggle = useToggleLog(year, month);
+    const setAmount = useSetLogAmount(year, month);
     const del = useDeleteHabit(year, month);
     const update = useUpdateHabit(year, month);
     const [sparkle, setSparkle] = useState(false);
@@ -100,11 +103,35 @@ export default function DetailScreen() {
         );
     }
 
+    const quantified = isQuantified(h);
+    const target = Math.max(1, h.target ?? 1);
+    const progress = quantified
+        ? Math.min(1, h.todayAmount / target)
+        : h.doneToday
+          ? 1
+          : 0;
+    const remaining = Math.max(0, target - h.todayAmount);
+
+    const celebrate = () => {
+        setSparkle(true);
+        setTimeout(() => setSparkle(false), 700);
+    };
+
     const handleCheck = () => {
-        if (!h.doneToday) {
-            setSparkle(true);
-            setTimeout(() => setSparkle(false), 700);
+        if (h.doneToday) {
+            toggle.mutate({ habitId: h.id, day: now.getDate() });
+            return;
         }
+        if (quantified) {
+            if (h.todayAmount + h.step >= target) celebrate();
+            setAmount.mutate({
+                habitId: h.id,
+                day: now.getDate(),
+                amount: Math.min(target, h.todayAmount + h.step),
+            });
+            return;
+        }
+        celebrate();
         toggle.mutate({ habitId: h.id, day: now.getDate() });
     };
 
@@ -316,6 +343,53 @@ export default function DetailScreen() {
 
                 {/* done button */}
                 <View style={{ marginHorizontal: th.d.pad, marginTop: 22 }}>
+                    {quantified && (
+                        <View style={{ marginBottom: 10 }}>
+                            <View
+                                style={{
+                                    flexDirection: "row",
+                                    justifyContent: "space-between",
+                                    alignItems: "baseline",
+                                    marginBottom: 6,
+                                }}
+                            >
+                                <Text
+                                    style={{
+                                        fontFamily: th.sansBold,
+                                        fontSize: 13,
+                                        color: th.ink,
+                                    }}
+                                >
+                                    {h.todayAmount} / {target}
+                                    {h.unit ? ` ${h.unit}` : ""}
+                                </Text>
+                                <Text style={{ fontSize: 12, color: th.muted }}>
+                                    {remaining === 0
+                                        ? "target reached"
+                                        : `${remaining} to go`}
+                                </Text>
+                            </View>
+                            <View
+                                style={{
+                                    height: 8,
+                                    borderRadius: 4,
+                                    backgroundColor: th.surface2,
+                                    overflow: "hidden",
+                                }}
+                            >
+                                <View
+                                    style={{
+                                        width: `${progress * 100}%`,
+                                        height: "100%",
+                                        borderRadius: 4,
+                                        backgroundColor: h.doneToday
+                                            ? th.green
+                                            : th.accent,
+                                    }}
+                                />
+                            </View>
+                        </View>
+                    )}
                     <Pressable
                         onPress={handleCheck}
                         style={{
@@ -333,7 +407,7 @@ export default function DetailScreen() {
                         }}
                     >
                         <Icon
-                            name="check"
+                            name={quantified && !h.doneToday ? "plus" : "check"}
                             size={20}
                             stroke={h.doneToday ? th.greenDeep : "#fff"}
                             strokeWidth={2.4}
@@ -347,7 +421,9 @@ export default function DetailScreen() {
                         >
                             {h.doneToday
                                 ? "Done today — tap to undo"
-                                : "Mark as done today"}
+                                : quantified
+                                  ? `Add ${h.step}${h.unit ? ` ${h.unit}` : ""}`
+                                  : "Mark as done today"}
                         </Text>
                     </Pressable>
                     <Pill

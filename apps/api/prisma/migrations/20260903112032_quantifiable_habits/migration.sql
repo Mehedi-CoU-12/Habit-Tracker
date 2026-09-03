@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE "Habit" ADD COLUMN     "step" INTEGER NOT NULL DEFAULT 1,
+ADD COLUMN     "target" INTEGER,
+ADD COLUMN     "unit" TEXT;
+
+-- AlterTable
+ALTER TABLE "HabitLog" ADD COLUMN     "amount" INTEGER NOT NULL DEFAULT 1;

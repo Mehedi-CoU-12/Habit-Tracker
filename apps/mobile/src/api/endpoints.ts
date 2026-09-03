@@ -90,6 +90,9 @@ export function createHabit(input: {
     icon?: string;
     tod?: string;
     verb?: string;
+    target?: number | null;
+    unit?: string | null;
+    step?: number;
 }) {
     return apiPost<ApiHabit>("/habits", input);
 }
@@ -102,6 +105,9 @@ export function updateHabit(
         icon?: string;
         tod?: string;
         verb?: string;
+        target?: number | null;
+        unit?: string | null;
+        step?: number;
     },
 ) {
     return apiPatch<ApiHabit>(`/habits/${id}`, input);
@@ -143,6 +149,29 @@ export function setLog(
         day,
         completed,
     });
+}
+
+/**
+ * Absolute amount write for one (habit, date) cell. Zero clears the day; the
+ * server derives completion against the habit's target.
+ */
+export function setLogAmount(
+    habitId: string,
+    year: number,
+    month: number,
+    day: number,
+    amount: number,
+) {
+    return apiPut<{ amount: number; completed: boolean }>(
+        "/habits/logs/amount",
+        {
+            habitId,
+            year,
+            month,
+            day,
+            amount,
+        },
+    );
 }
 
 export function applyTemplate(templateId: string) {

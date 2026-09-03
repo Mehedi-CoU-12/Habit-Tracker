@@ -3,6 +3,13 @@
 > **Generated:** 2026-06-21 · **Scope:** `apps/mobile` (primary), with `apps/api` and monorepo DX where relevant.
 > **How to use this doc:** Sections 1–8 are the findings. Section 9 is the execution plan — tick the `- [ ]` boxes as you complete them. File references are `path:line`.
 
+> ⚠️ **Largely superseded — read the verdict below as history, not as the current state.**
+> Written before reminders, real heatmaps, the Stats period switcher, offline sync, Google sign-in,
+> scheduling and archiving shipped. Most of what it calls "demo-ware" or missing now exists. The
+> parts that still stand: no in-app account deletion (a store-submission blocker), and `deriveStats`
+> duplicated between web and mobile. For current work see
+> [features-or-bugDoc.md](features-or-bugDoc.md).
+
 > **Headline verdict:** HabitFlow has a distinctive, polished "Bloom" identity and a clean layered architecture — but several prominent features are **demo-ware**: onboarding collects your habits then throws them away, two heatmaps render _fabricated_ data, the reminder toggles and the Stats period switcher do nothing, and the #1 habit-tracker feature (notifications) doesn't exist. There is also a **hard App/Play Store ship-blocker**: no in-app account deletion. Many of the highest-value fixes are _pure wiring_ against a backend that already supports them.
 
 ---

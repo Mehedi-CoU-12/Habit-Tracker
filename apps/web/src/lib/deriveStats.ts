@@ -1,5 +1,6 @@
 import { ApiHabit, HabitWithStats, Tod } from "../../app/dashboard/types";
 import { isExpectedOnDate, normalizeDays } from "./schedule";
+import { amountOn, completedDaysOf } from "./completion";
 
 const TOD_VALUES: Tod[] = ["morning", "afternoon", "evening", "anytime"];
 
@@ -25,7 +26,7 @@ export function deriveHabitStats(
     daysInMonth: number,
     today: Date = new Date(),
 ): HabitWithStats {
-    const completedDays = new Set(h.logs.map((l) => l.day));
+    const completedDays = completedDaysOf(h);
     const completed = completedDays.size;
     const daysOfWeek = normalizeDays(h.daysOfWeek);
 
@@ -90,6 +91,10 @@ export function deriveHabitStats(
         icon: h.icon || "sprout",
         tod: normalizeTod(h.tod),
         verb: h.verb ?? null,
+        target: h.target ?? null,
+        unit: h.unit ?? null,
+        step: h.step && h.step > 0 ? h.step : 1,
+        todayAmount: isCurrentMonth ? amountOn(h, now.getDate()) : 0,
         daysOfWeek,
         archivedAt: h.archivedAt ?? null,
         scheduledToday: isExpectedOnDate(daysOfWeek, now),

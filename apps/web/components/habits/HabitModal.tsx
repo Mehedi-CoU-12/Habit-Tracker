@@ -51,6 +51,10 @@ export default function HabitModal({
     const [icon, setIcon] = useState(habit?.icon ?? "sprout");
     const [tod, setTod] = useState<string>(habit?.tod ?? "morning");
     const [verb, setVerb] = useState(habit?.verb ?? "");
+    // null keeps the habit binary, which is where every habit starts.
+    const [target, setTarget] = useState<number | null>(habit?.target ?? null);
+    const [unit, setUnit] = useState(habit?.unit ?? "");
+    const [step, setStep] = useState(habit?.step ?? 1);
     const [error, setError] = useState("");
 
     function handleSubmit(e: React.FormEvent) {
@@ -69,6 +73,9 @@ export default function HabitModal({
             icon,
             tod,
             verb: verb.trim() || undefined,
+            target,
+            unit: target === null ? null : unit.trim() || null,
+            step: target === null ? 1 : step,
         });
     }
 
@@ -185,6 +192,88 @@ export default function HabitModal({
                                 className="w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent"
                             />
                         </div>
+                    </div>
+
+                    {/* Daily target — kept apart from the monthly goal above,
+                        which counts days rather than an amount. */}
+                    <div className="rounded-lg border border-line p-3.5">
+                        <label className="flex cursor-pointer items-center justify-between">
+                            <span className="text-[11px] font-bold uppercase tracking-widest text-muted">
+                                Track a number
+                            </span>
+                            <input
+                                type="checkbox"
+                                checked={target !== null}
+                                onChange={(e) => {
+                                    if (!e.target.checked) {
+                                        setTarget(null);
+                                        return;
+                                    }
+                                    // Seed from the note when it already reads
+                                    // like an amount ("8 cups").
+                                    const m = verb
+                                        .trim()
+                                        .match(/^(\d+)\s*(.*)$/);
+                                    setTarget(m ? Number(m[1]) : 1);
+                                    if (m && m[2]) setUnit(m[2].slice(0, 16));
+                                }}
+                                className="h-4 w-4 cursor-pointer accent-accent"
+                            />
+                        </label>
+
+                        {target === null ? (
+                            <p className="mt-2 text-xs text-muted">
+                                Off — this habit is simply done or not done each
+                                day.
+                            </p>
+                        ) : (
+                            <div className="mt-3 grid grid-cols-3 gap-3">
+                                <div>
+                                    <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-widest text-muted">
+                                        Target
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        max={10000}
+                                        value={target}
+                                        onChange={(e) =>
+                                            setTarget(Number(e.target.value))
+                                        }
+                                        className="w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-widest text-muted">
+                                        Unit
+                                    </label>
+                                    <input
+                                        value={unit}
+                                        maxLength={16}
+                                        onChange={(e) =>
+                                            setUnit(e.target.value)
+                                        }
+                                        placeholder="cups"
+                                        className="w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-widest text-muted">
+                                        Per tap
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        max={1000}
+                                        value={step}
+                                        onChange={(e) =>
+                                            setStep(Number(e.target.value))
+                                        }
+                                        className="w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent"
+                                    />
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {error && <p className="text-sm text-red-500">{error}</p>}

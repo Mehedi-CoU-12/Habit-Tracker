@@ -7,6 +7,8 @@ export type ApiHabitLog = {
     year: number;
     month: number;
     day: number;
+    /** How much was done. Absent in cache written before quantities: means 1. */
+    amount?: number;
     createdAt: string;
 };
 
@@ -18,6 +20,10 @@ export type ApiHabit = {
     icon: string;
     tod: string;
     verb: string | null;
+    /** Daily target amount; null or absent is a binary done/not-done habit. */
+    target?: number | null;
+    unit?: string | null;
+    step?: number;
     daysOfWeek?: number[];
     archivedAt?: string | null;
     userId: string;
@@ -45,6 +51,13 @@ export type HabitWithStats = {
     icon: string;
     tod: Tod;
     verb: string | null;
+    /** Daily target amount; null for a binary done/not-done habit. */
+    target: number | null;
+    unit: string | null;
+    /** How much one tap adds. */
+    step: number;
+    /** How much is logged today, 0 when nothing is. */
+    todayAmount: number;
     /** Normalized schedule: weekday numbers, or empty for daily. */
     daysOfWeek: number[];
     archivedAt: string | null;

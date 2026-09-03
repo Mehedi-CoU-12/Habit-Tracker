@@ -152,6 +152,12 @@ export default function AddScreen() {
     const [icon, setIcon] = useState("sprout");
     const [tod, setTod] = useState<Tod>("morning");
     const [goal, setGoal] = useState(20);
+    // Quantity tracking. `target === null` keeps the habit binary, which is
+    // every habit until the user turns this block on.
+    const [target, setTarget] = useState<number | null>(null);
+    const [unit, setUnit] = useState("");
+    const [step, setStep] = useState(1);
+    const [targetDraft, setTargetDraft] = useState<string | null>(null);
     // Weekday schedule, 0 = Sunday. Empty means daily, which is also what a
     // habit created before scheduling existed carries.
     const [daysOfWeek, setDaysOfWeek] = useState<number[]>([]);
@@ -166,6 +172,31 @@ export default function AddScreen() {
     const stepGoal = (d: number) => {
         setGoalDraft(null);
         setGoal((g) => Math.min(31, Math.max(1, g + d)));
+    };
+
+    const changeTarget = (t: string) => {
+        const digits = t.replace(/\D/g, "");
+        setTargetDraft(digits);
+        const n = parseInt(digits, 10);
+        if (!Number.isNaN(n)) setTarget(Math.min(10000, Math.max(1, n)));
+    };
+    const bumpTarget = (d: number) => {
+        setTargetDraft(null);
+        setTarget((t) => Math.min(10000, Math.max(1, (t ?? 1) + d)));
+    };
+
+    /**
+     * Turning quantities on seeds the target from the note when it already
+     * reads like one ("8 cups"), so an existing habit converts in one tap.
+     */
+    const toggleQuantified = () => {
+        if (target !== null) {
+            setTarget(null);
+            return;
+        }
+        const m = verb.trim().match(/^(\d+)\s*(.*)$/);
+        setTarget(m ? Math.min(10000, Math.max(1, parseInt(m[1], 10))) : 1);
+        if (m && m[2]) setUnit(m[2].slice(0, 16));
     };
 
     // Per-habit reminder, edited here and committed to the device-local
@@ -189,6 +220,9 @@ export default function AddScreen() {
             setIcon(editing.icon);
             setTod(editing.tod as Tod);
             setGoal(editing.goal);
+            setTarget(editing.target ?? null);
+            setUnit(editing.unit ?? "");
+            setStep(editing.step && editing.step > 0 ? editing.step : 1);
             setDaysOfWeek(normalizeDays(editing.daysOfWeek));
             const eff = effectiveReminder(
                 editing.id,
@@ -257,6 +291,10 @@ export default function AddScreen() {
             icon,
             tod,
             verb: verb.trim() || undefined,
+            // null is meaningful here: it clears a target the habit used to have.
+            target,
+            unit: target === null ? null : unit.trim() || null,
+            step: target === null ? 1 : step,
             daysOfWeek: normalizeDays(daysOfWeek),
         };
         // Message is committed even while the reminder is off so it survives
@@ -358,10 +396,12 @@ export default function AddScreen() {
                             fontFamily: th.display,
                             fontSize: 30,
                             color: th.ink,
-                            // Android places the caret on the right when an
-                            // empty TextInput is center-aligned; only center
-                            // once there's text so typing always starts left.
-                            textAlign: name ? "center" : "left",
+                            // Left, and left in every state: this screen is the
+                            // edit screen too, so a centered field would render
+                            // centered the moment an existing name hydrates and
+                            // left for a new one. Matches the web modal and the
+                            // Today list, where the name also reads from left.
+                            textAlign: "left",
                             paddingVertical: 4,
                         }}
                     />
@@ -381,7 +421,7 @@ export default function AddScreen() {
                             fontFamily: th.sans,
                             fontSize: 13,
                             color: th.ink2,
-                            textAlign: verb ? "center" : "left",
+                            textAlign: "left",
                             marginTop: 10,
                         }}
                     />
@@ -675,6 +715,196 @@ export default function AddScreen() {
                             </Text>
                         </Pressable>
                     </View>
+                </View>
+
+                {/* daily target — deliberately its own block, because a
+                    monthly count of days and a daily amount are easy to confuse */}
+                <View style={{ paddingHorizontal: th.d.pad, marginBottom: 28 }}>
+                    <View
+                        style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            marginBottom: 8,
+                        }}
+                    >
+                        <Text
+                            style={{
+                                fontSize: 11,
+                                color: th.muted,
+                                fontFamily: th.sansBold,
+                                letterSpacing: 0.8,
+                            }}
+                        >
+                            TRACK A NUMBER
+                        </Text>
+                        <Pressable
+                            onPress={toggleQuantified}
+                            style={{
+                                width: 46,
+                                height: 26,
+                                borderRadius: 13,
+                                padding: 3,
+                                backgroundColor:
+                                    target !== null ? th.accent : th.surface2,
+                                alignItems:
+                                    target !== null ? "flex-end" : "flex-start",
+                            }}
+                        >
+                            <View
+                                style={{
+                                    width: 20,
+                                    height: 20,
+                                    borderRadius: 10,
+                                    backgroundColor: "#fff",
+                                }}
+                            />
+                        </Pressable>
+                    </View>
+
+                    {target === null ? (
+                        <Text style={{ fontSize: 12.5, color: th.muted }}>
+                            Off — this habit is simply done or not done each
+                            day.
+                        </Text>
+                    ) : (
+                        <View
+                            style={{
+                                backgroundColor: th.surface,
+                                borderWidth: 1.5,
+                                borderColor: th.line,
+                                borderRadius: 16,
+                                padding: 16,
+                                gap: 14,
+                            }}
+                        >
+                            <View
+                                style={{
+                                    flexDirection: "row",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                }}
+                            >
+                                <Pressable
+                                    onPress={() => bumpTarget(-step)}
+                                    style={{
+                                        width: 36,
+                                        height: 36,
+                                        borderRadius: 18,
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        backgroundColor: th.surface2,
+                                    }}
+                                >
+                                    <Text
+                                        style={{ fontSize: 22, color: th.ink }}
+                                    >
+                                        −
+                                    </Text>
+                                </Pressable>
+                                <View
+                                    style={{
+                                        flexDirection: "row",
+                                        alignItems: "center",
+                                    }}
+                                >
+                                    <TextInput
+                                        value={targetDraft ?? String(target)}
+                                        onChangeText={changeTarget}
+                                        onBlur={() => setTargetDraft(null)}
+                                        keyboardType="number-pad"
+                                        maxLength={5}
+                                        selectTextOnFocus
+                                        style={{
+                                            fontFamily: th.display,
+                                            fontSize: 24,
+                                            color: th.ink,
+                                            minWidth: 40,
+                                            textAlign: "center",
+                                            padding: 0,
+                                        }}
+                                    />
+                                    <TextInput
+                                        value={unit}
+                                        onChangeText={(t) =>
+                                            setUnit(t.slice(0, 16))
+                                        }
+                                        placeholder="cups"
+                                        placeholderTextColor={th.muted}
+                                        maxLength={16}
+                                        style={{
+                                            fontFamily: th.display,
+                                            fontSize: 14,
+                                            color: th.muted,
+                                            marginLeft: 6,
+                                            minWidth: 48,
+                                            padding: 0,
+                                        }}
+                                    />
+                                </View>
+                                <Pressable
+                                    onPress={() => bumpTarget(step)}
+                                    style={{
+                                        width: 36,
+                                        height: 36,
+                                        borderRadius: 18,
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        backgroundColor: th.surface2,
+                                    }}
+                                >
+                                    <Text
+                                        style={{ fontSize: 22, color: th.ink }}
+                                    >
+                                        +
+                                    </Text>
+                                </Pressable>
+                            </View>
+
+                            <View
+                                style={{
+                                    flexDirection: "row",
+                                    alignItems: "center",
+                                    gap: 8,
+                                    flexWrap: "wrap",
+                                }}
+                            >
+                                <Text
+                                    style={{ fontSize: 12.5, color: th.muted }}
+                                >
+                                    Each tap adds
+                                </Text>
+                                {[1, 5, 10, 15].map((n) => (
+                                    <Pressable
+                                        key={n}
+                                        onPress={() => setStep(n)}
+                                        style={{
+                                            paddingVertical: 5,
+                                            paddingHorizontal: 12,
+                                            borderRadius: 12,
+                                            backgroundColor:
+                                                step === n
+                                                    ? th.accent
+                                                    : th.surface2,
+                                        }}
+                                    >
+                                        <Text
+                                            style={{
+                                                fontSize: 12,
+                                                fontFamily: th.sansBold,
+                                                color:
+                                                    step === n
+                                                        ? "#fff"
+                                                        : th.ink,
+                                            }}
+                                        >
+                                            {n}
+                                        </Text>
+                                    </Pressable>
+                                ))}
+                            </View>
+                        </View>
+                    )}
                 </View>
 
                 {/* reminder */}

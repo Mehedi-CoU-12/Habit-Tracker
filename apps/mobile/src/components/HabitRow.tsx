@@ -3,6 +3,7 @@ import { Pressable, Text, View } from "react-native";
 import { useTheme } from "../theme/ThemeProvider";
 import { HabitWithStats } from "../lib/types";
 import { isDaily, scheduleLabel } from "../lib/schedule";
+import { isQuantified } from "../lib/completion";
 import Icon from "./Icon";
 import { Sparkles } from "./primitives";
 
@@ -70,15 +71,27 @@ export function RoutineHeader({
     );
 }
 
+/** A quantified habit reports today's progress; others keep the old line. */
+function subtitle(h: HabitWithStats): string {
+    const schedule = isDaily(h.daysOfWeek) ? "" : scheduleLabel(h.daysOfWeek);
+    const detail = isQuantified(h)
+        ? `${h.todayAmount} / ${h.target}${h.unit ? ` ${h.unit}` : ""}`
+        : (h.verb ?? `${h.completed}/${h.goal} this month`);
+    return schedule ? `${schedule} · ${detail}` : detail;
+}
+
 export function HabitRow({
     h,
     onToggle,
+    onStep,
     onOpen,
     onLongPress,
     last,
 }: {
     h: HabitWithStats;
     onToggle: (id: string) => void;
+    /** Add `h.step` to today's amount. Only called for quantified habits. */
+    onStep?: (id: string) => void;
     onOpen: (id: string) => void;
     /** Hold anywhere on the row — including the check circle — to open the
         habit's action sheet. */
@@ -88,12 +101,28 @@ export function HabitRow({
     const th = useTheme();
     const [sparkle, setSparkle] = useState(false);
 
+    const quantified = isQuantified(h);
+    const progress = quantified
+        ? Math.min(1, h.todayAmount / Math.max(1, h.target ?? 1))
+        : h.doneToday
+          ? 1
+          : 0;
+
+    // The reward fires when the day is finished, not on every tap — for a
+    // quantified habit that is the tap that reaches the target.
+    const celebrate = () => {
+        setSparkle(true);
+        setTimeout(() => setSparkle(false), 700);
+    };
+
     const handleToggle = () => {
-        if (!h.doneToday) {
-            setSparkle(true);
-            setTimeout(() => setSparkle(false), 700);
-        }
+        if (!h.doneToday) celebrate();
         onToggle(h.id);
+    };
+
+    const handleStep = () => {
+        if (h.todayAmount + h.step >= (h.target ?? 1)) celebrate();
+        onStep?.(h.id);
     };
 
     const handleLongPress = onLongPress ? () => onLongPress(h.id) : undefined;
@@ -117,7 +146,9 @@ export function HabitRow({
         >
             <View>
                 <Pressable
-                    onPress={handleToggle}
+                    onPress={
+                        quantified && !h.doneToday ? handleStep : handleToggle
+                    }
                     onLongPress={handleLongPress}
                     style={{
                         width: 38,
@@ -136,6 +167,13 @@ export function HabitRow({
                             size={19}
                             stroke="#fff"
                             strokeWidth={2.6}
+                        />
+                    ) : quantified ? (
+                        <Icon
+                            name="plus"
+                            size={18}
+                            stroke={th.deep}
+                            strokeWidth={2.2}
                         />
                     ) : (
                         <Icon
@@ -161,12 +199,30 @@ export function HabitRow({
                     {h.name}
                 </Text>
                 <Text style={{ fontSize: 11.5, color: th.muted, marginTop: 1 }}>
-                    {isDaily(h.daysOfWeek)
-                        ? (h.verb ?? `${h.completed}/${h.goal} this month`)
-                        : `${scheduleLabel(h.daysOfWeek)}${
-                              h.verb ? ` · ${h.verb}` : ""
-                          }`}
+                    {subtitle(h)}
                 </Text>
+                {quantified && (
+                    <View
+                        style={{
+                            height: 4,
+                            borderRadius: 2,
+                            marginTop: 5,
+                            backgroundColor: th.surface2,
+                            overflow: "hidden",
+                        }}
+                    >
+                        <View
+                            style={{
+                                width: `${progress * 100}%`,
+                                height: "100%",
+                                borderRadius: 2,
+                                backgroundColor: h.doneToday
+                                    ? th.green
+                                    : th.accent,
+                            }}
+                        />
+                    </View>
+                )}
             </View>
 
             <View

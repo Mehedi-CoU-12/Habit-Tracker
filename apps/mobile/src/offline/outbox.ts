@@ -13,6 +13,9 @@ export type HabitCreatePayload = {
     icon?: string;
     tod?: string;
     verb?: string;
+    target?: number | null;
+    unit?: string | null;
+    step?: number;
     /** Weekdays the habit is due on, 0 = Sunday. Empty/absent = daily. */
     daysOfWeek?: number[];
 };
@@ -23,6 +26,9 @@ export type HabitPatch = {
     icon?: string;
     tod?: string;
     verb?: string;
+    target?: number | null;
+    unit?: string | null;
+    step?: number;
     daysOfWeek?: number[];
     /** Archive (true) or restore (false); the server stamps the date. */
     archived?: boolean;
@@ -59,6 +65,14 @@ export type Op = { key: string; ts: number } & (
           day: number;
           completed: boolean;
       }
+    | {
+          kind: "log.amount";
+          habitId: string;
+          year: number;
+          month: number;
+          day: number;
+          amount: number;
+      }
     | { kind: "note.set"; payload: DayNotePayload }
     | { kind: "focus.record"; payload: FocusRecordPayload }
 );
@@ -75,6 +89,14 @@ export type NewOp =
           month: number;
           day: number;
           completed: boolean;
+      }
+    | {
+          kind: "log.amount";
+          habitId: string;
+          year: number;
+          month: number;
+          day: number;
+          amount: number;
       }
     | { kind: "note.set"; payload: DayNotePayload }
     | { kind: "focus.record"; payload: FocusRecordPayload };
@@ -169,6 +191,7 @@ function touchesHabit(o: Op, id: string): boolean {
         case "habit.delete":
             return o.id === id;
         case "log.set":
+        case "log.amount":
             return o.habitId === id;
         // Dedication history outlives the habit: deleting a habit must not
         // drop its queued sessions — the server records them unlinked.
@@ -182,7 +205,7 @@ function touchesHabit(o: Op, id: string): boolean {
 /**
  * Append an op, coalescing against what's already queued so the queue stays
  * small and internally consistent:
- *  - log.set on the same (habit, date) → keep only the latest,
+ *  - log.set / log.amount on the same (habit, date) → keep only the latest,
  *  - habit.update folds into a pending create, or merges with a pending update,
  *  - habit.delete drops all pending work for that habit; if the habit was
  *    created offline and never synced, the create is dropped too (net no-op).
@@ -195,15 +218,18 @@ export async function enqueue(input: NewOp): Promise<void> {
         let ops = state.ops.slice();
 
         switch (input.kind) {
-            case "log.set": {
+            case "log.set":
+            case "log.amount": {
                 // Supersede any earlier queued write for this cell, but keep an
                 // in-flight one (its request is already sent); the new op wins
-                // on the next drain and the idempotent setLog converges.
+                // on the next drain and the idempotent write converges. Both
+                // kinds address the same cell, so each supersedes the other —
+                // a tick followed by a step must leave only the step.
                 ops = ops.filter(
                     (o) =>
                         o.key === inFlightKey ||
                         !(
-                            o.kind === "log.set" &&
+                            (o.kind === "log.set" || o.kind === "log.amount") &&
                             o.habitId === input.habitId &&
                             o.year === input.year &&
                             o.month === input.month &&

@@ -10,6 +10,7 @@ import { ApiDayNote, ApiHabit, UserProfile } from "../lib/types";
 import { lastNMonths } from "../lib/date";
 import { releasePlatform } from "../lib/version";
 import { MonthHabits } from "../lib/deriveStats";
+import { isDayComplete, targetOf } from "../lib/completion";
 import { newId } from "../offline/ids";
 import { enqueue, type HabitPatch } from "../offline/outbox";
 import { runSync } from "../offline/sync";
@@ -36,10 +37,6 @@ export function useMe(enabled = true) {
 export function useUploadAvatar() {
     const qc = useQueryClient();
     return useMutation({
-        // The one write with no outbox behind it — it has to reach the server.
-        // Opting out of the client's "always" default lets the library park it
-        // while offline and fire it on reconnect, instead of failing instantly.
-        networkMode: "online",
         mutationFn: api.uploadAvatar,
         onSuccess: (updated) => qc.setQueryData<UserProfile>(["me"], updated),
     });
@@ -57,13 +54,6 @@ export function useHabits(year: number, month: number) {
     });
 }
 
-/**
- * Fetch the trailing `monthsBack` months of habit logs in parallel, reusing the
- * per-month `habitsKey` cache so the current month is shared with `useHabits`
- * and a completion toggle refreshes the heatmaps too. 7 months (not 6) ensures
- * the leftmost week-column of the 26-week grid always has data. Returns one
- * entry per month for the heatmap builders in `deriveStats`.
- */
 export function useHabitsHistory(today: Date, monthsBack = 7): MonthHabits[] {
     const months = useMemo(
         () => lastNMonths(today, monthsBack),
@@ -89,12 +79,6 @@ export function useHabitsHistory(today: Date, monthsBack = 7): MonthHabits[] {
 
 // ── App releases ────────────────────────────────────────────────────────────
 
-/**
- * Published build for this platform. Polled rather than pushed: an hour-stale
- * answer is fine for "there's a new version", and it costs one tiny request
- * per app launch. `retry: false` keeps a failed check silent — not knowing
- * about an update must never surface as an error to the user.
- */
 export function useAppRelease() {
     const platform = releasePlatform();
     return useQuery({
@@ -169,11 +153,10 @@ export function useToggleLog(year: number, month: number) {
             day: number;
         }) => {
             await qc.cancelQueries({ queryKey: key });
-            const list = qc.getQueryData<ApiHabit[]>(key);
-            const has = !!list
-                ?.find((h) => h.id === habitId)
-                ?.logs.some((l) => l.day === day);
-            const completed = !has;
+            const habit = qc
+                .getQueryData<ApiHabit[]>(key)
+                ?.find((h) => h.id === habitId);
+            const completed = !(habit && isDayComplete(habit, day));
 
             qc.setQueryData<ApiHabit[]>(key, (old = []) =>
                 old.map((h) => {
@@ -191,6 +174,7 @@ export function useToggleLog(year: number, month: number) {
                                 year,
                                 month,
                                 day,
+                                amount: targetOf(h),
                                 createdAt: new Date().toISOString(),
                             },
                         ],
@@ -213,6 +197,64 @@ export function useToggleLog(year: number, month: number) {
     });
 }
 
+export function useSetLogAmount(year: number, month: number) {
+    const qc = useQueryClient();
+    const key = habitsKey(year, month);
+    return useMutation({
+        mutationFn: async ({
+            habitId,
+            day,
+            amount,
+        }: {
+            habitId: string;
+            day: number;
+            amount: number;
+        }) => {
+            await qc.cancelQueries({ queryKey: key });
+            const next = Math.max(0, Math.round(amount));
+
+            qc.setQueryData<ApiHabit[]>(key, (old = []) =>
+                old.map((h) => {
+                    if (h.id !== habitId) return h;
+                    const logs = h.logs.filter((l) => l.day !== day);
+                    if (next === 0) return { ...h, logs };
+                    const existing = h.logs.find((l) => l.day === day);
+                    return {
+                        ...h,
+                        logs: [
+                            ...logs,
+                            {
+                                id: existing?.id ?? `local-${habitId}-${day}`,
+                                habitId,
+                                userId: h.userId,
+                                year,
+                                month,
+                                day,
+                                amount: next,
+                                createdAt:
+                                    existing?.createdAt ??
+                                    new Date().toISOString(),
+                            },
+                        ],
+                    };
+                }),
+            );
+
+            await enqueue({
+                kind: "log.amount",
+                habitId,
+                year,
+                month,
+                day,
+                amount: next,
+            });
+            void runSync();
+            void syncReminders();
+            return { amount: next };
+        },
+    });
+}
+
 export function useCreateHabit(_year: number, _month: number) {
     const qc = useQueryClient();
     return useMutation({
@@ -222,6 +264,9 @@ export function useCreateHabit(_year: number, _month: number) {
             icon?: string;
             tod?: string;
             verb?: string;
+            target?: number | null;
+            unit?: string | null;
+            step?: number;
             daysOfWeek?: number[];
         }) => {
             const id = newId();
@@ -234,6 +279,9 @@ export function useCreateHabit(_year: number, _month: number) {
                 icon: input.icon ?? "sprout",
                 tod: input.tod ?? "anytime",
                 verb: input.verb ?? null,
+                target: input.target ?? null,
+                unit: input.unit ?? null,
+                step: input.step ?? 1,
                 daysOfWeek: input.daysOfWeek ?? [],
                 archivedAt: null,
                 userId: me?.id ?? "",
@@ -254,6 +302,9 @@ export function useCreateHabit(_year: number, _month: number) {
                     icon: input.icon,
                     tod: input.tod,
                     verb: input.verb,
+                    target: input.target,
+                    unit: input.unit,
+                    step: input.step,
                     ...(input.daysOfWeek
                         ? { daysOfWeek: input.daysOfWeek }
                         : {}),

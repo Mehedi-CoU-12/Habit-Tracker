@@ -7,9 +7,17 @@ import {
     useDayNotes,
     useHabits,
     useSetDayNote,
+    useSetLogAmount,
     useToggleLog,
 } from "../../api/hooks";
 import { isExpectedOnDate, normalizeDays } from "../../lib/schedule";
+import {
+    amountOn,
+    completedLogs,
+    isDayComplete,
+    isQuantified,
+    progressOn,
+} from "../../lib/completion";
 import { daysInMonth } from "../../lib/deriveStats";
 import { dayIndex, dayIndexOf, dayNames, monthNames } from "../../lib/date";
 import { SkyWash, Card } from "../../components/primitives";
@@ -96,6 +104,7 @@ export default function CalendarScreen() {
 
     const { data: raw = [] } = useHabits(year, month);
     const toggle = useToggleLog(year, month);
+    const setAmount = useSetLogAmount(year, month);
     const { data: notes = [] } = useDayNotes(year, month);
     const saveNote = useSetDayNote(year, month);
 
@@ -103,7 +112,8 @@ export default function CalendarScreen() {
     const perDay = useMemo(() => {
         const counts: Record<number, number> = {};
         for (const h of raw)
-            for (const l of h.logs) counts[l.day] = (counts[l.day] ?? 0) + 1;
+            for (const l of completedLogs(h))
+                counts[l.day] = (counts[l.day] ?? 0) + 1;
         return counts;
     }, [raw]);
 
@@ -395,17 +405,30 @@ export default function CalendarScreen() {
                             </Text>
                         )}
                         {dueOnSel.map((h, i) => {
-                            const done = h.logs.some((l) => l.day === sel);
+                            const done = isDayComplete(h, sel);
+                            const quantified = isQuantified(h);
+                            const target = h.target ?? 1;
+                            const step = h.step && h.step > 0 ? h.step : 1;
+                            const press = () => {
+                                if (!quantified) {
+                                    toggle.mutate({ habitId: h.id, day: sel });
+                                    return;
+                                }
+                                // A finished day clears; anything else steps up.
+                                const next = done
+                                    ? 0
+                                    : Math.min(target, amountOn(h, sel) + step);
+                                setAmount.mutate({
+                                    habitId: h.id,
+                                    day: sel,
+                                    amount: next,
+                                });
+                            };
                             return (
                                 <Pressable
                                     key={h.id}
                                     disabled={selIsFuture}
-                                    onPress={() =>
-                                        toggle.mutate({
-                                            habitId: h.id,
-                                            day: sel,
-                                        })
-                                    }
+                                    onPress={press}
                                     style={({ pressed }) => ({
                                         flexDirection: "row",
                                         alignItems: "center",
@@ -435,6 +458,19 @@ export default function CalendarScreen() {
                                             borderColor: th.line,
                                         }}
                                     >
+                                        {!done && quantified && (
+                                            <View
+                                                style={{
+                                                    position: "absolute",
+                                                    left: 0,
+                                                    right: 0,
+                                                    bottom: 0,
+                                                    height: `${progressOn(h, sel) * 100}%`,
+                                                    backgroundColor:
+                                                        th.greenSoft,
+                                                }}
+                                            />
+                                        )}
                                         {done && (
                                             <Icon
                                                 name="check"
@@ -460,7 +496,9 @@ export default function CalendarScreen() {
                                             color: th.muted,
                                         }}
                                     >
-                                        {h.verb ?? ""}
+                                        {quantified
+                                            ? `${amountOn(h, sel)} / ${target}${h.unit ? ` ${h.unit}` : ""}`
+                                            : (h.verb ?? "")}
                                     </Text>
                                 </Pressable>
                             );
