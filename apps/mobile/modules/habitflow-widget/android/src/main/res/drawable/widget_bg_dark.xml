@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The dark counterpart of widget_bg. Two drawables rather than tinting one:
+     setBackgroundColor from RemoteViews would replace the shape and lose the
+     rounded corners, and setBackgroundTintList is API 31+. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="20dp" />
+    <solid android:color="#241C15" />
+</shape>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The rounded plate every size sits on. The fill is overwritten at draw
+     time from the payload's dark-mode flag; this is the launcher preview and
+     the pre-first-write fallback. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="20dp" />
+    <solid android:color="#FFFDF8" />
+</shape>
