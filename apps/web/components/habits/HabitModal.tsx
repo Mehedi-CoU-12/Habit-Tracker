@@ -55,6 +55,9 @@ export default function HabitModal({
     const [target, setTarget] = useState<number | null>(habit?.target ?? null);
     const [unit, setUnit] = useState(habit?.unit ?? "");
     const [step, setStep] = useState(habit?.step ?? 1);
+    const [fillFromFocus, setFillFromFocus] = useState(
+        habit?.fillFromFocus ?? false,
+    );
     const [error, setError] = useState("");
 
     function handleSubmit(e: React.FormEvent) {
@@ -76,6 +79,7 @@ export default function HabitModal({
             target,
             unit: target === null ? null : unit.trim() || null,
             step: target === null ? 1 : step,
+            fillFromFocus: target === null ? false : fillFromFocus,
         });
     }
 
@@ -207,6 +211,9 @@ export default function HabitModal({
                                 onChange={(e) => {
                                     if (!e.target.checked) {
                                         setTarget(null);
+                                        // Auto-fill is meaningless without a
+                                        // target; the server clears it too.
+                                        setFillFromFocus(false);
                                         return;
                                     }
                                     // Seed from the note when it already reads
@@ -272,6 +279,28 @@ export default function HabitModal({
                                         className="w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm text-ink outline-none focus:border-accent"
                                     />
                                 </div>
+
+                                {/* Only offered here: a focus session fills an
+                                    amount, so it needs a target to fill. */}
+                                <label className="col-span-3 flex cursor-pointer items-start gap-2.5 border-t border-line pt-3">
+                                    <input
+                                        type="checkbox"
+                                        checked={fillFromFocus}
+                                        onChange={(e) =>
+                                            setFillFromFocus(e.target.checked)
+                                        }
+                                        className="mt-0.5 h-4 w-4 cursor-pointer accent-accent"
+                                    />
+                                    <span>
+                                        <span className="block text-sm font-semibold text-ink">
+                                            Fill from focus sessions
+                                        </span>
+                                        <span className="block text-xs text-muted">
+                                            A focus session on this habit logs
+                                            its minutes here, up to the target.
+                                        </span>
+                                    </span>
+                                </label>
                             </div>
                         )}
                     </div>
