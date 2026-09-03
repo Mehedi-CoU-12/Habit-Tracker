@@ -63,6 +63,15 @@ async function dispatch(op: Op): Promise<void> {
                 op.amount,
             );
             return;
+        case "skip.set":
+            await api.setSkip(
+                op.habitId,
+                op.year,
+                op.month,
+                op.day,
+                op.used,
+            );
+            return;
         case "note.set": {
             const { year, month, day, text } = op.payload;
             await api.setDayNote(year, month, day, text);
