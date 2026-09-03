@@ -29,6 +29,7 @@ export default function HabitGrid({
     year,
     month,
     onToggle,
+    onSkip,
     onDelete,
     onEdit,
 }: {
@@ -39,6 +40,7 @@ export default function HabitGrid({
     year: number;
     month: number;
     onToggle: (habitId: string, day: number) => void;
+    onSkip: (habitId: string, day: number, used: boolean) => void;
     onDelete: (habit: HabitWithStats) => void;
     onEdit: (habit: HabitWithStats) => void;
 }) {
@@ -56,6 +58,12 @@ export default function HabitGrid({
                     <span className="flex items-center gap-1.5">
                         <span className="inline-block h-3 w-3 rounded-md bg-green" />
                         Done
+                    </span>
+                    {/* The only place the Alt+click gesture is discoverable,
+                        so it says what it costs as well as what it does. */}
+                    <span className="flex items-center gap-1.5">
+                        <span className="inline-block h-3 w-3 rounded-md border border-dashed border-accent" />
+                        Skipped · alt+click a missed day
                     </span>
                 </div>
             }
@@ -118,6 +126,7 @@ export default function HabitGrid({
                                 year={year}
                                 month={month}
                                 onToggle={onToggle}
+                                onSkip={onSkip}
                                 onDelete={onDelete}
                                 onEdit={onEdit}
                                 isEven={idx % 2 === 0}
