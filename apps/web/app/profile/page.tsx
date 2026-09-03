@@ -367,7 +367,7 @@ function PasswordSection({
     );
 }
 
-/* ── Sign out ─────────────────────────────────────────── */
+/* ── Sign out + delete ────────────────────────────────── */
 function DangerSection({
     router,
     queryClient,
@@ -395,6 +395,22 @@ function DangerSection({
             >
                 Sign out
             </button>
+
+            <div className="mt-6 border-t border-gray-200 pt-5 dark:border-gray-700">
+                <h2 className="mb-1 text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    Delete account
+                </h2>
+                <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">
+                    Erases your profile and every habit, check-in, note and
+                    focus session. This cannot be undone.
+                </p>
+                <Link
+                    href="/account/delete"
+                    className="inline-block rounded-lg border border-red-300 px-4 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
+                >
+                    Delete my account…
+                </Link>
+            </div>
         </div>
     );
 }
