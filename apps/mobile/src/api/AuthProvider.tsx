@@ -14,6 +14,8 @@ import { API_URL, registerGateEvents } from "./client";
 import { persister } from "./queryClient";
 import { clearOutbox } from "../offline/outbox";
 import { resetSync } from "../offline/sync";
+import { cancelAllReminders } from "../notifications";
+import { clearWidget } from "../widget/mirror";
 import * as api from "./endpoints";
 
 const GOOGLE_REDIRECT = "habitflow://google-auth";
@@ -32,6 +34,10 @@ type AuthState = {
     signInWithGoogle: () => Promise<api.AuthResult | null>;
     completeGoogleSignIn: (code: string) => Promise<api.AuthResult>;
     signOut: () => Promise<void>;
+    deleteAccount: (input: {
+        password?: string;
+        confirmation?: string;
+    }) => Promise<void>;
 };
 
 const Ctx = createContext<AuthState | null>(null);
@@ -107,6 +113,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [completeGoogleSignIn]);
 
     const clearLocalSession = useCallback(async () => {
+        // Reminders are local OS-scheduled notifications: they survive both
+        // sign-out and account deletion, so they must be cancelled here rather
+        // than left for the next launch that never comes. The home-screen
+        // widget is the same shape of problem: it draws from a native mirror
+        // that outlives the session, and one still showing a deleted account's
+        // habits is a privacy bug, not a stale cache.
+        await cancelAllReminders();
+        await clearWidget();
         await storage.remove(KEYS.token);
         await storage.remove(KEYS.refreshToken);
         resetSync();
@@ -127,6 +141,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         await clearLocalSession();
     }, [clearLocalSession]);
+
+    /**
+     * Erase the account server-side, then tear the device down.
+     *
+     * The order is deliberate: OS-scheduled reminders go first, because they
+     * outlive the account and an offline failure must not leave the user being
+     * nagged. Everything else stays intact until the API confirms deletion, so
+     * that same failure still leaves the user signed in with their local data.
+     */
+    const deleteAccount = useCallback(
+        async (input: { password?: string; confirmation?: string }) => {
+            await cancelAllReminders();
+            await api.deleteAccount(input);
+            await clearLocalSession();
+        },
+        [clearLocalSession],
+    );
 
     const tokenRef = useRef(token);
     tokenRef.current = token;
@@ -151,6 +182,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 signInWithGoogle,
                 completeGoogleSignIn,
                 signOut,
+                deleteAccount,
             }}
         >
             {children}
