@@ -186,6 +186,15 @@ export async function apiPut<T>(path: string, body?: unknown): Promise<T> {
     );
 }
 
-export async function apiDelete<T>(path: string): Promise<T> {
-    return handle<T>(await send(path, { method: "DELETE" }, false));
+// A DELETE body is unusual but not exotic — DELETE /users/me carries the
+// proof-of-intent (password or the typed word). The JSON header only rides
+// along when there actually is one.
+export async function apiDelete<T>(path: string, body?: unknown): Promise<T> {
+    return handle<T>(
+        await send(
+            path,
+            { method: "DELETE", body: body ? JSON.stringify(body) : undefined },
+            body !== undefined,
+        ),
+    );
 }
