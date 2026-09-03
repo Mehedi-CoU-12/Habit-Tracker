@@ -26,6 +26,7 @@ import { useMe } from "../api/hooks";
 import { persistOptions, queryClient } from "../api/queryClient";
 import { startSync } from "../offline/sync";
 import { startReminders } from "../notifications";
+import { startWidgetMirror } from "../widget/mirror";
 import OfflineBar from "../components/OfflineBar";
 import SyncPill from "../components/SyncPill";
 import UpdateGate from "../components/UpdateGate";
@@ -88,11 +89,13 @@ function RootStack() {
     const th = useTheme();
     const insets = useSafeAreaInsets();
     const barVisible = useOfflineBarVisible();
-    // Wire the offline sync + reminder triggers once (reconnect / foreground /
-    // startup for sync; foreground / actions / startup for reminders).
+    // Wire the offline sync + reminder + widget-mirror triggers once
+    // (reconnect / foreground / startup for sync; foreground / actions /
+    // startup for reminders; every habits-cache change for the widget).
     useEffect(() => {
         startSync();
         startReminders();
+        startWidgetMirror();
     }, []);
     return (
         <View style={{ flex: 1, backgroundColor: th.bg }}>
