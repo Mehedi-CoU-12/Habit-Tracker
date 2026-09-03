@@ -130,6 +130,9 @@ export default function DashboardPage() {
                         onToggle={(habitId, day) =>
                             dash.toggleMutation.mutate({ habitId, day })
                         }
+                        onSkip={(habitId, day, used) =>
+                            dash.skipMutation.mutate({ habitId, day, used })
+                        }
                         onToggleToday={(habitId) => {
                             if (dash.isCurrentMonth)
                                 dash.toggleMutation.mutate({
