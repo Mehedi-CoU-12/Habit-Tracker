@@ -1,6 +1,11 @@
 import { ApiHabit, HabitWithStats, Tod } from "../../app/dashboard/types";
 import { isExpectedOnDate, normalizeDays } from "./schedule";
-import { amountOn, completedDaysOf } from "./completion";
+import {
+    amountOn,
+    completedDaysOf,
+    skipsLeft,
+    skippedDaysOf,
+} from "./completion";
 
 const TOD_VALUES: Tod[] = ["morning", "afternoon", "evening", "anytime"];
 
@@ -27,6 +32,7 @@ export function deriveHabitStats(
     today: Date = new Date(),
 ): HabitWithStats {
     const completedDays = completedDaysOf(h);
+    const skippedDays = skippedDaysOf(h);
     const completed = completedDays.size;
     const daysOfWeek = normalizeDays(h.daysOfWeek);
 
@@ -50,16 +56,20 @@ export function deriveHabitStats(
     // a rest day is skipped — only a missed due day breaks the run. when the
     // reference day itself isn't done yet, start from the day before so an
     // ongoing streak isn't reported as broken before the day is over.
+    // a forgiven day (streak insurance) behaves exactly like a rest day.
     let streak = 0;
     let from = refDay;
     if (dueOn(refDay) && !completedDays.has(refDay)) from = refDay - 1;
     for (let d = from; d >= 1; d--) {
         if (!dueOn(d)) continue;
+        if (skippedDays.has(d)) continue;
         if (completedDays.has(d)) streak++;
         else break;
     }
 
-    // best run of due days within the month
+    // best run of due days within the month. deliberately ignores skips: it is
+    // the high-water mark of actual work, and records should be unforgiving
+    // even when daily life is not.
     let best = 0;
     let run = 0;
     for (let d = 1; d <= daysInMonth; d++) {
@@ -73,7 +83,9 @@ export function deriveHabitStats(
     }
 
     // scored over due days only, numerator included, so a completion
-    // backfilled onto a rest day can't push the rate past 100%.
+    // backfilled onto a rest day can't push the rate past 100%. a skip touches
+    // neither side — it bridges the chain, it is not a completion, and the
+    // rate must read the same before and after one is spent.
     let dueElapsed = 0;
     let doneOnDue = 0;
     for (let d = 1; d <= elapsed; d++) {
@@ -94,6 +106,9 @@ export function deriveHabitStats(
         target: h.target ?? null,
         unit: h.unit ?? null,
         step: h.step && h.step > 0 ? h.step : 1,
+        fillFromFocus: h.fillFromFocus ?? false,
+        skippedDays: [...skippedDays].sort((a, b) => a - b),
+        skipsLeft: skipsLeft(h),
         todayAmount: isCurrentMonth ? amountOn(h, now.getDate()) : 0,
         daysOfWeek,
         archivedAt: h.archivedAt ?? null,
