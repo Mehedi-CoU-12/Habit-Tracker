@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- updatePeriodMillis is 0 on purpose: the app pushes a redraw whenever the
+     mirror changes (WidgetMirror.notifyWidgets), so a polling interval would
+     only cost battery to redraw identical pixels. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="110dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
+    android:resizeMode="none"
+    android:widgetCategory="home_screen"
+    android:description="@string/widget_small_desc"
+    android:initialLayout="@layout/widget_small"
+    android:updatePeriodMillis="0" />

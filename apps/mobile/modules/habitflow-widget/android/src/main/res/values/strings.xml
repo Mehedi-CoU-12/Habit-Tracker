@@ -1,0 +1,11 @@
+<resources>
+    <string name="widget_small_label">HabitFlow habit</string>
+    <string name="widget_medium_label">HabitFlow today</string>
+    <string name="widget_large_label">HabitFlow heatmap</string>
+    <string name="widget_ring_description">Progress on one habit today</string>
+    <string name="widget_bar_description">Progress on this habit today</string>
+    <string name="widget_grid_description">Completion over the last five weeks</string>
+    <string name="widget_small_desc">One habit\'s progress today.</string>
+    <string name="widget_medium_desc">Today\'s habits and how far along each one is.</string>
+    <string name="widget_large_desc">Your last five weeks at a glance.</string>
+</resources>
