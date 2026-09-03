@@ -71,12 +71,16 @@ export function useDashboard() {
         `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`,
     ).format("MMMM YYYY");
 
+    // An archived habit is retired: off the dashboard, though its logs stay in
+    // the database so past months keep their history.
+    const liveHabits = (rawHabits as ApiHabit[]).filter((h) => !h.archivedAt);
+
     // Derive Bloom stats (streak / doneToday / rate …) from the month's logs.
-    const habits = (rawHabits as ApiHabit[]).map((h) =>
+    const habits = liveHabits.map((h) =>
         deriveHabitStats(h, selectedYear, selectedMonth, daysInMonth),
     );
 
-    const logs: HabitLog[] = (rawHabits as ApiHabit[]).flatMap((h) =>
+    const logs: HabitLog[] = liveHabits.flatMap((h) =>
         h.logs.map((l) => ({ habitId: h.id, day: l.day, completed: true })),
     );
 
