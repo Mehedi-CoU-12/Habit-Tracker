@@ -316,6 +316,7 @@ export default function AdminUserDetailPage() {
                 year={selectedYear}
                 month={selectedMonth}
                 onToggle={readOnly}
+                onSkip={readOnly}
                 onEdit={readOnly}
                 onDelete={readOnly}
             />
