@@ -157,6 +157,7 @@ export default function AddScreen() {
     const [target, setTarget] = useState<number | null>(null);
     const [unit, setUnit] = useState("");
     const [step, setStep] = useState(1);
+    const [fillFromFocus, setFillFromFocus] = useState(false);
     const [targetDraft, setTargetDraft] = useState<string | null>(null);
     // Weekday schedule, 0 = Sunday. Empty means daily, which is also what a
     // habit created before scheduling existed carries.
@@ -192,6 +193,9 @@ export default function AddScreen() {
     const toggleQuantified = () => {
         if (target !== null) {
             setTarget(null);
+            // Auto-fill is meaningless without a target; the server clears it
+            // too, so mirror that here rather than leaving a stale checkbox.
+            setFillFromFocus(false);
             return;
         }
         const m = verb.trim().match(/^(\d+)\s*(.*)$/);
@@ -223,6 +227,7 @@ export default function AddScreen() {
             setTarget(editing.target ?? null);
             setUnit(editing.unit ?? "");
             setStep(editing.step && editing.step > 0 ? editing.step : 1);
+            setFillFromFocus(editing.fillFromFocus ?? false);
             setDaysOfWeek(normalizeDays(editing.daysOfWeek));
             const eff = effectiveReminder(
                 editing.id,
@@ -295,6 +300,7 @@ export default function AddScreen() {
             target,
             unit: target === null ? null : unit.trim() || null,
             step: target === null ? 1 : step,
+            fillFromFocus: target === null ? false : fillFromFocus,
             daysOfWeek: normalizeDays(daysOfWeek),
         };
         // Message is committed even while the reminder is off so it survives
@@ -903,6 +909,67 @@ export default function AddScreen() {
                                     </Pressable>
                                 ))}
                             </View>
+
+                            {/* Only offered here: a focus session fills an
+                                amount, so it needs a target to fill. */}
+                            <Pressable
+                                onPress={() => setFillFromFocus((v) => !v)}
+                                style={{
+                                    flexDirection: "row",
+                                    alignItems: "center",
+                                    gap: 10,
+                                    borderTopWidth: 1.5,
+                                    borderTopColor: th.bg,
+                                    paddingTop: 14,
+                                }}
+                            >
+                                <View
+                                    style={{
+                                        width: 22,
+                                        height: 22,
+                                        borderRadius: 7,
+                                        borderWidth: 1.8,
+                                        borderColor: fillFromFocus
+                                            ? th.accent
+                                            : th.line,
+                                        backgroundColor: fillFromFocus
+                                            ? th.accent
+                                            : "transparent",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                    }}
+                                >
+                                    {fillFromFocus && (
+                                        <Icon
+                                            name="check"
+                                            size={14}
+                                            stroke="#fff"
+                                            strokeWidth={2.6}
+                                        />
+                                    )}
+                                </View>
+                                <View style={{ flex: 1, minWidth: 0 }}>
+                                    <Text
+                                        style={{
+                                            fontSize: 13.5,
+                                            color: th.ink,
+                                            fontFamily: th.sansBold,
+                                        }}
+                                    >
+                                        Fill from focus sessions
+                                    </Text>
+                                    <Text
+                                        style={{
+                                            fontSize: 12,
+                                            color: th.muted,
+                                            marginTop: 2,
+                                        }}
+                                    >
+                                        A focus session on this habit logs its
+                                        minutes here, up to the target.
+                                    </Text>
+                                </View>
+                            </Pressable>
                         </View>
                     )}
                 </View>
