@@ -452,6 +452,18 @@ export default function DetailScreen() {
                         { v: `${overall.streak}`, l: "streak", c: th.accent },
                         { v: `${overall.best}`, l: "best", c: th.green },
                         { v: `${overall.completed}`, l: "days", c: th.sky },
+                        // Streak insurance: what is left to spend this month.
+                        // Sits with the streak because it is the number that
+                        // explains how the streak survived a gap.
+                        ...(h
+                            ? [
+                                  {
+                                      v: `${h.skipsLeft}`,
+                                      l: "skips",
+                                      c: th.muted,
+                                  },
+                              ]
+                            : []),
                     ].map((s, i) => (
                         <Card
                             key={i}
