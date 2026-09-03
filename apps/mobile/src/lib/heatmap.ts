@@ -24,7 +24,12 @@ import {
     startOfDay,
 } from "./date";
 import { MonthHabits } from "./deriveStats";
-import { amountOn, completedLogs, targetOf } from "./completion";
+import {
+    amountOn,
+    completedLogs,
+    skippedDaysOf,
+    targetOf,
+} from "./completion";
 import {
     expectedDaysBetween,
     isExpectedOn,
@@ -62,6 +67,8 @@ export type HeatDay = {
     future: boolean;
     /** Before the habit existed, or grid padding outside the period. */
     dormant: boolean;
+    /** Forgiven by a spent skip — drawn distinctly, never as a completion. */
+    skipped?: boolean;
     today: boolean;
     day: number;
     month: number;
@@ -170,6 +177,8 @@ type Resolver = (index: number) => {
     done: boolean;
     /** True when the day predates anything being tracked. */
     dormant: boolean;
+    /** Forgiven by a spent skip. */
+    skipped?: boolean;
     detail?: string;
 };
 
@@ -233,6 +242,7 @@ function buildGrid(
             future,
             dormant: r.dormant || index < rangeStartIdx,
             today: index === todayIdx,
+            skipped: r.skipped,
             day: date.getDate(),
             month: date.getMonth() + 1,
             year: date.getFullYear(),
@@ -251,12 +261,28 @@ function buildGrid(
 
 type HabitDays = {
     done: Set<number>;
-    /** Day index → length of the completed run *ending* on that day. */
+    /**
+     * Day index → length of the completed run *ending* on that day, with
+     * forgiven days bridged. This is the number the streak reads.
+     */
     depth: Map<number, number>;
+    /**
+     * The same, unforgiving: a skipped day breaks the run. `best` reads this,
+     * because a record should be the high-water mark of actual work.
+     */
+    rawDepth: Map<number, number>;
     /** Ascending completed day indices. */
     sorted: number[];
     /** Day index → fraction of the target logged, for days short of it. */
     partial: Map<number, number>;
+    /** Day indices forgiven by a spent skip. */
+    skipped: Set<number>;
+    /**
+     * The previous day that counts against a run, walking back through both
+     * rest days and forgiven days. For a daily habit with nothing forgiven
+     * this is just `from`.
+     */
+    prevCounting: (from: number) => number;
 };
 
 /**
@@ -275,9 +301,12 @@ function collectHabitDays(
 ): HabitDays {
     const done = new Set<number>();
     const partial = new Map<number, number>();
+    const skipped = new Set<number>();
     for (const m of history)
         for (const h of m.habits)
             if (h.id === habitId) {
+                for (const day of skippedDaysOf(h))
+                    skipped.add(dayIndexOf(m.year, m.month, day));
                 for (const l of completedLogs(h))
                     done.add(dayIndexOf(l.year, l.month, l.day));
                 // Days with progress that fell short — shaded, but never
@@ -292,14 +321,28 @@ function collectHabitDays(
             }
 
     const sorted = [...done].sort((a, b) => a - b);
+
+    /**
+     * A forgiven day is transparent to a run, exactly like a rest day —
+     * that equivalence is what streak insurance buys. Terminates because
+     * previousExpected strictly decreases and `skipped` is finite.
+     */
+    const prevCounting = (from: number): number => {
+        let p = previousExpected(daysOfWeek, from);
+        while (skipped.has(p)) p = previousExpected(daysOfWeek, p - 1);
+        return p;
+    };
+
     const depth = new Map<number, number>();
+    const rawDepth = new Map<number, number>();
     // Ascending, so the previous due day's depth is already resolved. For a
     // daily habit previousExpected(d - 1) is just d - 1.
     for (const d of sorted) {
-        const prev = previousExpected(daysOfWeek, d - 1);
-        depth.set(d, (depth.get(prev) ?? 0) + 1);
+        depth.set(d, (depth.get(prevCounting(d - 1)) ?? 0) + 1);
+        const raw = previousExpected(daysOfWeek, d - 1);
+        rawDepth.set(d, (rawDepth.get(raw) ?? 0) + 1);
     }
-    return { done, depth, sorted, partial };
+    return { done, depth, rawDepth, sorted, partial, skipped, prevCounting };
 }
 
 function depthToLevel(depth: number): number {
@@ -336,7 +379,7 @@ export function buildHabitHeatmap(
     habit?: HabitSchedule,
 ): HeatResult {
     const daysOfWeek = normalizeDays(habit?.daysOfWeek);
-    const { done, depth, sorted, partial } = collectHabitDays(
+    const { done, depth, sorted, partial, skipped } = collectHabitDays(
         history,
         habitId,
         daysOfWeek,
@@ -359,18 +402,23 @@ export function buildHabitHeatmap(
         const d = depth.get(index) ?? 0;
         const off = index < planted || index > retired || !due(index);
         const part = partial.get(index);
+        // A forgiven day gets its own treatment rather than a level: level 1
+        // is already the partial shade, and a skip is not partial progress.
+        const isSkipped = skipped.has(index) && d === 0;
         return {
             // Level 1 is the partial shade — lighter than any completed day,
             // so progress shows without reading as a finished one.
             level: d > 0 ? depthToLevel(d) : part ? 1 : 0,
             done: d > 0,
             dormant: off || !known.has(index),
-            detail:
-                d > 1
-                    ? `done · ${d} day run`
-                    : part
-                      ? `${Math.round(part * 100)}% of target`
-                      : undefined,
+            skipped: isSkipped,
+            detail: isSkipped
+                ? "skipped · streak kept"
+                : d > 1
+                  ? `done · ${d} day run`
+                  : part
+                    ? `${Math.round(part * 100)}% of target`
+                    : undefined,
         };
     });
 
@@ -422,16 +470,20 @@ export function habitHistoryStats(
     habit?: HabitSchedule,
 ): { streak: number; best: number; completed: number; rate: number } {
     const daysOfWeek = normalizeDays(habit?.daysOfWeek);
-    const { depth, sorted } = collectHabitDays(history, habitId, daysOfWeek);
+    const { depth, rawDepth, sorted, prevCounting } = collectHabitDays(
+        history,
+        habitId,
+        daysOfWeek,
+    );
     const todayIdx = dayIndex(today);
     // Today still being open shouldn't read as a broken streak — fall back to
-    // the run that ended on the previous day the habit was due (yesterday, for
-    // a daily habit).
+    // the run that ended on the previous day that counts (yesterday, for a
+    // daily habit with nothing forgiven).
     const streak =
-        depth.get(todayIdx) ??
-        depth.get(previousExpected(daysOfWeek, todayIdx - 1)) ??
-        0;
-    const best = sorted.reduce((m, d) => Math.max(m, depth.get(d) ?? 0), 0);
+        depth.get(todayIdx) ?? depth.get(prevCounting(todayIdx - 1)) ?? 0;
+    // `best` reads the unforgiving chain: a record is the high-water mark of
+    // actual work, so a skip must not extend it.
+    const best = sorted.reduce((m, d) => Math.max(m, rawDepth.get(d) ?? 0), 0);
 
     const planted = plantedIndex(habit?.createdAt, sorted, todayIdx);
     const retired = habit?.archivedAt
