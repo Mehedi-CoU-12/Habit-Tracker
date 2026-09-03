@@ -65,10 +65,15 @@ model User {
   @@index([createdAt])
 }
 
+/// Admin-recorded cash payment. The user link is deliberately SetNull rather
+/// than Cascade: an account deletion must not erase the revenue ledger. The
+/// email is denormalized at record time so a row survives its user as an
+/// attributable, if anonymous, record.
 model Payment {
   id           String   @id @default(cuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userEmail    String?
   amount       Int
   currency     String   @default("BDT")
   method       String   @default("CASH")
@@ -95,6 +100,12 @@ model Habit {
   unit          String?
   /// How much one tap adds — 1 for cups, 10 for minutes.
   step          Int            @default(1)
+  /// Opt in to having a bound focus session's minutes logged against this
+  /// habit automatically (see FocusService.recordSession). Explicit rather
+  /// than inferred from `unit`, which is free text: a habit called
+  /// "20 minutes of guitar" must not silently start filling itself.
+  /// Defaulted, so every existing habit is opted out with no backfill.
+  fillFromFocus Boolean        @default(false)
   // Weekdays the habit is expected on, 0 = Sunday. An empty list means every
   // day — which is exactly what every habit predating this column meant, so
   // the migration needs no backfill.
@@ -104,6 +115,7 @@ model Habit {
   // which cascades the history away.
   archivedAt    DateTime?
   logs          HabitLog[]
+  skips         HabitSkip[]
   focusSessions FocusSession[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
@@ -144,6 +156,26 @@ model FocusSession {
   createdAt DateTime @default(now())
 
   @@index([userId, year, month, day])
+}
+
+/// One deliberately forgiven day: the streak spans it as if the habit had not
+/// been due, without the day counting as a completion. Stored rather than
+/// derived from a rule, so the past stays the past — every historical streak
+/// is byte-identical until a user spends their first skip — and so the UI can
+/// show *which* day was forgiven and what the allowance has left.
+model HabitSkip {
+  id        String   @id @default(cuid())
+  habitId   String
+  habit     Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  userId    String
+  year      Int
+  month     Int
+  day       Int
+  createdAt DateTime @default(now())
+
+  // One skip per day, which makes the client's PUT idempotent.
+  @@unique([habitId, year, month, day])
+  @@index([userId, year, month])
 }
 
 model HabitLog {
