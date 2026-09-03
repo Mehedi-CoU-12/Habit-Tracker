@@ -16,6 +16,7 @@ import {
 } from "../../../../src/lib/api";
 import { toast } from "../../../../src/lib/toast";
 import { deriveHabitStats } from "../../../../src/lib/deriveStats";
+import { amountOn, isDayComplete } from "../../../../src/lib/completion";
 import { calculateDailyProgress } from "../../../../src/utils/dailyProgress";
 import { calculateWeeklyProgress } from "../../../../src/utils/weeklyProgress";
 import { ApiHabit, HabitLog } from "../../../dashboard/types";
@@ -141,7 +142,12 @@ export default function AdminUserDetailPage() {
         deriveHabitStats(h, selectedYear, selectedMonth, daysInMonth),
     );
     const logs: HabitLog[] = (rawHabits as ApiHabit[]).flatMap((h) =>
-        h.logs.map((l) => ({ habitId: h.id, day: l.day, completed: true })),
+        h.logs.map((l) => ({
+            habitId: h.id,
+            day: l.day,
+            completed: isDayComplete(h, l.day),
+            amount: amountOn(h, l.day),
+        })),
     );
     const totalCompleted = habits.reduce((s, h) => s + h.completed, 0);
     const totalGoal = habits.reduce((s, h) => s + h.goal, 0);

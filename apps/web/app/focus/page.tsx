@@ -11,6 +11,7 @@ import {
     toggleLog,
 } from "../../src/lib/api";
 import { deriveHabitStats } from "../../src/lib/deriveStats";
+import { isDayComplete } from "../../src/lib/completion";
 import { ApiHabit } from "../dashboard/types";
 import BloomIcon from "../../components/bloom/BloomIcon";
 import Plant from "../../components/bloom/Plant";
@@ -142,7 +143,7 @@ export default function FocusPage() {
             await queryClient.cancelQueries({ queryKey });
             queryClient.setQueryData<ApiHabit[]>(queryKey, (old = []) =>
                 old.map((h) =>
-                    h.id === id && !h.logs.some((l) => l.day === day)
+                    h.id === id && !isDayComplete(h, day)
                         ? {
                               ...h,
                               logs: [
@@ -169,10 +170,10 @@ export default function FocusPage() {
     const waterHabit = useCallback(
         (id: string) => {
             const d = new Date();
-            const list = queryClient.getQueryData<ApiHabit[]>(queryKey);
-            const done = !!list
-                ?.find((h) => h.id === id)
-                ?.logs.some((l) => l.day === d.getDate());
+            const habit = queryClient
+                .getQueryData<ApiHabit[]>(queryKey)
+                ?.find((h) => h.id === id);
+            const done = !!habit && isDayComplete(habit, d.getDate());
             if (!done) waterMutation.mutate({ habitId: id, day: d.getDate() });
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps

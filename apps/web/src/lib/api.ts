@@ -236,6 +236,10 @@ export type CreateHabitInput = {
     icon?: string;
     tod?: string;
     verb?: string;
+    /** Daily target amount; null clears it and reverts the habit to binary. */
+    target?: number | null;
+    unit?: string | null;
+    step?: number;
 };
 
 export async function createHabit(input: CreateHabitInput): Promise<ApiHabit> {
@@ -289,6 +293,22 @@ export async function toggleLog(
         body: JSON.stringify({ habitId, year, month, day }),
     });
     return handleResponse<{ completed: boolean }>(res);
+}
+
+/** Absolute amount write for one (habit, date). Zero clears the day. */
+export async function setLogAmount(
+    habitId: string,
+    year: number,
+    month: number,
+    day: number,
+    amount: number,
+): Promise<{ amount: number; completed: boolean }> {
+    const res = await authedFetch(`/habits/logs/amount`, {
+        method: "PUT",
+        headers: JSON_HEADERS,
+        body: JSON.stringify({ habitId, year, month, day, amount }),
+    });
+    return handleResponse<{ amount: number; completed: boolean }>(res);
 }
 
 // ── Focus sessions ──────────────────────────────────────────────────────
