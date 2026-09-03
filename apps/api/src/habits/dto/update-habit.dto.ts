@@ -50,6 +50,25 @@ export class UpdateHabitDto {
   @MaxLength(50)
   verb?: string;
 
+  // Null clears the target, reverting the habit to binary.
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(10000)
+  target?: number | null;
+
+  @IsOptional()
+  @IsString()
+  @Transform(trim)
+  @MaxLength(16)
+  unit?: string | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(1000)
+  step?: number;
+
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(7)

@@ -132,3 +132,70 @@ describe('UpdateHabitDto', () => {
     expect(errors).toHaveLength(0);
   });
 });
+
+describe('quantity fields', () => {
+  it('accepts a target with a unit and a step', () => {
+    const { dto, errors } = check(CreateHabitDto, {
+      name: 'Water',
+      goal: 30,
+      target: 8,
+      unit: 'cups',
+      step: 1,
+    });
+    expect(errors).toHaveLength(0);
+    expect(dto.target).toBe(8);
+    expect(dto.unit).toBe('cups');
+  });
+
+  it('a habit with no target is binary and valid', () => {
+    const { dto, errors } = check(CreateHabitDto, { name: 'Floss', goal: 30 });
+    expect(errors).toHaveLength(0);
+    expect(dto.target).toBeUndefined();
+  });
+
+  it('rejects a non-positive or non-integer target', () => {
+    for (const target of [0, -1, 2.5, '8']) {
+      const { errors } = check(CreateHabitDto, { name: 'X', goal: 5, target });
+      expect(errors.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('rejects a step below 1', () => {
+    const { errors } = check(CreateHabitDto, {
+      name: 'X',
+      goal: 5,
+      target: 8,
+      step: 0,
+    });
+    expect(errors.length).toBeGreaterThan(0);
+  });
+
+  it('trims the unit and rejects an over-long one', () => {
+    const { dto } = check(CreateHabitDto, {
+      name: 'X',
+      goal: 5,
+      target: 8,
+      unit: '  cups  ',
+    });
+    expect(dto.unit).toBe('cups');
+
+    const { errors } = check(CreateHabitDto, {
+      name: 'X',
+      goal: 5,
+      target: 8,
+      unit: 'x'.repeat(17),
+    });
+    expect(errors.length).toBeGreaterThan(0);
+  });
+
+  it('update accepts a null target — the way a habit goes back to binary', () => {
+    const { dto, errors } = check(UpdateHabitDto, { target: null });
+    expect(errors).toHaveLength(0);
+    expect(dto.target).toBeNull();
+  });
+
+  it('update still rejects a bad non-null target', () => {
+    const { errors } = check(UpdateHabitDto, { target: 0 });
+    expect(errors.length).toBeGreaterThan(0);
+  });
+});

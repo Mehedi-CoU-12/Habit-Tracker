@@ -88,6 +88,13 @@ model Habit {
   icon          String         @default("sprout")
   tod           String         @default("anytime")
   verb          String?
+  /// Daily target amount, e.g. 8 (cups). Null is a binary done/not-done habit,
+  /// which is every habit predating this column — so no backfill is needed.
+  target        Int?
+  /// Unit label for `target`, e.g. "cups", "min", "pages". Null when binary.
+  unit          String?
+  /// How much one tap adds — 1 for cups, 10 for minutes.
+  step          Int            @default(1)
   // Weekdays the habit is expected on, 0 = Sunday. An empty list means every
   // day — which is exactly what every habit predating this column meant, so
   // the migration needs no backfill.
@@ -147,6 +154,9 @@ model HabitLog {
   year      Int
   month     Int
   day       Int
+  /// How much was done that day. 1 is what every pre-existing row means, so the
+  /// default reads them all as complete against a null target.
+  amount    Int      @default(1)
   createdAt DateTime @default(now())
 
   @@unique([habitId, year, month, day])

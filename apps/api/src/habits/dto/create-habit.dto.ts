@@ -82,6 +82,25 @@ export class CreateHabitDto {
   @MaxLength(50)
   verb?: string;
 
+  // Daily target amount. Null/absent is a binary done-or-not habit.
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(10000)
+  target?: number | null;
+
+  @IsOptional()
+  @IsString()
+  @Transform(trim)
+  @MaxLength(16)
+  unit?: string | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(1000)
+  step?: number;
+
   // Weekdays the habit is expected on, 0 = Sunday. Omitted or empty means
   // every day. Callers never need to send all seven — that normalizes to [].
   @IsOptional()

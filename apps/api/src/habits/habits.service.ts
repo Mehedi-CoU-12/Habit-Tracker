@@ -10,6 +10,7 @@ import { CreateHabitDto } from './dto/create-habit.dto.js';
 import { UpdateHabitDto } from './dto/update-habit.dto.js';
 import { ToggleLogDto } from './dto/toggle-log.dto.js';
 import { SetLogDto } from './dto/set-log.dto.js';
+import { SetLogAmountDto } from './dto/set-log-amount.dto.js';
 
 type TemplateHabit = {
   name: string;
@@ -17,6 +18,10 @@ type TemplateHabit = {
   icon: string;
   tod: string;
   verb?: string;
+  /** Daily target; absent leaves the habit binary. */
+  target?: number;
+  unit?: string;
+  step?: number;
 };
 
 export const TEMPLATES: Record<string, TemplateHabit[]> = {
@@ -34,6 +39,8 @@ export const TEMPLATES: Record<string, TemplateHabit[]> = {
       icon: 'droplet',
       tod: 'morning',
       verb: '8 cups',
+      target: 8,
+      unit: 'cups',
     },
     {
       name: 'Exercise',
@@ -41,6 +48,9 @@ export const TEMPLATES: Record<string, TemplateHabit[]> = {
       icon: 'dumbbell',
       tod: 'morning',
       verb: '30 min',
+      target: 30,
+      unit: 'min',
+      step: 5,
     },
     {
       name: 'Meditate',
@@ -48,6 +58,9 @@ export const TEMPLATES: Record<string, TemplateHabit[]> = {
       icon: 'moon',
       tod: 'morning',
       verb: '10 min',
+      target: 10,
+      unit: 'min',
+      step: 5,
     },
     {
       name: 'Journal',
@@ -64,6 +77,9 @@ export const TEMPLATES: Record<string, TemplateHabit[]> = {
       icon: 'dumbbell',
       tod: 'afternoon',
       verb: '30 min',
+      target: 30,
+      unit: 'min',
+      step: 5,
     },
     {
       name: 'Walk 10k steps',
@@ -71,6 +87,9 @@ export const TEMPLATES: Record<string, TemplateHabit[]> = {
       icon: 'sprout',
       tod: 'afternoon',
       verb: '10k steps',
+      target: 10000,
+      unit: 'steps',
+      step: 500,
     },
     { name: 'Stretch', goal: 20, icon: 'leaf', tod: 'evening', verb: '10 min' },
     {
@@ -79,6 +98,8 @@ export const TEMPLATES: Record<string, TemplateHabit[]> = {
       icon: 'moonStars',
       tod: 'evening',
       verb: '8 hrs',
+      target: 8,
+      unit: 'hrs',
     },
   ],
   study: [
@@ -88,6 +109,9 @@ export const TEMPLATES: Record<string, TemplateHabit[]> = {
       icon: 'book',
       tod: 'afternoon',
       verb: '1 hour',
+      target: 60,
+      unit: 'min',
+      step: 5,
     },
     {
       name: 'Read 20 pages',
@@ -95,6 +119,9 @@ export const TEMPLATES: Record<string, TemplateHabit[]> = {
       icon: 'book',
       tod: 'evening',
       verb: '20 pages',
+      target: 20,
+      unit: 'pages',
+      step: 5,
     },
     { name: 'No social media', goal: 20, icon: 'cloud', tod: 'anytime' },
     { name: 'Review notes', goal: 18, icon: 'pen', tod: 'evening' },
@@ -106,6 +133,8 @@ export const TEMPLATES: Record<string, TemplateHabit[]> = {
       icon: 'droplet',
       tod: 'morning',
       verb: '8 cups',
+      target: 8,
+      unit: 'cups',
     },
     {
       name: 'Sleep 8 hours',
@@ -113,6 +142,8 @@ export const TEMPLATES: Record<string, TemplateHabit[]> = {
       icon: 'moonStars',
       tod: 'evening',
       verb: '8 hrs',
+      target: 8,
+      unit: 'hrs',
     },
     { name: 'Take vitamins', goal: 28, icon: 'sun', tod: 'morning' },
     { name: 'No junk food', goal: 22, icon: 'leaf', tod: 'anytime' },
@@ -124,6 +155,9 @@ export const TEMPLATES: Record<string, TemplateHabit[]> = {
       icon: 'moon',
       tod: 'morning',
       verb: '10 min',
+      target: 10,
+      unit: 'min',
+      step: 5,
     },
     {
       name: 'Gratitude journal',
@@ -131,6 +165,8 @@ export const TEMPLATES: Record<string, TemplateHabit[]> = {
       icon: 'pen',
       tod: 'evening',
       verb: '3 things',
+      target: 3,
+      unit: 'things',
     },
     { name: 'Digital detox 1 hour', goal: 22, icon: 'cloud', tod: 'evening' },
     {
@@ -139,6 +175,8 @@ export const TEMPLATES: Record<string, TemplateHabit[]> = {
       icon: 'sprout',
       tod: 'anytime',
       verb: '5 min',
+      target: 5,
+      unit: 'min',
     },
   ],
 };
@@ -201,6 +239,15 @@ export class HabitsService {
         ...(dto.icon ? { icon: dto.icon } : {}),
         ...(dto.tod ? { tod: dto.tod } : {}),
         ...(dto.verb ? { verb: dto.verb } : {}),
+        // unit/step are meaningless without a target, so they ride along only
+        // when one is given.
+        ...(dto.target
+          ? {
+              target: dto.target,
+              ...(dto.unit ? { unit: dto.unit } : {}),
+              ...(dto.step ? { step: dto.step } : {}),
+            }
+          : {}),
         ...(dto.daysOfWeek ? { daysOfWeek: dto.daysOfWeek } : {}),
       },
     });
@@ -222,6 +269,15 @@ export class HabitsService {
         ...(dto.icon !== undefined ? { icon: dto.icon } : {}),
         ...(dto.tod !== undefined ? { tod: dto.tod } : {}),
         ...(dto.verb !== undefined ? { verb: dto.verb } : {}),
+        // Clearing the target reverts the habit to binary, so unit and step go
+        // with it rather than lingering as orphans.
+        ...(dto.target === null
+          ? { target: null, unit: null, step: 1 }
+          : {
+              ...(dto.target !== undefined ? { target: dto.target } : {}),
+              ...(dto.unit !== undefined ? { unit: dto.unit } : {}),
+              ...(dto.step !== undefined ? { step: dto.step } : {}),
+            }),
         ...(dto.daysOfWeek !== undefined ? { daysOfWeek: dto.daysOfWeek } : {}),
         // The server owns the timestamp; the client only says which way.
         // Re-archiving an already-archived habit keeps the original date, so
@@ -265,6 +321,13 @@ export class HabitsService {
         icon: h.icon,
         tod: h.tod,
         ...(h.verb ? { verb: h.verb } : {}),
+        ...(h.target
+          ? {
+              target: h.target,
+              ...(h.unit ? { unit: h.unit } : {}),
+              ...(h.step ? { step: h.step } : {}),
+            }
+          : {}),
       })),
     });
     await this.invalidateHabits(userId);
@@ -281,18 +344,23 @@ export class HabitsService {
     if (!habit) throw new NotFoundException('Habit not found');
     if (habit.userId !== userId) throw new ForbiddenException();
 
-    const existing = await this.prisma.habitLog.findUnique({
-      where: { habitId_year_month_day: { habitId, year, month, day } },
-    });
+    const where = { habitId_year_month_day: { habitId, year, month, day } };
+    const target = habit.target ?? 1;
+    const existing = await this.prisma.habitLog.findUnique({ where });
 
-    if (existing) {
+    // Only a day that already counts as complete flips back off. A partially
+    // filled one is not complete yet, so toggling fills it to the target
+    // instead of discarding the progress already logged against it.
+    if (existing && existing.amount >= target) {
       await this.prisma.habitLog.delete({ where: { id: existing.id } });
       await this.invalidateHabits(userId);
       return { completed: false };
     }
 
-    await this.prisma.habitLog.create({
-      data: { habitId, userId, year, month, day },
+    await this.prisma.habitLog.upsert({
+      where,
+      create: { habitId, userId, year, month, day, amount: target },
+      update: { amount: target },
     });
     await this.invalidateHabits(userId);
     return { completed: true };
@@ -310,10 +378,11 @@ export class HabitsService {
     const where = { habitId_year_month_day: { habitId, year, month, day } };
     if (completed) {
       // upsert (not create) so a replayed "done" is a no-op, never a duplicate.
+      const amount = habit.target ?? 1;
       await this.prisma.habitLog.upsert({
         where,
-        create: { habitId, userId, year, month, day },
-        update: {},
+        create: { habitId, userId, year, month, day, amount },
+        update: { amount },
       });
     } else {
       // deleteMany (not delete) so clearing an already-absent cell is a no-op.
@@ -323,5 +392,31 @@ export class HabitsService {
     }
     await this.invalidateHabits(userId);
     return { completed };
+  }
+
+  /** Absolute amount write. Zero clears the cell; completion is derived. */
+  async setLogAmount(userId: string, dto: SetLogAmountDto) {
+    const { habitId, year, month, day, amount } = dto;
+
+    const habit = await this.prisma.habit.findUnique({
+      where: { id: habitId },
+    });
+    if (!habit) throw new NotFoundException('Habit not found');
+    if (habit.userId !== userId) throw new ForbiddenException();
+
+    if (amount <= 0) {
+      // deleteMany so clearing an already-absent cell is a no-op.
+      await this.prisma.habitLog.deleteMany({
+        where: { habitId, year, month, day },
+      });
+    } else {
+      await this.prisma.habitLog.upsert({
+        where: { habitId_year_month_day: { habitId, year, month, day } },
+        create: { habitId, userId, year, month, day, amount },
+        update: { amount },
+      });
+    }
+    await this.invalidateHabits(userId);
+    return { amount, completed: amount >= (habit.target ?? 1) };
   }
 }
