@@ -7,8 +7,10 @@ import { deriveHabitStats } from "./deriveStats";
  * These mirror apps/mobile/src/lib/deriveStats.test.ts on purpose: the two
  * clients keep separate copies of this maths, and they must not drift.
  */
-function habit(over: Partial<ApiHabit> & { days?: number[] } = {}): ApiHabit {
-    const { days = [], ...rest } = over;
+function habit(
+    over: Partial<ApiHabit> & { days?: number[]; skipped?: number[] } = {},
+): ApiHabit {
+    const { days = [], skipped = [], ...rest } = over;
     return {
         id: "h1",
         name: "Read",
@@ -21,6 +23,15 @@ function habit(over: Partial<ApiHabit> & { days?: number[] } = {}): ApiHabit {
         updatedAt: "2026-09-01T00:00:00.000Z",
         logs: days.map((day) => ({
             id: `l${day}`,
+            habitId: "h1",
+            userId: "u1",
+            year: 2026,
+            month: 9,
+            day,
+            createdAt: "2026-09-01T00:00:00.000Z",
+        })),
+        skips: skipped.map((day) => ({
+            id: `s${day}`,
             habitId: "h1",
             userId: "u1",
             year: 2026,
@@ -142,5 +153,55 @@ describe("deriveHabitStats — archiving", () => {
 
     test("a live habit reports null", () => {
         assert.equal(stats(habit(), 10).archivedAt, null);
+    });
+});
+
+/**
+ * Streak insurance. These assertions are the same ones apps/mobile makes in
+ * its own copy — if the two ever disagree, one client is lying about a number
+ * the user has an emotional relationship with.
+ */
+describe("deriveHabitStats — streak insurance", () => {
+    test("a spent skip spans the gap", () => {
+        assert.equal(stats(habit({ days: [1, 2, 4, 5] }), 5).streak, 2);
+        assert.equal(
+            stats(habit({ days: [1, 2, 4, 5], skipped: [3] }), 5).streak,
+            4,
+        );
+    });
+
+    test("the rate is unchanged by a skip — it is not a completion", () => {
+        const plain = stats(habit({ days: [1, 2, 4, 5] }), 5);
+        const forgiven = stats(habit({ days: [1, 2, 4, 5], skipped: [3] }), 5);
+        assert.equal(forgiven.rate, plain.rate);
+        assert.equal(forgiven.rate, 80);
+        assert.equal(forgiven.completed, plain.completed);
+    });
+
+    test("a skip does not extend best", () => {
+        const forgiven = stats(habit({ days: [1, 2, 4, 5], skipped: [3] }), 5);
+        assert.equal(forgiven.streak, 4);
+        assert.equal(forgiven.best, 2);
+    });
+
+    test("reports the days forgiven and the allowance left", () => {
+        const forgiven = stats(habit({ days: [1], skipped: [3] }), 5);
+        assert.deepEqual(forgiven.skippedDays, [3]);
+        assert.equal(forgiven.skipsLeft, 0);
+        assert.equal(stats(habit({ days: [1] }), 5).skipsLeft, 1);
+    });
+
+    test("a run of two forgiven days is bridged too", () => {
+        assert.equal(
+            stats(habit({ days: [1, 2, 5], skipped: [3, 4] }), 5).streak,
+            3,
+        );
+    });
+
+    test("an unforgiven miss still breaks the run", () => {
+        assert.equal(
+            stats(habit({ days: [1, 4, 5], skipped: [3] }), 5).streak,
+            2,
+        );
     });
 });
