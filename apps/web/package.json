@@ -8,7 +8,8 @@
         "build": "next build",
         "start": "next start",
         "lint": "eslint --max-warnings 0",
-        "check-types": "next typegen && tsc --noEmit"
+        "check-types": "next typegen && tsc --noEmit",
+        "test": "node --import tsx --test \"src/**/*.test.ts\""
     },
     "dependencies": {
         "@repo/ui": "workspace:*",
@@ -30,6 +31,7 @@
         "eslint": "^9.39.1",
         "postcss": "^8.5.6",
         "tailwindcss": "^4.1.18",
+        "tsx": "^4.22.5",
         "typescript": "5.9.2"
     }
 }
