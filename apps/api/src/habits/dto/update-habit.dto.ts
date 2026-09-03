@@ -70,6 +70,10 @@ export class UpdateHabitDto {
   step?: number;
 
   @IsOptional()
+  @IsBoolean()
+  fillFromFocus?: boolean;
+
+  @IsOptional()
   @IsArray()
   @ArrayMaxSize(7)
   @IsInt({ each: true })

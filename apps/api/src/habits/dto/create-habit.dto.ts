@@ -1,6 +1,7 @@
 import {
   ArrayMaxSize,
   IsArray,
+  IsBoolean,
   IsString,
   IsInt,
   Min,
@@ -100,6 +101,13 @@ export class CreateHabitDto {
   @Min(1)
   @Max(1000)
   step?: number;
+
+  // Opt in to auto-logging a bound focus session's minutes against this
+  // habit. Only meaningful alongside a target — the service guards on that
+  // rather than the DTO, so a client can set the two in either order.
+  @IsOptional()
+  @IsBoolean()
+  fillFromFocus?: boolean;
 
   // Weekdays the habit is expected on, 0 = Sunday. Omitted or empty means
   // every day. Callers never need to send all seven — that normalizes to [].
