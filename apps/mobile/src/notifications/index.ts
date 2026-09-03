@@ -6,7 +6,7 @@ import { setupNotifications } from "./permissions";
 import { loadPrefs } from "./store";
 import { markDoneInCache, scheduleSnooze, syncReminders } from "./reminders";
 
-export { syncReminders } from "./reminders";
+export { cancelAllReminders, syncReminders } from "./reminders";
 export { useReminderPrefs } from "./store";
 export { requestPermission } from "./permissions";
 

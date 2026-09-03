@@ -210,6 +210,26 @@ export function computeDesired(
 }
 
 /**
+ * Drop every notification this app has scheduled — reminders and snoozes
+ * alike — and empty the tray.
+ *
+ * Reminders are local `scheduleNotificationAsync` calls, so they live in the
+ * OS scheduler and outlive both sign-out and account deletion: without this
+ * a deleted account keeps being asked whether it drank water today. Called on
+ * every teardown of a local session, and deliberately unconditional — over-
+ * cancelling costs one resync, under-cancelling nags a stranger.
+ */
+export async function cancelAllReminders(): Promise<void> {
+    if (Platform.OS === "web") return; // scheduling unsupported on web
+    try {
+        await Notifications.cancelAllScheduledNotificationsAsync();
+        await Notifications.dismissAllNotificationsAsync();
+    } catch {
+        /* best-effort — never block a sign-out on the OS scheduler */
+    }
+}
+
+/**
  * Idempotently make the OS's pending set equal the desired set. Safe to call
  * from anywhere, any number of times (foreground, after a write, on settings
  * change) — it diffs and only touches what changed. Mirrors the sync reconcile.
