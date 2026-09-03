@@ -206,6 +206,27 @@ function Heatmap({
                             opacity={cellOpacity(d.level, fadedFor(d))}
                         />
                     ))}
+                    {/* Forgiven days get an accent outline over the empty
+                        fill rather than a level of their own: level 1 is
+                        already the partial shade, and a skip is not progress.
+                        Hollow reads as "this day was let go", which is what
+                        happened. */}
+                    {grid.days
+                        .filter((d) => d.skipped && !fadedFor(d))
+                        .map((d) => (
+                            <Rect
+                                key={`skip-${d.index}`}
+                                x={PAD + gutter + d.col * pitch + 0.8}
+                                y={PAD + d.row * pitch + 0.8}
+                                width={cell - 1.6}
+                                height={cell - 1.6}
+                                rx={Math.min(4, cell * 0.28)}
+                                fill="none"
+                                stroke={th.accent}
+                                strokeWidth={1.4}
+                                strokeDasharray="2 1.6"
+                            />
+                        ))}
                     {/* Rings ride above every fill so a neighbour can't clip them. */}
                     {grid.days
                         .filter((d) => d.today || d.index === active?.index)
