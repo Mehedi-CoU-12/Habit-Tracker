@@ -3,6 +3,9 @@
 type Log = { day: number; amount?: number };
 type Quantified = { target?: number | null };
 type WithLogs<L extends Log> = Quantified & { logs: L[] };
+type Skip = { day: number };
+type WithSkips = { skips?: Skip[] };
+
 
 /** How much a log records. A row with no amount predates quantities: one. */
 function amountOf(l: Log): number {
@@ -51,4 +54,35 @@ export function progressOn<L extends Log>(
     day: number,
 ): number {
     return Math.min(1, amountOn(h, day) / targetOf(h));
+}
+
+// ── Streak insurance ────────────────────────────────────────────────────────
+
+/**
+ * Skips one habit may spend per calendar month. Mirrors SKIPS_PER_MONTH in
+ * apps/api/src/habits/habits.service.ts, which is the enforcing copy — this
+ * one only decides what the UI offers.
+ */
+export const SKIPS_PER_MONTH = 1;
+
+/**
+ * Days of the month the habit has a skip spent on.
+ *
+ * A skip makes a missed due day behave like a rest day, retroactively: it
+ * bridges the streak without being a completion. It deliberately does NOT
+ * feed `isDayComplete` — conflating the two would inflate the completion rate,
+ * which is the number people use to judge themselves honestly.
+ */
+export function skippedDaysOf(h: WithSkips): Set<number> {
+    return new Set((h.skips ?? []).map((s) => s.day));
+}
+
+/** Whether one given day of the month is forgiven. */
+export function isDaySkipped(h: WithSkips, day: number): boolean {
+    return (h.skips ?? []).some((s) => s.day === day);
+}
+
+/** Skips this habit has left in the month its `skips` were fetched for. */
+export function skipsLeft(h: WithSkips): number {
+    return Math.max(0, SKIPS_PER_MONTH - (h.skips ?? []).length);
 }
