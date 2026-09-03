@@ -1,4 +1,8 @@
-import { NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { HabitsService } from './habits.service.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import type { CacheService } from '../redis/cache.service.js';
@@ -198,5 +202,176 @@ describe('the binary write paths on a quantified habit', () => {
       completed: false,
     });
     expect(done.habitLog.delete.calls[0]).toEqual({ where: { id: 'l1' } });
+  });
+});
+
+// ── Streak insurance ────────────────────────────────────────────────────────
+
+type SkipRow = { habitId: string; year: number; month: number; day: number };
+type SkipHabit = HabitRow & { daysOfWeek: number[] };
+
+/**
+ * The service against an in-memory skip table, so allowance and idempotency
+ * are exercised against real accumulated state rather than a fixed count.
+ */
+function makeSkipService(habit: SkipHabit | null) {
+  const rows: SkipRow[] = [];
+  const match = (w: { habitId: string; year: number; month: number }) =>
+    rows.filter(
+      (r) =>
+        r.habitId === w.habitId && r.year === w.year && r.month === w.month,
+    );
+
+  const habitSkip = {
+    findUnique: ({
+      where,
+    }: {
+      where: { habitId_year_month_day: SkipRow };
+    }) => {
+      const k = where.habitId_year_month_day;
+      return Promise.resolve(
+        rows.find(
+          (r) =>
+            r.habitId === k.habitId &&
+            r.year === k.year &&
+            r.month === k.month &&
+            r.day === k.day,
+        ) ?? null,
+      );
+    },
+    count: ({ where }: { where: SkipRow }) =>
+      Promise.resolve(match(where).length),
+    create: ({ data }: { data: SkipRow }) => {
+      rows.push(data);
+      return Promise.resolve(data);
+    },
+    deleteMany: ({ where }: { where: SkipRow }) => {
+      const i = rows.findIndex(
+        (r) =>
+          r.habitId === where.habitId &&
+          r.year === where.year &&
+          r.month === where.month &&
+          r.day === where.day,
+      );
+      if (i >= 0) rows.splice(i, 1);
+      return Promise.resolve({ count: i >= 0 ? 1 : 0 });
+    },
+  };
+
+  const prisma = {
+    habit: { findUnique: stub<unknown, SkipHabit | null>(habit) },
+    habitSkip,
+  } as unknown as PrismaService;
+  const cache = { bumpVersion: stub<unknown>() } as unknown as CacheService;
+  return { service: new HabitsService(prisma, cache), rows };
+}
+
+const daily: SkipHabit = {
+  id: 'h1',
+  userId: 'u1',
+  target: null,
+  daysOfWeek: [],
+};
+
+const skipAt = (day: number, month = 9) => ({
+  habitId: 'h1',
+  year: 2026,
+  month,
+  day,
+  used: true,
+});
+
+describe('setSkip', () => {
+  it('spends one skip and reports the allowance left', async () => {
+    const { service, rows } = makeSkipService(daily);
+
+    await expect(service.setSkip('u1', skipAt(3))).resolves.toEqual({
+      used: true,
+      remaining: 0,
+    });
+    expect(rows).toHaveLength(1);
+  });
+
+  it('a replayed write converges to one row', async () => {
+    const { service, rows } = makeSkipService(daily);
+
+    for (let i = 0; i < 3; i++) await service.setSkip('u1', skipAt(3));
+
+    expect(rows).toHaveLength(1);
+  });
+
+  it('refuses a second skip in the same month', async () => {
+    const { service, rows } = makeSkipService(daily);
+
+    await service.setSkip('u1', skipAt(3));
+    await expect(service.setSkip('u1', skipAt(9))).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(rows).toHaveLength(1);
+  });
+
+  it('allows one again the next month — the allowance resets', async () => {
+    const { service, rows } = makeSkipService(daily);
+
+    await service.setSkip('u1', skipAt(3, 9));
+    await expect(service.setSkip('u1', skipAt(3, 10))).resolves.toEqual({
+      used: true,
+      remaining: 0,
+    });
+    expect(rows).toHaveLength(2);
+  });
+
+  it('releasing a skip hands it back to the month', async () => {
+    const { service, rows } = makeSkipService(daily);
+
+    await service.setSkip('u1', skipAt(3));
+    await expect(
+      service.setSkip('u1', { ...skipAt(3), used: false }),
+    ).resolves.toEqual({ used: false, remaining: 1 });
+    expect(rows).toHaveLength(0);
+
+    // …and the released one can be spent elsewhere.
+    await expect(service.setSkip('u1', skipAt(9))).resolves.toEqual({
+      used: true,
+      remaining: 0,
+    });
+  });
+
+  it('releasing an unspent day is a no-op, not a 404', async () => {
+    const { service } = makeSkipService(daily);
+    await expect(
+      service.setSkip('u1', { ...skipAt(3), used: false }),
+    ).resolves.toEqual({ used: false, remaining: 1 });
+  });
+
+  it('refuses a skip on a rest day — nothing was due to forgive', async () => {
+    // Mon/Wed/Fri. 2026-09-05 is a Saturday.
+    const { service, rows } = makeSkipService({
+      ...daily,
+      daysOfWeek: [1, 3, 5],
+    });
+
+    await expect(service.setSkip('u1', skipAt(5))).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(rows).toHaveLength(0);
+
+    // …but the Friday before is fair game.
+    await expect(service.setSkip('u1', skipAt(4))).resolves.toEqual({
+      used: true,
+      remaining: 0,
+    });
+  });
+
+  it('404s an unknown habit and forbids someone else’s', async () => {
+    const { service } = makeSkipService(null);
+    await expect(service.setSkip('u1', skipAt(3))).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+
+    const other = makeSkipService({ ...daily, userId: 'u2' });
+    await expect(other.service.setSkip('u1', skipAt(3))).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
   });
 });
