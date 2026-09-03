@@ -8,6 +8,7 @@ import {
     useHabits,
     useSetDayNote,
     useSetLogAmount,
+    useSetSkip,
     useToggleLog,
 } from "../../api/hooks";
 import { isExpectedOnDate, normalizeDays } from "../../lib/schedule";
@@ -15,8 +16,10 @@ import {
     amountOn,
     completedLogs,
     isDayComplete,
+    isDaySkipped,
     isQuantified,
     progressOn,
+    skipsLeft,
 } from "../../lib/completion";
 import { daysInMonth } from "../../lib/deriveStats";
 import { dayIndex, dayIndexOf, dayNames, monthNames } from "../../lib/date";
@@ -105,6 +108,7 @@ export default function CalendarScreen() {
     const { data: raw = [] } = useHabits(year, month);
     const toggle = useToggleLog(year, month);
     const setAmount = useSetLogAmount(year, month);
+    const setSkip = useSetSkip(year, month);
     const { data: notes = [] } = useDayNotes(year, month);
     const saveNote = useSetDayNote(year, month);
 
@@ -406,6 +410,15 @@ export default function CalendarScreen() {
                         )}
                         {dueOnSel.map((h, i) => {
                             const done = isDayComplete(h, sel);
+                            const skipped = isDaySkipped(h, sel);
+                            const left = skipsLeft(h);
+                            // Only a day that is over and was actually missed
+                            // can be forgiven: today is still open, and a
+                            // finished day has nothing to buy.
+                            const canSkip =
+                                !selIsFuture &&
+                                dayIndexOf(year, month, sel) < todayIndex &&
+                                !done;
                             const quantified = isQuantified(h);
                             const target = h.target ?? 1;
                             const step = h.step && h.step > 0 ? h.step : 1;
@@ -500,6 +513,19 @@ export default function CalendarScreen() {
                                             ? `${amountOn(h, sel)} / ${target}${h.unit ? ` ${h.unit}` : ""}`
                                             : (h.verb ?? "")}
                                     </Text>
+                                    {canSkip && (
+                                        <SkipPill
+                                            skipped={skipped}
+                                            left={left}
+                                            onPress={() =>
+                                                setSkip.mutate({
+                                                    habitId: h.id,
+                                                    day: sel,
+                                                    used: !skipped,
+                                                })
+                                            }
+                                        />
+                                    )}
                                 </Pressable>
                             );
                         })}
@@ -606,5 +632,69 @@ export default function CalendarScreen() {
                 </View>
             </ScrollView>
         </View>
+    );
+}
+
+/**
+ * Spend or release one skip on a missed day — streak insurance.
+ *
+ * Nested inside the row's own Pressable, so the tap target is small and
+ * deliberate: forgiving a day is a decision, not something you should be able
+ * to do by mis-tapping the row you meant to check off.
+ */
+function SkipPill({
+    skipped,
+    left,
+    onPress,
+}: {
+    skipped: boolean;
+    left: number;
+    onPress: () => void;
+}) {
+    const th = useTheme();
+    const spent = left <= 0 && !skipped;
+    return (
+        <Pressable
+            onPress={
+                spent
+                    ? undefined
+                    : (event) => {
+                          // This control lives inside the day's completion
+                          // row. Do not let its deliberate skip action bubble
+                          // into the row and mark the habit complete too.
+                          event.stopPropagation();
+                          onPress();
+                      }
+            }
+            hitSlop={6}
+            style={({ pressed }) => ({
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 4,
+                paddingVertical: 4,
+                paddingHorizontal: 9,
+                borderRadius: 11,
+                borderWidth: 1.5,
+                borderColor: skipped ? "transparent" : th.line,
+                backgroundColor: skipped ? th.accentSoftBg : "transparent",
+                opacity: spent ? 0.4 : pressed ? 0.6 : 1,
+            })}
+        >
+            <Icon
+                name={skipped ? "check" : "sparkle"}
+                size={11}
+                stroke={skipped ? th.accent : th.muted}
+                strokeWidth={2.2}
+            />
+            <Text
+                style={{
+                    fontSize: 10.5,
+                    fontFamily: th.sansBold,
+                    color: skipped ? th.accent : th.muted,
+                }}
+            >
+                {skipped ? "Skipped" : spent ? "No skips left" : "Use a skip"}
+            </Text>
+        </Pressable>
     );
 }
