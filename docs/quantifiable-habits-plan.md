@@ -1,6 +1,6 @@
 # HabitFlow — Quantifiable Habits (counts & durations): Design Plan
 
-> **Generated:** 2026-09-03 · **Scope:** `apps/api` (model + write path), `apps/mobile` (primary surface), `apps/web` (parity) · **Status:** Phases 1–6 landed. Only Phase 7 (ship) is outstanding. The feature works end to end on both clients.
+> **Generated:** 2026-09-03 · **Scope:** `apps/api` (model + write path), `apps/mobile` (primary surface), `apps/web` (parity) · **Status:** Phases 1–7 landed as code — mobile is at `1.7.0`, the tracker row is ticked, and the suites are green (api 32, mobile 90, web 26). The one remaining step is not code: **publish the `AppRelease` row from Admin → Releases** once the APK is built (see Phase 7).
 > **How to use this doc:** Sections 1–6 are the design with decisions and rationale. Section 7 is the execution plan in implementation order — tick the `- [ ]` boxes as you complete them. Section 8 is the verification matrix to run before calling it done.
 
 > **Headline:** The app already _promises_ quantities and doesn't keep the promise. `Habit.verb` is a free-text subtitle rendered at [HabitRow.tsx:165](../apps/mobile/src/components/HabitRow.tsx#L165), and the built-in templates seed it with `"8 cups"`, `"30 min"`, `"20 pages"`, `"10k steps"` — but `HabitLog` is existence-only, so a user who drinks 3 of 8 cups has exactly two choices: lie and tick it, or lose the day. This plan adds two nullable columns to `Habit` and one defaulted column to `HabitLog`, which needs **no backfill** and leaves every existing habit binary. The hard part is not the schema — it is that **fourteen separate call sites** across the two clients equate "a log row exists" with "the day is complete", and all of them must move behind one shared predicate.
@@ -202,7 +202,7 @@ Parity, no new concepts:
 - [x] Add `apps/mobile/src/lib/completion.ts` with `completedLogs` / `completedDaysOf` / `isDayComplete`, on today's binary rule
 - [x] Route all fourteen sites through it — **no behaviour change**; mobile 79 tests and web 15 pass untouched, both apps type-check
 - [x] Mirror on web (`apps/web/src/lib/completion.ts`)
-- [ ] Commit on its own so the behavioural phases have a clean diff
+- [ ] ~~Commit on its own so the behavioural phases have a clean diff~~ — **not done, and no longer worth doing.** The refactor went in folded into the behavioural commits (`c3f9c56` mobile, `f58cad8` web) rather than ahead of them, so the clean-diff benefit is already spent; splitting it now would be archaeology, not review value.
 
 ### Phase 2 — Data model & API (`apps/api`) ✅
 
@@ -240,10 +240,17 @@ Parity, no new concepts:
 - [x] `HabitModal` target/unit/step block, `HabitGrid` partial-fill cell, `setLogAmount` in `lib/api.ts`
 - [x] `completion.test.ts` mirrored from mobile
 
-### Phase 7 — Ship
+### Phase 7 — Ship 🟡
 
-- [ ] Bump `apps/mobile` version; publish an `AppRelease` (leave `minimum` alone — old clients are unaffected by D4)
-- [ ] Tick the row in [features-or-bugDoc.md](features-or-bugDoc.md)
+- [x] Bump `apps/mobile` to `1.7.0` — `app.json` (`expo.version`, the number `UpdateGate` compares), `package.json`, and `package-lock.json`, which the previous release had to fix in a follow-up commit
+- [x] Tick the row in [features-or-bugDoc.md](features-or-bugDoc.md), with a dated entry in **Done**
+- [x] Re-run the suites on the shipping commit: api 32, mobile 90, web 26, all passing; `web`/`@repo/ui` `check-types` and `tsc --noEmit` for mobile and api clean (the two `test/app.e2e-spec.ts` module-resolution errors predate this branch and are untouched by it)
+- [ ] **Build and publish the APK** — `eas build -p android --profile preview`, then attach it to a `v1.7.0` GitHub release
+- [ ] **Publish the `AppRelease` row** — Admin → Releases → Android: **Latest version** `1.7.0`, **Download URL** the release link, notes optional. **Leave `minimum` alone** — per D4 the new endpoint is a sibling, `PUT /habits/logs` is untouched, and every shipped client keeps working, so there is nothing here that justifies locking anyone out.
+
+> The last two boxes are not code and cannot be done from the repo: one needs an EAS build, the other a
+> logged-in admin against the live dashboard. Everything the branch can carry is carried.
+> See [releasing-the-mobile-app.md](releasing-the-mobile-app.md) for the full procedure.
 
 ---
 
