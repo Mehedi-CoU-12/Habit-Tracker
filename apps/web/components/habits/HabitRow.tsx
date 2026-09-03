@@ -19,6 +19,7 @@ export default function HabitRow({
     year,
     month,
     onToggle,
+    onSkip,
     onDelete,
     onEdit,
     isEven,
@@ -29,6 +30,8 @@ export default function HabitRow({
     year: number;
     month: number;
     onToggle: (habitId: string, day: number) => void;
+    /** Spend or release a skip — streak insurance. Alt/Option + click. */
+    onSkip: (habitId: string, day: number, used: boolean) => void;
     onDelete: (habit: HabitWithStats) => void;
     onEdit: (habit: HabitWithStats) => void;
     isEven: boolean;
@@ -47,6 +50,13 @@ export default function HabitRow({
         if (!log) return 0;
         return Math.min(1, log.amount / Math.max(1, habit.target ?? 1));
     }
+
+    const skipped = new Set(habit.skippedDays);
+    const todayMidnight = new Date();
+    todayMidnight.setHours(0, 0, 0, 0);
+    /** A day that is over — today is still open, so it cannot be forgiven. */
+    const isPastDay = (day: number) =>
+        new Date(year, month - 1, day) < todayMidnight;
 
     const bg = isEven ? "bg-surface" : "bg-surface2/30";
 
@@ -104,14 +114,33 @@ export default function HabitRow({
                 const checked = isChecked(day);
                 const future = isFutureDay(year, month, day);
                 const part = checked ? 0 : progress(day);
+                const isSkipped = skipped.has(day);
+                // Only a day that is over and was actually missed can be
+                // forgiven: a finished day has nothing to buy.
+                const canSkip = !future && isPastDay(day) && !checked;
 
                 return (
                     <td key={day} className="w-6 py-2 text-center">
                         <button
-                            onClick={() => !future && onToggle(habit.id, day)}
+                            onClick={(e) => {
+                                if (future) return;
+                                // Alt/Option + click forgives the day instead
+                                // of completing it — see the card's legend.
+                                if (e.altKey && (canSkip || isSkipped)) {
+                                    onSkip(habit.id, day, !isSkipped);
+                                    return;
+                                }
+                                onToggle(habit.id, day);
+                            }}
                             disabled={future}
                             title={
-                                future ? "Cannot log future days" : undefined
+                                future
+                                    ? "Cannot log future days"
+                                    : isSkipped
+                                      ? "Skipped — streak kept (Alt+click to undo)"
+                                      : canSkip
+                                        ? "Alt+click to use a skip"
+                                        : undefined
                             }
                             className={`relative mx-auto flex h-5 w-5 items-center justify-center overflow-hidden rounded-md border transition-colors ${
                                 future
@@ -135,6 +164,12 @@ export default function HabitRow({
                                     className="absolute inset-x-0 bottom-0 rounded-b-[3px] bg-green/40"
                                     style={{ height: `${part * 100}%` }}
                                 />
+                            )}
+                            {/* Forgiven days get a dashed accent ring over
+                                the empty cell rather than a fill of their own:
+                                a skip bridges the streak, it is not progress. */}
+                            {isSkipped && !checked && (
+                                <span className="pointer-events-none absolute inset-0 rounded-md border border-dashed border-accent" />
                             )}
                             {checked && (
                                 <BloomIcon
@@ -160,6 +195,14 @@ export default function HabitRow({
                     />
                     {habit.streak}
                 </span>
+                {habit.skipsLeft > 0 && (
+                    <span
+                        className="ml-0.5 text-[10px] text-muted"
+                        title={`${habit.skipsLeft} skip${habit.skipsLeft === 1 ? "" : "s"} left this month`}
+                    >
+                        +{habit.skipsLeft}
+                    </span>
+                )}
             </td>
             <td className="w-11 py-2 text-center font-semibold tabular-nums text-green-deep">
                 {habit.completed}
