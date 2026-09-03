@@ -1,0 +1,7 @@
+{
+  "name": "habitflow-widget",
+  "version": "1.0.0",
+  "description": "Android home-screen widgets and the native-readable state mirror they draw from.",
+  "main": "index.ts",
+  "private": true
+}
