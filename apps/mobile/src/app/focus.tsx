@@ -33,6 +33,7 @@ import {
 import { queryClient } from "../api/queryClient";
 import { hasPermission } from "../notifications/permissions";
 import { deriveHabitStats, daysInMonth } from "../lib/deriveStats";
+import { isDayComplete } from "../lib/completion";
 import { dateKey } from "../lib/date";
 import { KEYS, storage } from "../lib/storage";
 import { ApiHabit, HabitWithStats } from "../lib/types";
@@ -119,9 +120,8 @@ function isDoneToday(habitId: string, now: Date): boolean {
     const list = queryClient.getQueryData<ApiHabit[]>(
         habitsKey(now.getFullYear(), now.getMonth() + 1),
     );
-    return !!list
-        ?.find((h) => h.id === habitId)
-        ?.logs.some((l) => l.day === now.getDate());
+    const habit = list?.find((h) => h.id === habitId);
+    return !!habit && isDayComplete(habit, now.getDate());
 }
 
 export default function FocusScreen() {

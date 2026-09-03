@@ -1,4 +1,5 @@
 import { ApiHabit, HabitWithStats, Tod } from "./types";
+import { amountOn, completedDaysOf, completedLogs } from "./completion";
 import { DayRange, dayIndex, dayIndexOf } from "./date";
 import {
     expectedDaysBetween,
@@ -42,7 +43,7 @@ export function deriveHabitStats(
     daysInMonth: number,
     today: Date = new Date(),
 ): HabitWithStats {
-    const completedDays = new Set(h.logs.map((l) => l.day));
+    const completedDays = completedDaysOf(h);
     const completed = completedDays.size;
     const daysOfWeek = normalizeDays(h.daysOfWeek);
 
@@ -106,6 +107,10 @@ export function deriveHabitStats(
         icon: h.icon || "sprout",
         tod: normalizeTod(h.tod),
         verb: h.verb ?? null,
+        target: h.target ?? null,
+        unit: h.unit ?? null,
+        step: h.step && h.step > 0 ? h.step : 1,
+        todayAmount: isCurrentMonth ? amountOn(h, today.getDate()) : 0,
         daysOfWeek,
         archivedAt: h.archivedAt ?? null,
         scheduledToday: isExpectedOnDate(daysOfWeek, today),
@@ -160,7 +165,7 @@ export function deriveRangeStats(
     const doneDays = new Map<string, Set<number>>();
     for (const m of history)
         for (const h of m.habits)
-            for (const l of h.logs) {
+            for (const l of completedLogs(h)) {
                 const day = dayIndexOf(l.year, l.month, l.day);
                 if (day < from || day > to) continue;
                 let done = doneDays.get(h.id);

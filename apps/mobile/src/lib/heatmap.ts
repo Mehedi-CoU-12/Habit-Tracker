@@ -24,6 +24,7 @@ import {
     startOfDay,
 } from "./date";
 import { MonthHabits } from "./deriveStats";
+import { amountOn, completedLogs, targetOf } from "./completion";
 import {
     expectedDaysBetween,
     isExpectedOn,
@@ -254,6 +255,8 @@ type HabitDays = {
     depth: Map<number, number>;
     /** Ascending completed day indices. */
     sorted: number[];
+    /** Day index → fraction of the target logged, for days short of it. */
+    partial: Map<number, number>;
 };
 
 /**
@@ -271,11 +274,22 @@ function collectHabitDays(
     daysOfWeek: number[] = [],
 ): HabitDays {
     const done = new Set<number>();
+    const partial = new Map<number, number>();
     for (const m of history)
         for (const h of m.habits)
-            if (h.id === habitId)
-                for (const l of h.logs)
+            if (h.id === habitId) {
+                for (const l of completedLogs(h))
                     done.add(dayIndexOf(l.year, l.month, l.day));
+                // Days with progress that fell short — shaded, but never
+                // counted as completions (see D5 in the plan).
+                const target = targetOf(h);
+                for (const l of h.logs) {
+                    const index = dayIndexOf(l.year, l.month, l.day);
+                    if (done.has(index)) continue;
+                    const got = amountOn(h, l.day);
+                    if (got > 0) partial.set(index, got / target);
+                }
+            }
 
     const sorted = [...done].sort((a, b) => a - b);
     const depth = new Map<number, number>();
@@ -285,7 +299,7 @@ function collectHabitDays(
         const prev = previousExpected(daysOfWeek, d - 1);
         depth.set(d, (depth.get(prev) ?? 0) + 1);
     }
-    return { done, depth, sorted };
+    return { done, depth, sorted, partial };
 }
 
 function depthToLevel(depth: number): number {
@@ -322,7 +336,7 @@ export function buildHabitHeatmap(
     habit?: HabitSchedule,
 ): HeatResult {
     const daysOfWeek = normalizeDays(habit?.daysOfWeek);
-    const { done, depth, sorted } = collectHabitDays(
+    const { done, depth, sorted, partial } = collectHabitDays(
         history,
         habitId,
         daysOfWeek,
@@ -344,11 +358,19 @@ export function buildHabitHeatmap(
     const grid = buildGrid(period, range, today, (index) => {
         const d = depth.get(index) ?? 0;
         const off = index < planted || index > retired || !due(index);
+        const part = partial.get(index);
         return {
-            level: depthToLevel(d),
+            // Level 1 is the partial shade — lighter than any completed day,
+            // so progress shows without reading as a finished one.
+            level: d > 0 ? depthToLevel(d) : part ? 1 : 0,
             done: d > 0,
             dormant: off || !known.has(index),
-            detail: d > 1 ? `done · ${d} day run` : undefined,
+            detail:
+                d > 1
+                    ? `done · ${d} day run`
+                    : part
+                      ? `${Math.round(part * 100)}% of target`
+                      : undefined,
         };
     });
 
@@ -468,8 +490,11 @@ export function buildActivityHeatmap(
             let earliest = Infinity;
             for (const l of h.logs) {
                 const d = dayIndexOf(l.year, l.month, l.day);
-                counts.set(d, (counts.get(d) ?? 0) + 1);
                 if (d < earliest) earliest = d;
+            }
+            for (const l of completedLogs(h)) {
+                const d = dayIndexOf(l.year, l.month, l.day);
+                counts.set(d, (counts.get(d) ?? 0) + 1);
             }
             const created = dayIndex(new Date(h.createdAt));
             const at = Math.min(
