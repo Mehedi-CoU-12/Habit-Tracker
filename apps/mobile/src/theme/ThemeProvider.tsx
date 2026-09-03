@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { AccentKey, Density, Layout, Theme, makeTheme } from "./tokens";
 import { KEYS, storage } from "../lib/storage";
+import { setWidgetTheme } from "../widget/mirror";
 
 type BloomState = {
     theme: Theme;
@@ -54,6 +55,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             active = false;
         };
     }, []);
+
+    // The home-screen widget follows the app's accent and dark-mode choice,
+    // not the phone's, and it draws with no JS running — so the choice has to
+    // be pushed into the native mirror whenever it changes.
+    useEffect(() => {
+        setWidgetTheme({ dark, accent });
+    }, [dark, accent]);
 
     function persist(next: Prefs) {
         const merged: Prefs = { dark, accent, density, layout, ...next };
