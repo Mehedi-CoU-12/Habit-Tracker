@@ -1,5 +1,11 @@
 import { ApiHabit, HabitWithStats, Tod } from "./types";
-import { amountOn, completedDaysOf, completedLogs } from "./completion";
+import {
+    amountOn,
+    completedDaysOf,
+    completedLogs,
+    skipsLeft,
+    skippedDaysOf,
+} from "./completion";
 import { DayRange, dayIndex, dayIndexOf } from "./date";
 import {
     expectedDaysBetween,
@@ -44,6 +50,7 @@ export function deriveHabitStats(
     today: Date = new Date(),
 ): HabitWithStats {
     const completedDays = completedDaysOf(h);
+    const skippedDays = skippedDaysOf(h);
     const completed = completedDays.size;
     const daysOfWeek = normalizeDays(h.daysOfWeek);
 
@@ -64,17 +71,22 @@ export function deriveHabitStats(
         daysOfWeek.includes((firstWeekday + dom - 1) % 7);
 
     // Walk back from today. A rest day is skipped — it can neither extend the
-    // streak nor break it; only a missed *due* day breaks it.
+    // streak nor break it; only a missed *due* day breaks it. A forgiven day
+    // (streak insurance) is treated exactly like a rest day: that equivalence
+    // is the whole feature, and it's why this is a one-line change.
     let streak = 0;
     let from = refDay;
     // Today still being open shouldn't read as a broken streak.
     if (dueOn(refDay) && !completedDays.has(refDay)) from = refDay - 1;
     for (let dd = from; dd >= 1; dd--) {
         if (!dueOn(dd)) continue;
+        if (skippedDays.has(dd)) continue;
         if (completedDays.has(dd)) streak++;
         else break;
     }
 
+    // `best` deliberately ignores skips: it is the high-water mark of actual
+    // work, and records should be unforgiving even when daily life is not.
     let best = 0;
     let run = 0;
     for (let dd = 1; dd <= daysInMonth; dd++) {
@@ -89,7 +101,9 @@ export function deriveHabitStats(
 
     // The rate is scored over due days only, numerator included: a completion
     // backfilled onto a rest day is a bonus, not something that can push the
-    // rate past 100%.
+    // rate past 100%. A skip touches neither side — it bridges the chain, it
+    // is not a completion, and the rate must read the same before and after
+    // one is spent.
     let dueElapsed = 0;
     let doneOnDue = 0;
     for (let dd = 1; dd <= elapsed; dd++) {
@@ -110,6 +124,9 @@ export function deriveHabitStats(
         target: h.target ?? null,
         unit: h.unit ?? null,
         step: h.step && h.step > 0 ? h.step : 1,
+        fillFromFocus: h.fillFromFocus ?? false,
+        skippedDays: [...skippedDays].sort((a, b) => a - b),
+        skipsLeft: skipsLeft(h),
         todayAmount: isCurrentMonth ? amountOn(h, today.getDate()) : 0,
         daysOfWeek,
         archivedAt: h.archivedAt ?? null,
