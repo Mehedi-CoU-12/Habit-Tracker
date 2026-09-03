@@ -166,13 +166,21 @@ export default function FocusPage() {
         onSettled: () => queryClient.invalidateQueries({ queryKey }),
     });
 
-    /** Water the habit (mark done today) — never un-completes. */
+    /**
+     * Water the habit (mark done today) — never un-completes.
+     *
+     * A `fillFromFocus` habit is deliberately skipped: the server logs the
+     * session's minutes inside recordSession, so watering here as well would
+     * be a double write — and a *wrong* one, since it completes the whole day
+     * where the server only credits the minutes actually spent.
+     */
     const waterHabit = useCallback(
         (id: string) => {
             const d = new Date();
             const habit = queryClient
                 .getQueryData<ApiHabit[]>(queryKey)
                 ?.find((h) => h.id === id);
+            if (habit?.fillFromFocus) return;
             const done = !!habit && isDayComplete(habit, d.getDate());
             if (!done) waterMutation.mutate({ habitId: id, day: d.getDate() });
         },
@@ -207,11 +215,17 @@ export default function FocusPage() {
                 month: d.getMonth() + 1,
                 day: d.getDate(),
             })
-                .then(() =>
-                    queryClient.invalidateQueries({
+                .then(async () => {
+                    await queryClient.invalidateQueries({
                         queryKey: ["focusStats"],
-                    }),
-                )
+                    });
+                    // A session bound to a fillFromFocus habit wrote a
+                    // HabitLog server-side; without this the ring doesn't
+                    // move until the next refetch.
+                    await queryClient.invalidateQueries({
+                        queryKey: ["habits"],
+                    });
+                })
                 .catch(() => {
                     /* offline / API down — the local timer state is unaffected */
                 });
