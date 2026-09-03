@@ -253,8 +253,20 @@ export class AdminService {
 
   async deleteUser(adminId: string, targetId: string) {
     await this.ensureTargetIsModifiable(adminId, targetId);
-    // Habits, logs and payments cascade at the DB level.
-    await this.prisma.user.delete({ where: { id: targetId } });
+    const target = await this.prisma.user.findUniqueOrThrow({
+      where: { id: targetId },
+      select: { email: true },
+    });
+    // Habits, logs, notes and focus sessions cascade at the DB level.
+    // Payments do not — they're SetNull, so the cash ledger survives; stamp
+    // the email first or the surviving row loses its attribution.
+    await this.prisma.transaction(async (tx) => {
+      await tx.payment.updateMany({
+        where: { userId: targetId },
+        data: { userEmail: target.email },
+      });
+      await tx.user.delete({ where: { id: targetId } });
+    });
     // Same urgency as updateStatus: the deleted user's token must stop
     // working on their next request, not when the auth TTL runs out.
     await this.cache.del(
@@ -272,9 +284,16 @@ export class AdminService {
     dto: CreatePaymentDto,
   ) {
     await this.ensureUserExists(targetId);
+    const target = await this.prisma.user.findUniqueOrThrow({
+      where: { id: targetId },
+      select: { email: true },
+    });
     const payment = await this.prisma.payment.create({
       data: {
         userId: targetId,
+        // Denormalized so the row stays attributable if the account is ever
+        // deleted (the FK goes null, this doesn't).
+        userEmail: target.email,
         amount: dto.amount,
         ...(dto.note ? { note: dto.note } : {}),
         recordedById: adminId,
