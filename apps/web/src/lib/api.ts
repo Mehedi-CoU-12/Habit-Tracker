@@ -163,7 +163,12 @@ async function handleResponse<T>(res: Response): Promise<T> {
         const message = Array.isArray(raw) ? raw.join(", ") : raw;
         throw new Error(message ?? "Request failed");
     }
-    return res.json() as Promise<T>;
+    if (res.status === 204) return undefined as T;
+    const text = await res.text();
+    // A handler returning null (GET /app/version with nothing published) sends
+    // 200 with an empty body, which JSON.parse would throw on.
+    if (!text) return null as T;
+    return JSON.parse(text) as T;
 }
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
