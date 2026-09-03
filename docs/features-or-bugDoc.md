@@ -9,22 +9,25 @@
 
 ## 🚀 New Features
 
-| Status | Item           | Priority | Area         | Notes                                                  |
-| ------ | -------------- | -------- | ------------ | ------------------------------------------------------ |
-| ✅     | Pomodoro timer | P1       | web / mobile | Focus timer (work/break cycles) as a productivity tool |
-| ⬜     | To-do list     | P1       | web / mobile | Lightweight task list alongside habits                 |
-| ⬜     | Stopwatch      | P2       | web / mobile | Simple count-up timer                                  |
+| Status | Item                | Priority | Area               | Notes                                                                                                     |
+| ------ | ------------------- | -------- | ------------------ | --------------------------------------------------------------------------------------------------------- |
+| ✅     | Pomodoro timer      | P1       | web / mobile       | Focus timer (work/break cycles) as a productivity tool                                                    |
+| ⬜     | To-do list          | P1       | web / mobile       | Lightweight task list alongside habits                                                                    |
+| ⬜     | Stopwatch           | P2       | web / mobile       | Simple count-up timer                                                                                     |
+| ⬜     | Quantifiable habits | P1       | api / web / mobile | Track counts & durations ("6 of 8 cups") — see [quantifiable-habits-plan.md](quantifiable-habits-plan.md) |
 
 ### Checklist
 
 - [x] **Pomodoro timer** — configurable work/break intervals, start/pause/reset, session count
 - [ ] **To-do list** — add / complete / delete tasks; decide if it persists via API or local-only
 - [ ] **Stopwatch** — count-up timer with lap/reset
+- [ ] **Quantifiable habits** — daily `target` + `unit` on a habit, `amount` on a log; partial days show progress but don't extend streaks
 
 ---
 
 ## ✨ Improvements
 
+- [x] **`apps/mobile` has no `.prettierrc`** _(P1, DX)_ — it falls back to prettier's 2-space default, so root `pnpm format` reformats the entire mobile app (~11k lines) away from its 4-space style; fixed by copying `apps/web/.prettierrc` into `apps/mobile`
 - [ ] **Add app/tool links on the `/` home page** _(P1, web)_ — surface Pomodoro / To-do / Stopwatch (and Habits) from the landing/home page so features are discoverable
 
 ---
