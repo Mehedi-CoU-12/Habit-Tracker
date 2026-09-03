@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Patch,
   Post,
@@ -11,6 +12,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { AllowInactive } from '../auth/allow-inactive.decorator.js';
+import { DeleteAccountDto } from './dto/delete-account.dto.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { UsersService } from './users.service.js';
 
@@ -31,6 +33,17 @@ export class UsersController {
     @Body() dto: UpdateProfileDto,
   ) {
     return this.usersService.updateProfile(req.user.id, dto);
+  }
+
+  // Irreversible. Allowed for an inactive account too — a user parked on
+  // /pending must still be able to leave.
+  @AllowInactive()
+  @Delete('me')
+  deleteAccount(
+    @Request() req: { user: { id: string } },
+    @Body() dto: DeleteAccountDto,
+  ) {
+    return this.usersService.deleteAccount(req.user.id, dto);
   }
 
   @Post('me/avatar')
