@@ -12,6 +12,7 @@ import { useBloom, useTheme } from "../../theme/ThemeProvider";
 import {
     useDeleteHabit,
     useHabits,
+    useSetLogAmount,
     useToggleLog,
     useUpdateHabit,
 } from "../../api/hooks";
@@ -46,6 +47,7 @@ export default function TodayScreen() {
     const { data: raw = [], isLoading, isError } = useHabits(year, month);
     const online = useOnline();
     const toggle = useToggleLog(year, month);
+    const setAmount = useSetLogAmount(year, month);
     const del = useDeleteHabit(year, month);
     const update = useUpdateHabit(year, month);
 
@@ -85,6 +87,17 @@ export default function TodayScreen() {
     const remove = (id: string) => {
         setHeldId(null);
         del.mutate(id);
+    };
+
+    /** Add one step to today's amount, never past the target. */
+    const stepHabit = (id: string) => {
+        const h = habits.find((x) => x.id === id);
+        if (!h || h.target == null) return;
+        setAmount.mutate({
+            habitId: id,
+            day: now.getDate(),
+            amount: Math.min(h.target, h.todayAmount + h.step),
+        });
     };
 
     return (
@@ -355,6 +368,7 @@ export default function TodayScreen() {
                                                     day: now.getDate(),
                                                 })
                                             }
+                                            onStep={(id) => stepHabit(id)}
                                             onOpen={open}
                                             onLongPress={setHeldId}
                                             last={i === list.length - 1}
