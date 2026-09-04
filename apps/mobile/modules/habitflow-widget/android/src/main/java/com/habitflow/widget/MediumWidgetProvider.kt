@@ -88,7 +88,7 @@ class MediumWidgetProvider : BaseWidgetProvider() {
                 when {
                     habit.detail.isNotEmpty() -> habit.detail
                     habit.done -> "done"
-                    else -> "",
+                    else -> ""
                 },
             )
             views.setTextColor(row.detail, WidgetTheme.muted(dark))
