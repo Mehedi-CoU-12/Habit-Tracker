@@ -134,7 +134,10 @@ function levelsFor(
     const from = todayIdx - (HISTORY_DAYS - 1);
 
     const done = new Map<number, number>();
-    const rosters = new Map<string, { daysOfWeek: number[]; retired: number }>();
+    const rosters = new Map<
+        string,
+        { daysOfWeek: number[]; retired: number }
+    >();
 
     for (const m of months) {
         for (const h of m.habits) {
@@ -179,7 +182,8 @@ export function buildPayload(now = new Date()): MirrorPayload {
         queryClient.getQueryData<ApiHabit[]>(habitsKey(year, month)) ?? [];
 
     const due = thisMonth.filter(
-        (h) => !h.archivedAt && isExpectedOnDate(normalizeDays(h.daysOfWeek), now),
+        (h) =>
+            !h.archivedAt && isExpectedOnDate(normalizeDays(h.daysOfWeek), now),
     );
 
     const habits: MirrorHabit[] = due.map((h) => {
@@ -227,6 +231,16 @@ const native = HabitflowWidgetModule;
 /** Whether this build can talk to a widget at all. */
 export function widgetsAvailable(): boolean {
     return Platform.OS === "android" && native != null;
+}
+
+/** Whether the launcher currently has a HabitFlow widget placed. */
+export function widgetPlaced(): boolean {
+    if (!widgetsAvailable()) return false;
+    try {
+        return native!.hasWidgets();
+    } catch {
+        return false;
+    }
 }
 
 async function write(payload: MirrorPayload | null): Promise<void> {
