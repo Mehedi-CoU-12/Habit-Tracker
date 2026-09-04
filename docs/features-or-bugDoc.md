@@ -1,7 +1,7 @@
 # HabitFlow — Feature & Improvement Tracker
 
 > **Started:** 2026-07-09 · **Scope:** `apps/web`, `apps/api`, `apps/mobile`, monorepo DX.
-> **How to use this doc:** A living to-do list. Tick `- [ ]` → `- [x]` as items ship. Keep each item one line; move detail into a linked design doc (e.g. [admin-access-control-plan.md](admin-access-control-plan.md), [mobile-audit-and-roadmap.md](mobile-audit-and-roadmap.md)) when it grows.
+> **How to use this doc:** A living to-do list. Tick `- [ ]` → `- [x]` as items ship. Keep each item one line; move detail into a linked design doc (e.g. [admin-access-control-plan.md](admin-access-control-plan.md), [mobile-audit-and-roadmap.md](mobile-audit-and-roadmap.md), [mobile-next-features-plan.md](mobile-next-features-plan.md)) when it grows.
 >
 > **Legend:** Priority `P0` (now) · `P1` (next) · `P2` (later). Status ⬜ todo · 🟡 in progress · ✅ done · 🧊 parked.
 
@@ -22,6 +22,15 @@
 - [ ] **To-do list** — add / complete / delete tasks; decide if it persists via API or local-only
 - [ ] **Stopwatch** — count-up timer with lap/reset
 - [x] **Quantifiable habits** — daily `target` + `unit` on a habit, `amount` on a log; partial days show progress but don't extend streaks
+
+### Next up — mobile (designed in [mobile-next-features-plan.md](mobile-next-features-plan.md))
+
+- [ ] **Password reset** _(P0, api + web + mobile)_ — no forgot-password flow exists anywhere; a forgotten password is a permanently lost account
+- [ ] **Onboarding actually plants the picked habits** _(P0, mobile)_ — `onboarding.tsx` discards the seeds and never writes `onboarded`; every new user lands on "Your garden is empty"
+- [ ] **Account & security screen on mobile** _(P1, mobile)_ — wire the existing `PATCH /users/me` (name + password change); mobile can only change an avatar today
+- [ ] **Reward moment** _(P1, mobile)_ — haptics, an animated plant, and a once-per-threshold milestone celebration; drop the unused reanimated/worklets deps
+- [ ] **Data export** _(P1, mobile + api)_ — JSON + CSV to the share sheet; needs `GET /focus/sessions`. Deletion shipped without portability
+- [ ] **Mobile in CI + crash reporting** _(P1, ci + all apps)_ — 16k lines with no enforced lint/types/tests, and no Sentry in any app
 
 ---
 
