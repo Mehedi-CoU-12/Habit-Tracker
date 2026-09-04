@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    AppState,
     Image,
     Linking,
     Pressable,
@@ -9,7 +10,7 @@ import {
     Text,
     View,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { useBloom, useTheme } from "../../theme/ThemeProvider";
@@ -32,6 +33,7 @@ import { effectiveReminder } from "../../notifications/types";
 import type { Tod } from "../../lib/types";
 import { currentAppVersion, isOlderThan } from "../../lib/version";
 import { SOUND_STYLES, useSoundPrefs } from "../../sound";
+import { widgetPlaced, widgetsAvailable } from "../../widget/mirror";
 import { Card, Toggle } from "../../components/primitives";
 import DeleteAccountSheet from "../../components/DeleteAccountSheet";
 import Icon from "../../components/Icon";
@@ -112,6 +114,17 @@ export default function SettingsScreen() {
         : 0;
 
     const archivedCount = habits.filter((h) => h.archivedAt).length;
+
+    const [widgetOnHome, setWidgetOnHome] = useState(widgetPlaced);
+    useFocusEffect(
+        useCallback(() => {
+            setWidgetOnHome(widgetPlaced());
+            const sub = AppState.addEventListener("change", (state) => {
+                if (state === "active") setWidgetOnHome(widgetPlaced());
+            });
+            return () => sub.remove();
+        }, []),
+    );
 
     const appVersion = currentAppVersion();
     const {
@@ -525,6 +538,17 @@ export default function SettingsScreen() {
                             </Pressable>
                         }
                     />
+                    {widgetsAvailable() && (
+                        <Row
+                            icon="home"
+                            label="Home-screen widget"
+                            hint={
+                                widgetOnHome
+                                    ? "Added · follows your accent and dark mode"
+                                    : "Long-press your home screen → Widgets → HabitFlow"
+                            }
+                        />
+                    )}
                 </Section>
 
                 <Section title="REMINDERS">
