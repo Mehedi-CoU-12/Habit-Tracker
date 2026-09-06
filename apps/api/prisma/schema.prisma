@@ -28,8 +28,6 @@ model AppRelease {
   platform  AppPlatform @unique
   // Newest published version, e.g. "1.2.0" — surfaces as a dismissible nudge.
   latest    String
-  // Oldest version still supported. Anything below it gets a blocking prompt,
-  // for when an old client would break against the current API.
   minimum   String
   // Where the Update button sends the user: a direct APK link or a store page.
   url       String
@@ -54,6 +52,10 @@ model User {
   statusChangedBy String?
   statusNote      String?
   tokenVersion    Int            @default(0)
+  lastActiveAt    DateTime?
+  lastAppVersion  String?
+  /// Which client that version came from: "android", "ios" or "web".
+  lastAppPlatform String?
   habits          Habit[]
   payments        Payment[]
   focusSessions   FocusSession[]
@@ -65,10 +67,7 @@ model User {
   @@index([createdAt])
 }
 
-/// Admin-recorded cash payment. The user link is deliberately SetNull rather
-/// than Cascade: an account deletion must not erase the revenue ledger. The
-/// email is denormalized at record time so a row survives its user as an
-/// attributable, if anonymous, record.
+
 model Payment {
   id           String   @id @default(cuid())
   userId       String?
@@ -93,26 +92,14 @@ model Habit {
   icon          String         @default("sprout")
   tod           String         @default("anytime")
   verb          String?
-  /// Daily target amount, e.g. 8 (cups). Null is a binary done/not-done habit,
-  /// which is every habit predating this column — so no backfill is needed.
   target        Int?
   /// Unit label for `target`, e.g. "cups", "min", "pages". Null when binary.
   unit          String?
   /// How much one tap adds — 1 for cups, 10 for minutes.
   step          Int            @default(1)
-  /// Opt in to having a bound focus session's minutes logged against this
-  /// habit automatically (see FocusService.recordSession). Explicit rather
-  /// than inferred from `unit`, which is free text: a habit called
-  /// "20 minutes of guitar" must not silently start filling itself.
-  /// Defaulted, so every existing habit is opted out with no backfill.
   fillFromFocus Boolean        @default(false)
-  // Weekdays the habit is expected on, 0 = Sunday. An empty list means every
-  // day — which is exactly what every habit predating this column meant, so
   // the migration needs no backfill.
   daysOfWeek    Int[]          @default([])
-  // Set when the user archives the habit. It leaves Today and the reminder
-  // schedule but keeps every log, so past stats stay honest — unlike delete,
-  // which cascades the history away.
   archivedAt    DateTime?
   logs          HabitLog[]
   skips         HabitSkip[]
@@ -123,10 +110,7 @@ model Habit {
   @@index([userId, archivedAt])
 }
 
-/// One free-text reflection per calendar day, independent of any habit.
-/// Day-scoped rather than log-scoped on purpose: the note that matters most is
-/// usually "why did I miss this", and a missed day has no HabitLog row to
-/// hang it on.
+
 model DayNote {
   id        String   @id @default(cuid())
   userId    String
@@ -158,11 +142,7 @@ model FocusSession {
   @@index([userId, year, month, day])
 }
 
-/// One deliberately forgiven day: the streak spans it as if the habit had not
-/// been due, without the day counting as a completion. Stored rather than
-/// derived from a rule, so the past stays the past — every historical streak
-/// is byte-identical until a user spends their first skip — and so the UI can
-/// show *which* day was forgiven and what the allowance has left.
+
 model HabitSkip {
   id        String   @id @default(cuid())
   habitId   String
@@ -186,8 +166,6 @@ model HabitLog {
   year      Int
   month     Int
   day       Int
-  /// How much was done that day. 1 is what every pre-existing row means, so the
-  /// default reads them all as complete against a null target.
   amount    Int      @default(1)
   createdAt DateTime @default(now())
 

@@ -9,6 +9,7 @@ import dayjs from "dayjs";
 import {
     AccountStatus,
     AdminUserRow,
+    AppClientPlatform,
     deleteAdminUser,
     fetchAdminStats,
     fetchAdminUsers,
@@ -49,6 +50,37 @@ function Avatar({ user }: { user: AdminUserRow }) {
     );
 }
 
+const PLATFORM_LABEL: Record<AppClientPlatform, string> = {
+    android: "Android",
+    ios: "iOS",
+    web: "Web",
+};
+
+function AppVersion({ user }: { user: AdminUserRow }) {
+    if (!user.lastAppPlatform) return <span className="text-muted">—</span>;
+
+    const label = PLATFORM_LABEL[user.lastAppPlatform];
+
+    if (!user.lastAppVersion) {
+        return (
+            <span className="rounded-full bg-surface2 px-2 py-0.5 text-[10px] font-bold text-ink2">
+                {label}
+            </span>
+        );
+    }
+
+    return (
+        <span className="whitespace-nowrap">
+            <span className="font-semibold tabular-nums text-ink2">
+                v{user.lastAppVersion}
+            </span>
+            <span className="ml-1.5 text-[10px] font-bold uppercase tracking-wide text-muted">
+                {label}
+            </span>
+        </span>
+    );
+}
+
 function UsersPageInner() {
     const queryClient = useQueryClient();
     const searchParams = useSearchParams();
@@ -68,9 +100,7 @@ function UsersPageInner() {
     // Which action is pending user confirmation (one dialog at a time).
     const [approving, setApproving] = useState<AdminUserRow | null>(null);
     const [suspending, setSuspending] = useState<AdminUserRow | null>(null);
-    const [reactivating, setReactivating] = useState<AdminUserRow | null>(
-        null,
-    );
+    const [reactivating, setReactivating] = useState<AdminUserRow | null>(null);
     const [deleting, setDeleting] = useState<AdminUserRow | null>(null);
 
     // Debounce the search box into the actual query filter.
@@ -117,8 +147,6 @@ function UsersPageInner() {
             amount: number | null;
             note: string;
         }) => {
-            // Two calls by design: payments can also exist without a status
-            // change (renewals), so the API keeps them separate.
             if (amount) {
                 await recordAdminPayment(user.id, amount, note || undefined);
             }
@@ -241,6 +269,9 @@ function UsersPageInner() {
                                     <th className="px-3 py-3 text-left font-semibold text-muted">
                                         Last active
                                     </th>
+                                    <th className="px-3 py-3 text-left font-semibold text-muted">
+                                        App
+                                    </th>
                                     <th className="px-3 py-3 text-right font-semibold text-muted">
                                         Paid
                                     </th>
@@ -296,6 +327,9 @@ function UsersPageInner() {
                                                       user.lastActiveAt,
                                                   ).format("MMM D, YYYY")
                                                 : "—"}
+                                        </td>
+                                        <td className="px-3 py-3">
+                                            <AppVersion user={user} />
                                         </td>
                                         <td className="px-3 py-3 text-right tabular-nums text-ink2">
                                             {user.totalPaid > 0
@@ -368,7 +402,7 @@ function UsersPageInner() {
                                 {users.length === 0 && (
                                     <tr>
                                         <td
-                                            colSpan={7}
+                                            colSpan={8}
                                             className="px-4 py-16 text-center text-sm text-muted"
                                         >
                                             {search

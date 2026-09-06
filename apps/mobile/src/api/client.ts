@@ -1,5 +1,6 @@
 import { Platform } from "react-native";
 import { KEYS, storage } from "../lib/storage";
+import { currentAppVersion, releasePlatform } from "../lib/version";
 
 export const API_URL =
     process.env.EXPO_PUBLIC_API_URL ??
@@ -9,7 +10,6 @@ export const API_URL =
 
 export class ApiError extends Error {
     status: number;
-    /** Machine-readable discriminator, e.g. ACCOUNT_PENDING / ACCOUNT_SUSPENDED. */
     code?: string;
     constructor(message: string, status: number, code?: string) {
         super(message);
@@ -32,11 +32,20 @@ export function registerGateEvents(events: GateEvents) {
 
 const APP_CLIENT_KEY = process.env.EXPO_PUBLIC_APP_CLIENT_KEY ?? "";
 
+function clientHeaders(): Record<string, string> {
+    const version = currentAppVersion();
+    return {
+        ...(APP_CLIENT_KEY ? { "x-app-client": APP_CLIENT_KEY } : {}),
+        ...(version ? { "x-app-version": version } : {}),
+        "x-app-platform": releasePlatform(),
+    };
+}
+
 async function authHeaders(json = true): Promise<Record<string, string>> {
     const token = await storage.get(KEYS.token);
     return {
         ...(json ? { "Content-Type": "application/json" } : {}),
-        ...(APP_CLIENT_KEY ? { "x-app-client": APP_CLIENT_KEY } : {}),
+        ...clientHeaders(),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
 }
@@ -60,9 +69,7 @@ function attemptRefresh(): Promise<RefreshResult> {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    ...(APP_CLIENT_KEY
-                        ? { "x-app-client": APP_CLIENT_KEY }
-                        : {}),
+                    ...clientHeaders(),
                 },
                 body: JSON.stringify({ refreshToken }),
             });
@@ -92,11 +99,6 @@ function attemptRefresh(): Promise<RefreshResult> {
     return refreshInFlight;
 }
 
-/**
- * fetch() with the auth headers attached, retried once through a silent token
- * refresh on a 401. authHeaders() re-reads the (now-refreshed) token, so the
- * retry carries the new bearer.
- */
 async function send(
     path: string,
     init: RequestInit,
@@ -158,10 +160,6 @@ export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
     );
 }
 
-/**
- * Multipart upload. Deliberately omits the JSON `Content-Type` so React
- * Native can set the `multipart/form-data` boundary itself.
- */
 export async function apiUpload<T>(path: string, form: FormData): Promise<T> {
     return handle<T>(await send(path, { method: "POST", body: form }, false));
 }
@@ -186,9 +184,6 @@ export async function apiPut<T>(path: string, body?: unknown): Promise<T> {
     );
 }
 
-// A DELETE body is unusual but not exotic — DELETE /users/me carries the
-// proof-of-intent (password or the typed word). The JSON header only rides
-// along when there actually is one.
 export async function apiDelete<T>(path: string, body?: unknown): Promise<T> {
     return handle<T>(
         await send(
