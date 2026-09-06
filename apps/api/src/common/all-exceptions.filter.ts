@@ -18,12 +18,6 @@ type ErrorShape = {
   code?: string;
 };
 
-/**
- * Catches every unhandled exception and turns it into a consistent JSON
- * envelope: `{ statusCode, error, message }`. The frontend reads `message`
- * and surfaces it as a toast, so the goal here is a clean, human-readable
- * message for the client while the full details are logged server-side.
- */
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger('ExceptionFilter');
@@ -35,8 +29,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     const { status, message, error, code } = this.normalize(exception);
 
-    // Always log on the server with the real error; never leak internals to
-    // the client. 5xx = unexpected (log full stack), 4xx = expected (warn).
     const where = `${request?.method} ${request?.url}`;
     if (status >= (HttpStatus.INTERNAL_SERVER_ERROR as number)) {
       this.logger.error(
@@ -81,8 +73,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
     }
 
     if (exception instanceof Prisma.PrismaClientValidationError) {
-      // Bad arguments sent to Prisma (e.g. an unknown field). This is usually
-      // a server-side bug, so don't echo Prisma's verbose message to the user.
       return {
         status: HttpStatus.BAD_REQUEST,
         message: 'Some of the submitted data was invalid.',
