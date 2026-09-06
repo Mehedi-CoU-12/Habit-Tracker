@@ -56,17 +56,11 @@ const PLATFORM_LABEL: Record<AppClientPlatform, string> = {
     web: "Web",
 };
 
-/**
- * The build this account was last seen on. Blank until they make a request
- * from a client new enough to identify itself, so an established user can sit
- * at "—" for a while after this ships — that's honest, not a bug.
- */
 function AppVersion({ user }: { user: AdminUserRow }) {
     if (!user.lastAppPlatform) return <span className="text-muted">—</span>;
 
     const label = PLATFORM_LABEL[user.lastAppPlatform];
-    // Web ships continuously: there's no version to be stuck on, so the
-    // platform alone is the whole answer.
+
     if (!user.lastAppVersion) {
         return (
             <span className="rounded-full bg-surface2 px-2 py-0.5 text-[10px] font-bold text-ink2">
@@ -106,9 +100,7 @@ function UsersPageInner() {
     // Which action is pending user confirmation (one dialog at a time).
     const [approving, setApproving] = useState<AdminUserRow | null>(null);
     const [suspending, setSuspending] = useState<AdminUserRow | null>(null);
-    const [reactivating, setReactivating] = useState<AdminUserRow | null>(
-        null,
-    );
+    const [reactivating, setReactivating] = useState<AdminUserRow | null>(null);
     const [deleting, setDeleting] = useState<AdminUserRow | null>(null);
 
     // Debounce the search box into the actual query filter.
@@ -155,8 +147,6 @@ function UsersPageInner() {
             amount: number | null;
             note: string;
         }) => {
-            // Two calls by design: payments can also exist without a status
-            // change (renewals), so the API keeps them separate.
             if (amount) {
                 await recordAdminPayment(user.id, amount, note || undefined);
             }

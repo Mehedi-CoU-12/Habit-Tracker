@@ -10,7 +10,6 @@ export const API_URL =
 
 export class ApiError extends Error {
     status: number;
-    /** Machine-readable discriminator, e.g. ACCOUNT_PENDING / ACCOUNT_SUSPENDED. */
     code?: string;
     constructor(message: string, status: number, code?: string) {
         super(message);
@@ -33,12 +32,6 @@ export function registerGateEvents(events: GateEvents) {
 
 const APP_CLIENT_KEY = process.env.EXPO_PUBLIC_APP_CLIENT_KEY ?? "";
 
-/**
- * Who is calling: the ClientGuard key, plus the build and platform behind it.
- * The API records the latter two against the account on every authenticated
- * request, which is what lets the admin dashboard show who is still on an old
- * version — the release check in lib/version.ts only ever went the other way.
- */
 function clientHeaders(): Record<string, string> {
     const version = currentAppVersion();
     return {
@@ -106,11 +99,6 @@ function attemptRefresh(): Promise<RefreshResult> {
     return refreshInFlight;
 }
 
-/**
- * fetch() with the auth headers attached, retried once through a silent token
- * refresh on a 401. authHeaders() re-reads the (now-refreshed) token, so the
- * retry carries the new bearer.
- */
 async function send(
     path: string,
     init: RequestInit,
@@ -172,10 +160,6 @@ export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
     );
 }
 
-/**
- * Multipart upload. Deliberately omits the JSON `Content-Type` so React
- * Native can set the `multipart/form-data` boundary itself.
- */
 export async function apiUpload<T>(path: string, form: FormData): Promise<T> {
     return handle<T>(await send(path, { method: "POST", body: form }, false));
 }
@@ -200,9 +184,6 @@ export async function apiPut<T>(path: string, body?: unknown): Promise<T> {
     );
 }
 
-// A DELETE body is unusual but not exotic — DELETE /users/me carries the
-// proof-of-intent (password or the typed word). The JSON header only rides
-// along when there actually is one.
 export async function apiDelete<T>(path: string, body?: unknown): Promise<T> {
     return handle<T>(
         await send(

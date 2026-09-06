@@ -35,10 +35,6 @@ export class AdminService {
     private readonly habitsService: HabitsService,
   ) {}
 
-  // Cached for TTL.adminStats only — no explicit invalidation, since the
-  // numbers move with every habit log written anywhere. A 30s-stale
-  // dashboard aggregate is fine; a groupBy over the whole users/logs tables
-  // on every poll is not.
   getStats() {
     return this.cache.getOrSet(cacheKeys.adminStats, TTL.adminStats, () =>
       this.computeStats(),
@@ -110,13 +106,7 @@ export class AdminService {
     };
   }
 
-  // List and detail views share the adminUsersVersion namespace: signups,
-  // status changes, deletions and payments bump it (instant feedback for the
-  // admin's own actions); name/avatar edits and log activity are left to the
-  // short TTL.
   listUsers(query: ListUsersDto): Promise<Paginated<unknown>> {
-    // Normalize page/pageSize the same way the query will, so "?page=0" and
-    // "?page=1" share one cache entry.
     const { page, pageSize } = pageParams(query.page, query.pageSize);
     return this.cache.getOrSetVersioned(
       cacheKeys.adminUsersVersion,
@@ -186,11 +176,6 @@ export class AdminService {
     const items = users.map(({ _count, ...user }) => ({
       ...user,
       habitCount: _count.habits,
-      // User.lastActiveAt is the real signal now (stamped on every
-      // authenticated request), but it's still reconciled against the newest
-      // habit log — the value this column used to be derived from. Keeping the
-      // max means the date can never regress below activity we can prove, no
-      // matter what happens to the stamping path.
       lastActiveAt: latestOf(user.lastActiveAt, lastLogByUser.get(user.id)),
       totalPaid: totalPaidByUser.get(user.id) ?? 0,
     }));
@@ -229,8 +214,6 @@ export class AdminService {
     };
   }
 
-  // Same payload shape as the user's own GET /habits (D7): the admin UI
-  // reuses the dashboard's deriveStats + chart components unchanged.
   async getUserHabits(id: string, year: number, month: number) {
     await this.ensureUserExists(id);
     return this.habitsService.getHabitsWithLogs(id, year, month);
@@ -252,8 +235,7 @@ export class AdminService {
         statusNote: true,
       },
     });
-    // The target's cached auth row must die NOW: suspension takes effect on
-    // their next request, activation on their next /users/me poll.
+
     await this.cache.del(cacheKeys.authUser(targetId), cacheKeys.me(targetId));
     await this.cache.bumpVersion(cacheKeys.adminUsersVersion);
     return updated;
@@ -265,9 +247,7 @@ export class AdminService {
       where: { id: targetId },
       select: { email: true },
     });
-    // Habits, logs, notes and focus sessions cascade at the DB level.
-    // Payments do not — they're SetNull, so the cash ledger survives; stamp
-    // the email first or the surviving row loses its attribution.
+
     await this.prisma.transaction(async (tx) => {
       await tx.payment.updateMany({
         where: { userId: targetId },
@@ -275,8 +255,7 @@ export class AdminService {
       });
       await tx.user.delete({ where: { id: targetId } });
     });
-    // Same urgency as updateStatus: the deleted user's token must stop
-    // working on their next request, not when the auth TTL runs out.
+
     await this.cache.del(
       cacheKeys.authUser(targetId),
       cacheKeys.me(targetId),
@@ -299,8 +278,6 @@ export class AdminService {
     const payment = await this.prisma.payment.create({
       data: {
         userId: targetId,
-        // Denormalized so the row stays attributable if the account is ever
-        // deleted (the FK goes null, this doesn't).
         userEmail: target.email,
         amount: dto.amount,
         ...(dto.note ? { note: dto.note } : {}),
@@ -334,11 +311,6 @@ export class AdminService {
     if (!user) throw new NotFoundException('User not found');
   }
 
-  /**
-   * Safety rules for destructive actions (D9): admins can never change or
-   * delete themselves (400) or another admin (403) — self-lockout is
-   * prevented here, not by special-casing the guards.
-   */
   private async ensureTargetIsModifiable(adminId: string, targetId: string) {
     if (targetId === adminId) {
       throw new BadRequestException('You cannot change your own account.');

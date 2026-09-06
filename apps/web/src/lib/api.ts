@@ -11,27 +11,15 @@ export type UserProfile = {
     role: UserRole;
     status: AccountStatus;
     createdAt: string;
-    /**
-     * False for a Google-only account. Account deletion asks a password
-     * account for its password and a Google one for the typed word, so the
-     * confirmation UI has to know which it is.
-     */
     hasPassword?: boolean;
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
 
-// Identifies this app to the API's ClientGuard so requests aren't rejected as
-// non-app traffic. Not a secret in any real sense (it ships in the browser
-// bundle) — the JWT is the real authorization; this just blocks casual
-// Postman/script calls.
 const APP_CLIENT_KEY = process.env.NEXT_PUBLIC_APP_CLIENT_KEY ?? "";
 
 // ── Token storage ───────────────────────────────────────────────────────
-// Both tokens live in localStorage (a cross-site web↔API topology rules out
-// httpOnly cookies — see the CSP note in next.config.js). The access token is
-// short-lived (~15m); the refresh token silently mints a new one so the user
-// isn't bounced to login every few minutes.
+
 const ACCESS_KEY = "accessToken";
 const REFRESH_KEY = "refreshToken";
 
@@ -64,19 +52,12 @@ export function clearTokens() {
 function clientHeader(): Record<string, string> {
     return {
         ...(APP_CLIENT_KEY ? { "x-app-client": APP_CLIENT_KEY } : {}),
-        // Named so the admin dashboard can tell "last seen on the web" apart
-        // from "we have never heard from this account's app". Deliberately no
-        // x-app-version: the web ships continuously, so there is no version a
-        // user can be behind on the way there is on a store build.
         "x-app-platform": "web",
     };
 }
 
 // ── Silent refresh ──────────────────────────────────────────────────────
-// A single in-flight refresh is shared across all callers: several requests
-// 401-ing at once trigger exactly one /auth/refresh, then all retry with the
-// fresh token. Resolves to the new access token, or null if refresh failed
-// (in which case the tokens have been cleared and the caller should give up).
+
 let refreshInFlight: Promise<string | null> | null = null;
 
 function refreshTokens(): Promise<string | null> {
@@ -95,8 +76,6 @@ function refreshTokens(): Promise<string | null> {
                 body: JSON.stringify({ refreshToken }),
             });
             if (!res.ok) {
-                // Refresh token is dead (expired or revoked) — nothing left to
-                // do but sign in again.
                 clearTokens();
                 return null;
             }
@@ -107,7 +86,6 @@ function refreshTokens(): Promise<string | null> {
             setTokens(data.accessToken, data.refreshToken);
             return data.accessToken;
         } catch {
-            // Network error — leave tokens in place so the next request can retry.
             return null;
         } finally {
             refreshInFlight = null;
@@ -116,10 +94,6 @@ function refreshTokens(): Promise<string | null> {
     return refreshInFlight;
 }
 
-/**
- * fetch() wrapper that attaches the client key + bearer token and, on a 401,
- * transparently refreshes the access token and retries the request once.
- */
 async function authedFetch(
     path: string,
     init: RequestInit = {},
@@ -144,12 +118,7 @@ async function authedFetch(
 
 async function handleResponse<T>(res: Response): Promise<T> {
     if (res.status === 401) {
-        // Reached here only after a refresh attempt already failed (or there was
-        // no refresh token): the session is truly dead.
         if (typeof window !== "undefined") {
-            // /account/delete is deliberately in here: it is the public URL
-            // Play's Data Safety form points at, so an expired session must
-            // land on its signed-out explainer rather than bounce to /login.
             const isAuthPage = [
                 "/",
                 "/login",
@@ -166,9 +135,6 @@ async function handleResponse<T>(res: Response): Promise<T> {
     if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         const { code } = body as { code?: string };
-        // Account-gate 403s: the account exists but isn't ACTIVE — route to
-        // the waiting screen. Deliberately not the 401 path: an expired
-        // session (even a pending one) still belongs on /login.
         if (
             res.status === 403 &&
             (code === "ACCOUNT_PENDING" || code === "ACCOUNT_SUSPENDED") &&
@@ -178,24 +144,19 @@ async function handleResponse<T>(res: Response): Promise<T> {
             window.location.href = "/pending";
         }
         const raw = (body as { message?: string | string[] }).message;
-        // NestJS ValidationPipe returns `message` as an array of strings.
+
         const message = Array.isArray(raw) ? raw.join(", ") : raw;
         throw new Error(message ?? "Request failed");
     }
     if (res.status === 204) return undefined as T;
     const text = await res.text();
-    // A handler returning null (GET /app/version with nothing published) sends
-    // 200 with an empty body, which JSON.parse would throw on.
+
     if (!text) return null as T;
     return JSON.parse(text) as T;
 }
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
-/**
- * Sign out of all sessions. Best-effort server revocation (bumps tokenVersion
- * so every device's tokens die), then always clears local tokens.
- */
 export async function logout(): Promise<void> {
     const refreshToken = getRefreshToken();
     if (refreshToken) {
@@ -230,15 +191,6 @@ export async function updateProfile(data: {
     return handleResponse<UserProfile>(res);
 }
 
-/**
- * Erase the account and everything cascading from it. Irreversible.
- *
- * A password account proves intent with its current password; a Google-only
- * account has none, so it sends the typed word DELETE instead. The server
- * decides which one this account owes. Tokens are cleared locally on success —
- * they are already dead server-side (the row the JWT strategy looks up is
- * gone), this just stops the client from replaying them.
- */
 export async function deleteAccount(input: {
     password?: string;
     confirmation?: string;
@@ -314,11 +266,6 @@ export async function deleteHabit(id: string): Promise<void> {
     return handleResponse<void>(res);
 }
 
-/**
- * Spend or release one skip on a (habit, date) cell — streak insurance.
- * Absolute and idempotent, so a replayed write converges to one row. The
- * monthly allowance is enforced server-side.
- */
 export async function setSkip(
     habitId: string,
     year: number,
@@ -448,7 +395,6 @@ export type AdminUserRow = {
     habitCount: number;
     /** Last authenticated request, not last habit logged. */
     lastActiveAt: string | null;
-    /** Store build last seen, e.g. "2.0.0". Null on web, or before we ever heard from their app. */
     lastAppVersion: string | null;
     lastAppPlatform: AppClientPlatform | null;
     totalPaid: number;
