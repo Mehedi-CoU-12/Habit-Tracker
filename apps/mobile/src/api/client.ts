@@ -1,5 +1,6 @@
 import { Platform } from "react-native";
 import { KEYS, storage } from "../lib/storage";
+import { currentAppVersion, releasePlatform } from "../lib/version";
 
 export const API_URL =
     process.env.EXPO_PUBLIC_API_URL ??
@@ -32,11 +33,26 @@ export function registerGateEvents(events: GateEvents) {
 
 const APP_CLIENT_KEY = process.env.EXPO_PUBLIC_APP_CLIENT_KEY ?? "";
 
+/**
+ * Who is calling: the ClientGuard key, plus the build and platform behind it.
+ * The API records the latter two against the account on every authenticated
+ * request, which is what lets the admin dashboard show who is still on an old
+ * version — the release check in lib/version.ts only ever went the other way.
+ */
+function clientHeaders(): Record<string, string> {
+    const version = currentAppVersion();
+    return {
+        ...(APP_CLIENT_KEY ? { "x-app-client": APP_CLIENT_KEY } : {}),
+        ...(version ? { "x-app-version": version } : {}),
+        "x-app-platform": releasePlatform(),
+    };
+}
+
 async function authHeaders(json = true): Promise<Record<string, string>> {
     const token = await storage.get(KEYS.token);
     return {
         ...(json ? { "Content-Type": "application/json" } : {}),
-        ...(APP_CLIENT_KEY ? { "x-app-client": APP_CLIENT_KEY } : {}),
+        ...clientHeaders(),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
 }
@@ -60,9 +76,7 @@ function attemptRefresh(): Promise<RefreshResult> {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    ...(APP_CLIENT_KEY
-                        ? { "x-app-client": APP_CLIENT_KEY }
-                        : {}),
+                    ...clientHeaders(),
                 },
                 body: JSON.stringify({ refreshToken }),
             });

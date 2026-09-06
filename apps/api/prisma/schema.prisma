@@ -54,6 +54,18 @@ model User {
   statusChangedBy String?
   statusNote      String?
   tokenVersion    Int            @default(0)
+  /// Last authenticated request we saw from this account — i.e. "opened the
+  /// app", not "logged a habit". The admin list used to derive last-active
+  /// from the newest HabitLog, which read as "—" for anyone who signed in but
+  /// checked nothing off. Stamped by ActivityInterceptor, throttled to one
+  /// write per user per few minutes.
+  lastActiveAt    DateTime?
+  /// Client build behind that last request, e.g. "2.0.0". Null for an account
+  /// only ever seen on web (which ships continuously — there is no version a
+  /// user can be stuck on) or last seen from a build predating the header.
+  lastAppVersion  String?
+  /// Which client that version came from: "android", "ios" or "web".
+  lastAppPlatform String?
   habits          Habit[]
   payments        Payment[]
   focusSessions   FocusSession[]

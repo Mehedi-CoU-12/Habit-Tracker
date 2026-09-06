@@ -62,7 +62,14 @@ export function clearTokens() {
 }
 
 function clientHeader(): Record<string, string> {
-    return APP_CLIENT_KEY ? { "x-app-client": APP_CLIENT_KEY } : {};
+    return {
+        ...(APP_CLIENT_KEY ? { "x-app-client": APP_CLIENT_KEY } : {}),
+        // Named so the admin dashboard can tell "last seen on the web" apart
+        // from "we have never heard from this account's app". Deliberately no
+        // x-app-version: the web ships continuously, so there is no version a
+        // user can be behind on the way there is on a store build.
+        "x-app-platform": "web",
+    };
 }
 
 // ── Silent refresh ──────────────────────────────────────────────────────
@@ -428,6 +435,8 @@ export type AdminStats = {
     signupsLast7Days: { date: string; count: number }[];
 };
 
+export type AppClientPlatform = "android" | "ios" | "web";
+
 export type AdminUserRow = {
     id: string;
     name: string;
@@ -437,7 +446,11 @@ export type AdminUserRow = {
     status: AccountStatus;
     createdAt: string;
     habitCount: number;
+    /** Last authenticated request, not last habit logged. */
     lastActiveAt: string | null;
+    /** Store build last seen, e.g. "2.0.0". Null on web, or before we ever heard from their app. */
+    lastAppVersion: string | null;
+    lastAppPlatform: AppClientPlatform | null;
     totalPaid: number;
 };
 

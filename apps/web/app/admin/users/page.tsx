@@ -9,6 +9,7 @@ import dayjs from "dayjs";
 import {
     AccountStatus,
     AdminUserRow,
+    AppClientPlatform,
     deleteAdminUser,
     fetchAdminStats,
     fetchAdminUsers,
@@ -46,6 +47,43 @@ function Avatar({ user }: { user: AdminUserRow }) {
         <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-accent text-xs font-bold text-white">
             {user.name?.[0]?.toUpperCase() ?? "?"}
         </div>
+    );
+}
+
+const PLATFORM_LABEL: Record<AppClientPlatform, string> = {
+    android: "Android",
+    ios: "iOS",
+    web: "Web",
+};
+
+/**
+ * The build this account was last seen on. Blank until they make a request
+ * from a client new enough to identify itself, so an established user can sit
+ * at "—" for a while after this ships — that's honest, not a bug.
+ */
+function AppVersion({ user }: { user: AdminUserRow }) {
+    if (!user.lastAppPlatform) return <span className="text-muted">—</span>;
+
+    const label = PLATFORM_LABEL[user.lastAppPlatform];
+    // Web ships continuously: there's no version to be stuck on, so the
+    // platform alone is the whole answer.
+    if (!user.lastAppVersion) {
+        return (
+            <span className="rounded-full bg-surface2 px-2 py-0.5 text-[10px] font-bold text-ink2">
+                {label}
+            </span>
+        );
+    }
+
+    return (
+        <span className="whitespace-nowrap">
+            <span className="font-semibold tabular-nums text-ink2">
+                v{user.lastAppVersion}
+            </span>
+            <span className="ml-1.5 text-[10px] font-bold uppercase tracking-wide text-muted">
+                {label}
+            </span>
+        </span>
     );
 }
 
@@ -241,6 +279,9 @@ function UsersPageInner() {
                                     <th className="px-3 py-3 text-left font-semibold text-muted">
                                         Last active
                                     </th>
+                                    <th className="px-3 py-3 text-left font-semibold text-muted">
+                                        App
+                                    </th>
                                     <th className="px-3 py-3 text-right font-semibold text-muted">
                                         Paid
                                     </th>
@@ -296,6 +337,9 @@ function UsersPageInner() {
                                                       user.lastActiveAt,
                                                   ).format("MMM D, YYYY")
                                                 : "—"}
+                                        </td>
+                                        <td className="px-3 py-3">
+                                            <AppVersion user={user} />
                                         </td>
                                         <td className="px-3 py-3 text-right tabular-nums text-ink2">
                                             {user.totalPaid > 0
@@ -368,7 +412,7 @@ function UsersPageInner() {
                                 {users.length === 0 && (
                                     <tr>
                                         <td
-                                            colSpan={7}
+                                            colSpan={8}
                                             className="px-4 py-16 text-center text-sm text-muted"
                                         >
                                             {search

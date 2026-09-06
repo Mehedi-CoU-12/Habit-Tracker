@@ -22,6 +22,9 @@ const USER_ROW_SELECT = {
   role: true,
   status: true,
   createdAt: true,
+  lastActiveAt: true,
+  lastAppVersion: true,
+  lastAppPlatform: true,
 } satisfies Prisma.UserSelect;
 
 @Injectable()
@@ -173,7 +176,7 @@ export class AdminService {
         ])
       : [[], []];
 
-    const lastActiveByUser = new Map(
+    const lastLogByUser = new Map(
       lastLogs.map((g) => [g.userId, g._max.createdAt]),
     );
     const totalPaidByUser = new Map(
@@ -183,7 +186,12 @@ export class AdminService {
     const items = users.map(({ _count, ...user }) => ({
       ...user,
       habitCount: _count.habits,
-      lastActiveAt: lastActiveByUser.get(user.id) ?? null,
+      // User.lastActiveAt is the real signal now (stamped on every
+      // authenticated request), but it's still reconciled against the newest
+      // habit log — the value this column used to be derived from. Keeping the
+      // max means the date can never regress below activity we can prove, no
+      // matter what happens to the stamping path.
+      lastActiveAt: latestOf(user.lastActiveAt, lastLogByUser.get(user.id)),
       totalPaid: totalPaidByUser.get(user.id) ?? 0,
     }));
 
@@ -346,6 +354,16 @@ export class AdminService {
       );
     }
   }
+}
+
+/** The later of two possibly-absent dates. */
+function latestOf(
+  a: Date | null | undefined,
+  b: Date | null | undefined,
+): Date | null {
+  if (!a) return b ?? null;
+  if (!b) return a;
+  return a > b ? a : b;
 }
 
 function toDateKey(d: Date): string {

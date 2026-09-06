@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
+import { ActivityInterceptor } from './common/activity.interceptor.js';
+import { ActivityService } from './common/activity.service.js';
 import { ClientGuard } from './common/client.guard.js';
 import { KeepAliveService } from './common/keep-alive.service.js';
 import { PrismaModule } from './prisma/prisma.module.js';
@@ -37,11 +39,14 @@ import { ReleasesModule } from './releases/releases.module.js';
   providers: [
     AppService,
     KeepAliveService,
+    ActivityService,
     { provide: APP_GUARD, useClass: ClientGuard },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: StatusGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    // Runs after the guards above, so req.user is populated.
+    { provide: APP_INTERCEPTOR, useClass: ActivityInterceptor },
   ],
 })
 export class AppModule {}
