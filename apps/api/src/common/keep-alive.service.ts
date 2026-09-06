@@ -10,11 +10,6 @@ const TEN_MINUTES_MS = 10 * 60 * 1000;
 const MAX_INTERVAL_MS = 2147483647;
 const RETRY_DELAY_MS = 60 * 1000;
 
-// Render's free tier spins a service down after 15 minutes without inbound
-// traffic. Pinging our own public URL every 10 minutes counts as traffic and
-// keeps the instance awake. RENDER_EXTERNAL_URL is set automatically by
-// Render; KEEP_ALIVE_URL is a manual override for other hosts. When neither
-// is set (local dev, tests) the service does nothing.
 @Injectable()
 export class KeepAliveService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(KeepAliveService.name);
@@ -22,8 +17,6 @@ export class KeepAliveService implements OnModuleInit, OnModuleDestroy {
   private retryTimer?: NodeJS.Timeout;
 
   onModuleInit() {
-    // || not ??: an empty-string KEEP_ALIVE_URL (e.g. bulk-imported from
-    // .env.example) must fall through to RENDER_EXTERNAL_URL, not disable us.
     const baseUrl = (
       process.env.KEEP_ALIVE_URL ||
       process.env.RENDER_EXTERNAL_URL ||
@@ -32,8 +25,6 @@ export class KeepAliveService implements OnModuleInit, OnModuleDestroy {
     if (!baseUrl) return;
 
     const url = `${baseUrl.replace(/\/$/, '')}/health`;
-    // Guard against '' / garbage in KEEP_ALIVE_INTERVAL_MS — Number('') is 0
-    // and setInterval(fn, 0) would ping in a tight loop.
     const parsed = Number(process.env.KEEP_ALIVE_INTERVAL_MS);
     const intervalMs =
       Number.isFinite(parsed) && parsed >= 1000 && parsed <= MAX_INTERVAL_MS
