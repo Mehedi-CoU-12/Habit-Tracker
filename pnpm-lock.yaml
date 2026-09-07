@@ -67,6 +67,9 @@ importers:
             multer:
                 specifier: ^2.1.1
                 version: 2.1.1
+            nodemailer:
+                specifier: ^10.0.0
+                version: 10.0.0
             passport:
                 specifier: ^0.7.0
                 version: 0.7.0
@@ -119,6 +122,9 @@ importers:
             "@types/node":
                 specifier: ^22.10.7
                 version: 22.15.3
+            "@types/nodemailer":
+                specifier: ^8.0.1
+                version: 8.0.1
             "@types/passport-google-oauth20":
                 specifier: ^2.0.17
                 version: 2.0.17
@@ -2532,6 +2538,12 @@ packages:
         resolution:
             {
                 integrity: sha512-lX7HFZeHf4QG/J7tBZqrCAXwz9J5RD56Y6MpP0eJkka8p+K0RY/yBTW7CYFJ4VGCclxqOLKmiGP5juQc6MKgcw==,
+            }
+
+    "@types/nodemailer@8.0.1":
+        resolution:
+            {
+                integrity: sha512-PxpaInm8V1JQDd4j0ds5HfvWQk8JupS1C0Picb96QJsrrRDjBH+DlK7L4ZdNSqNULhiZRQHc40nLVShaGxXAMw==,
             }
 
     "@types/oauth@0.9.6":
@@ -6280,6 +6292,13 @@ packages:
                 integrity: sha512-nmh3lCkYZ3grZvqcCH+fjmQ7X+H0OeZgP40OierEaAptX4XofMh5kwNbWh7lBduUzCcV/8kZ+NDLCwm2iorIlA==,
             }
 
+    nodemailer@10.0.0:
+        resolution:
+            {
+                integrity: sha512-wdv+hXBg0iIPIOf108FaZyTxqjQpCvQeAJt9pHHTooPy/y3vQtI9eiImM9AIVKR3e/0FeMA1oueNfBjFJcaK+Q==,
+            }
+        engines: { node: ">=20.0.0" }
+
     normalize-path@3.0.0:
         resolution:
             {
@@ -9729,6 +9748,10 @@ snapshots:
         dependencies:
             undici-types: 6.21.0
 
+    "@types/nodemailer@8.0.1":
+        dependencies:
+            "@types/node": 22.15.3
+
     "@types/oauth@0.9.6":
         dependencies:
             "@types/node": 22.15.3
@@ -12229,6 +12252,8 @@ snapshots:
     node-int64@0.4.0: {}
 
     node-releases@2.0.27: {}
+
+    nodemailer@10.0.0: {}
 
     normalize-path@3.0.0: {}
 
