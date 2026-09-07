@@ -43,6 +43,11 @@ services:
             sync: false
           - key: FRONTEND_URL
             sync: false
+          # Comma-separated browser origin allow-list. An entry may contain
+          # `*`, which matches any run of characters inside one hostname
+          # label — needed for Vercel preview deployments, whose hostname
+          # changes with every push, e.g.
+          #   https://habit-tracker-web-eight-iota.vercel.app,https://habit-tracker-web-*.vercel.app
           - key: CORS_ORIGINS
             sync: false
           - key: GOOGLE_CLIENT_ID
