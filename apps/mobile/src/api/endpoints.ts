@@ -39,6 +39,22 @@ export function signup(name: string, email: string, password: string) {
     return apiPost<AuthResult>("/auth/signup", { name, email, password });
 }
 
+/**
+ * Ask for a reset link. Resolves the same way whether or not the address is
+ * registered — the API deliberately does not say, so neither can this screen.
+ */
+export function forgotPassword(email: string) {
+    return apiPost<{ sent: boolean }>("/auth/forgot-password", { email });
+}
+
+/** Consume a reset link. Returns the address it belonged to, to sign in with. */
+export function resetPassword(token: string, password: string) {
+    return apiPost<{ success: boolean; email: string }>(
+        "/auth/reset-password",
+        { token, password },
+    );
+}
+
 /** Revoke all sessions server-side (bumps tokenVersion). Idempotent. */
 export function logout(refreshToken: string) {
     return apiPost<{ success: boolean }>("/auth/logout", { refreshToken });
