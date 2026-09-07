@@ -201,6 +201,21 @@ export default function LoginScreen() {
                             secureTextEntry
                             style={inputStyle}
                         />
+                        <Pressable
+                            onPress={() => router.push("/forgot-password")}
+                            hitSlop={8}
+                            style={{ alignSelf: "flex-end", marginTop: 8 }}
+                        >
+                            <Text
+                                style={{
+                                    color: th.accent,
+                                    fontFamily: th.sansBold,
+                                    fontSize: 13,
+                                }}
+                            >
+                                Forgot password?
+                            </Text>
+                        </Pressable>
                     </View>
 
                     {error ? (

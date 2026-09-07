@@ -46,8 +46,11 @@ function AuthGate() {
         if (!ready) return;
         const top = segments[0];
 
-        if (top === "google-auth") return;
-        const inAuth = top === "login" || top === "signup";
+        // Both are deep-link landings that must work signed in or out: the
+        // reset link revokes this device's session as it is consumed.
+        if (top === "google-auth" || top === "reset-password") return;
+        const inAuth =
+            top === "login" || top === "signup" || top === "forgot-password";
         const onPending = top === "pending";
 
         if (!token) {

@@ -1,15 +1,21 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { createHash, randomBytes } from 'node:crypto';
 import * as bcrypt from 'bcryptjs';
+import { MailService } from '../mail/mail.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CacheService } from '../redis/cache.service.js';
 import { cacheKeys } from '../redis/cache-keys.js';
 import { SignupDto } from './dto/signup.dto.js';
 import { LoginDto } from './dto/login.dto.js';
+import { ForgotPasswordDto } from './dto/forgot-password.dto.js';
+import { ResetPasswordDto } from './dto/reset-password.dto.js';
 
 // Refresh tokens outlive the short access token (see auth.module.ts, 15m).
 // Both are signed with JWT_SECRET and told apart by the `type` claim: a
@@ -21,6 +27,20 @@ const REFRESH_TOKEN_TTL = '30d';
 // One-time code carried by the mobile Google sign-in deep link; only needs
 // to survive the browser→app handoff, so keep it tight.
 const GOOGLE_CODE_TTL = '60s';
+
+// A reset link only has to survive the walk from the mail app to a browser.
+// It is single-use on top of this (resetPassword stamps usedAt).
+const RESET_TTL_MS = 30 * 60_000;
+
+// Per-mailbox request cap. The route's @Throttle caps one IP; this caps one
+// address however many IPs ask, so a reset can't be used to flood an inbox.
+const RESET_WINDOW_MS = 15 * 60_000;
+const RESET_MAX_PER_WINDOW = 3;
+
+/** Only the hash is stored, so a leaked table can't be replayed as a reset. */
+function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
 
 /** The fields every token embeds — id, email (access only), and the version. */
 type TokenUser = { id: string; email: string; tokenVersion: number };
@@ -49,6 +69,8 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly cache: CacheService,
+    private readonly mail: MailService,
+    private readonly config: ConfigService,
   ) {}
 
   async signup(dto: SignupDto) {
@@ -94,6 +116,114 @@ export class AuthService {
     }
 
     return { ...this.issueTokens(user), user: this.publicUser(user) };
+  }
+
+  async requestPasswordReset(dto: ForgotPasswordDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+      select: { id: true, name: true, email: true, password: true },
+    });
+    if (!user) return { sent: true };
+
+    if (!user.password) {
+      void this.mail.send(user.email, 'password-reset-google', {
+        name: user.name,
+        loginUrl: `${this.frontendUrl()}/login`,
+      });
+      return { sent: true };
+    }
+
+    const now = new Date();
+    const recent = await this.prisma.passwordResetToken.count({
+      where: {
+        userId: user.id,
+        createdAt: { gte: new Date(now.getTime() - RESET_WINDOW_MS) },
+      },
+    });
+    if (recent >= RESET_MAX_PER_WINDOW) return { sent: true };
+
+    await this.prisma.passwordResetToken.updateMany({
+      where: { userId: user.id, usedAt: null, expiresAt: { gt: now } },
+      data: { expiresAt: now },
+    });
+
+    const token = randomBytes(32).toString('base64url');
+    await this.prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: hashToken(token),
+        expiresAt: new Date(now.getTime() + RESET_TTL_MS),
+      },
+    });
+
+    // Dispatched, not awaited: the response time must not depend on whether
+    // there was an address to mail, or D1.2 leaks through the clock. `send`
+    // never rejects, so nothing here can become an unhandled rejection.
+    void this.mail.send(user.email, 'password-reset', {
+      name: user.name,
+      url: `${this.frontendUrl()}/reset-password?token=${token}`,
+      expiresInMinutes: RESET_TTL_MS / 60_000,
+    });
+
+    return { sent: true };
+  }
+
+  /**
+   * Consume a reset link and set the new password. Bumps tokenVersion: the
+   * likeliest reason for a reset is that someone else knows the old password,
+   * so every existing session on every device dies here.
+   */
+  async resetPassword(dto: ResetPasswordDto) {
+    const row = await this.prisma.passwordResetToken.findUnique({
+      where: { tokenHash: hashToken(dto.token) },
+      select: {
+        id: true,
+        userId: true,
+        expiresAt: true,
+        usedAt: true,
+        user: { select: { email: true } },
+      },
+    });
+
+    const now = new Date();
+    // Unknown, used and expired share one message — which of the three it was
+    // is information only an attacker probing tokens benefits from.
+    if (!row || row.usedAt || row.expiresAt <= now) {
+      throw new BadRequestException('This reset link is invalid or expired');
+    }
+
+    const password = await bcrypt.hash(dto.password, 10);
+    await this.prisma.transaction(async (tx) => {
+      // Conditional claim: two requests racing the same link, one winner.
+      const claimed = await tx.passwordResetToken.updateMany({
+        where: { id: row.id, usedAt: null },
+        data: { usedAt: now },
+      });
+      if (claimed.count === 0) {
+        throw new BadRequestException('This reset link is invalid or expired');
+      }
+      await tx.user.update({
+        where: { id: row.userId },
+        data: { password, tokenVersion: { increment: 1 } },
+      });
+    });
+
+    // The bumped tokenVersion only bites once the cached auth row is gone;
+    // the profile cache carries hasPassword, so it goes too.
+    await this.cache.del(
+      cacheKeys.authUser(row.userId),
+      cacheKeys.me(row.userId),
+    );
+
+    // Returned so the client can sign straight in. Learning it requires a
+    // valid link, which was mailed to that address in the first place.
+    return { success: true, email: row.user.email };
+  }
+
+  private frontendUrl() {
+    return (
+      this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:5000'
+    ).replace(/\/+$/, '');
   }
 
   async googleLogin(googleUser: GoogleUser) {

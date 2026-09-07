@@ -56,6 +56,22 @@ services:
             sync: false
           - key: GOOGLE_CALLBACK_URL
             sync: false
+          # Password-reset mail. Set EITHER Resend (RESEND_API_KEY, plus
+          # MAIL_FROM on a domain verified with them) OR SMTP
+          # (SMTP_MAIL + SMTP_PASSWORD, an App Password for Gmail) — Resend
+          # wins when both are present. With neither, the API logs the reset
+          # link instead of sending it, which is fine in dev and a locked
+          # door in production.
+          - key: RESEND_API_KEY
+            sync: false
+          - key: MAIL_FROM
+            sync: false
+          - key: SMTP_MAIL
+            sync: false
+          - key: SMTP_PASSWORD
+            sync: false
+          - key: SMTP_SERVICE
+            sync: false
           - key: CLOUDINARY_API_KEY
             sync: false
           - key: CLOUDINARY_API_SECRET
