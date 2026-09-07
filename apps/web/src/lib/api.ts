@@ -173,6 +173,35 @@ export async function logout(): Promise<void> {
     clearTokens();
 }
 
+/**
+ * Ask for a reset link. Always resolves the same way whether or not the
+ * address is registered — the API deliberately does not say (and neither
+ * should this UI).
+ */
+export async function requestPasswordReset(
+    email: string,
+): Promise<{ sent: boolean }> {
+    const res = await fetch(`${API_URL}/auth/forgot-password`, {
+        method: "POST",
+        headers: { ...clientHeader(), ...JSON_HEADERS },
+        body: JSON.stringify({ email }),
+    });
+    return handleResponse<{ sent: boolean }>(res);
+}
+
+/** Consume a reset link. Returns the address it belonged to. */
+export async function resetPassword(
+    token: string,
+    password: string,
+): Promise<{ success: boolean; email: string }> {
+    const res = await fetch(`${API_URL}/auth/reset-password`, {
+        method: "POST",
+        headers: { ...clientHeader(), ...JSON_HEADERS },
+        body: JSON.stringify({ token, password }),
+    });
+    return handleResponse<{ success: boolean; email: string }>(res);
+}
+
 export async function fetchMe(): Promise<UserProfile> {
     const res = await authedFetch(`/users/me`);
     return handleResponse<UserProfile>(res);
