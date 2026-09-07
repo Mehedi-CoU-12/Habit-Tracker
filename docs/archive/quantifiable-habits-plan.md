@@ -1,21 +1,23 @@
 # HabitFlow — Quantifiable Habits (counts & durations): Design Plan
 
+> 📦 **ARCHIVED · SHIPPED 2026-09.** `Habit.target`/`unit`/`step` and `HabitLog.amount` are live across api, web and mobile, behind the shared `completion.ts` predicate. Kept for the design rationale (decisions + rejected alternatives), not as a to-do list. Its one non-code step (publishing the `AppRelease` row) is a per-build routine — see [releasing-the-mobile-app.md](../releasing-the-mobile-app.md). **Current mobile work lives in [mobile-next-features-plan.md](../mobile-next-features-plan.md); the live tracker is [features-or-bugDoc.md](../features-or-bugDoc.md).**
+
 > **Generated:** 2026-09-03 · **Scope:** `apps/api` (model + write path), `apps/mobile` (primary surface), `apps/web` (parity) · **Status:** Phases 1–7 landed as code — mobile is at `1.7.0`, the tracker row is ticked, and the suites are green (api 32, mobile 90, web 26). The one remaining step is not code: **publish the `AppRelease` row from Admin → Releases** once the APK is built (see Phase 7).
 > **How to use this doc:** Sections 1–6 are the design with decisions and rationale. Section 7 is the execution plan in implementation order — tick the `- [ ]` boxes as you complete them. Section 8 is the verification matrix to run before calling it done.
 
-> **Headline:** The app already _promises_ quantities and doesn't keep the promise. `Habit.verb` is a free-text subtitle rendered at [HabitRow.tsx:165](../apps/mobile/src/components/HabitRow.tsx#L165), and the built-in templates seed it with `"8 cups"`, `"30 min"`, `"20 pages"`, `"10k steps"` — but `HabitLog` is existence-only, so a user who drinks 3 of 8 cups has exactly two choices: lie and tick it, or lose the day. This plan adds two nullable columns to `Habit` and one defaulted column to `HabitLog`, which needs **no backfill** and leaves every existing habit binary. The hard part is not the schema — it is that **fourteen separate call sites** across the two clients equate "a log row exists" with "the day is complete", and all of them must move behind one shared predicate.
+> **Headline:** The app already _promises_ quantities and doesn't keep the promise. `Habit.verb` is a free-text subtitle rendered at [HabitRow.tsx:165](../../apps/mobile/src/components/HabitRow.tsx#L165), and the built-in templates seed it with `"8 cups"`, `"30 min"`, `"20 pages"`, `"10k steps"` — but `HabitLog` is existence-only, so a user who drinks 3 of 8 cups has exactly two choices: lie and tick it, or lose the day. This plan adds two nullable columns to `Habit` and one defaulted column to `HabitLog`, which needs **no backfill** and leaves every existing habit binary. The hard part is not the schema — it is that **fourteen separate call sites** across the two clients equate "a log row exists" with "the day is complete", and all of them must move behind one shared predicate.
 
 ---
 
 ## 1. Where the code stands today (recon facts the design is built on)
 
-**Data model** ([schema.prisma](../apps/api/prisma/schema.prisma)):
+**Data model** ([schema.prisma](../../apps/api/prisma/schema.prisma)):
 
 - `Habit` has `goal Int` — a **monthly** count of days (validated `1..31`), _not_ a daily amount. `verb String?` is free text, max 50 chars, purely decorative.
 - `HabitLog` is `@@unique([habitId, year, month, day])` with no payload column. The row's existence _is_ the completion.
 - Latest migration is `20260902095735_habit_schedule_archive_day_notes`. Render runs `prisma migrate deploy` at every boot, so merging a migration to `main` auto-applies it in production.
 
-**API** ([habits.service.ts](../apps/api/src/habits/habits.service.ts)):
+**API** ([habits.service.ts](../../apps/api/src/habits/habits.service.ts)):
 
 - Two write paths: `POST /habits/logs/toggle` (relative flip, used by online clients) and `PUT /habits/logs` (absolute `completed: boolean`, used by the offline outbox so replays converge).
 - Reads are Redis-cached per `(user, month)` under a version key; every mutation calls `invalidateHabits`.
@@ -44,7 +46,7 @@
 
 One deliberate non-site: `buildActivityHeatmap` also scans logs to find a habit's earliest activity. That is planting evidence, not completion, so it keeps reading every log — Phase 1 split it into its own loop so Phase 3 cannot silently narrow it.
 
-**Offline** ([outbox.ts](../apps/mobile/src/offline/outbox.ts)): a durable, coalescing, ordered queue. `log.set` supersedes any earlier queued write for the same `(habit, date)` cell but never the in-flight one. [sync.ts](../apps/mobile/src/offline/sync.ts) dispatches by `kind` with an `assertNever` exhaustiveness guard — a missing case is a compile error _and_ a runtime throw, which the comment notes already caught a dropped write once.
+**Offline** ([outbox.ts](../../apps/mobile/src/offline/outbox.ts)): a durable, coalescing, ordered queue. `log.set` supersedes any earlier queued write for the same `(habit, date)` cell but never the in-flight one. [sync.ts](../../apps/mobile/src/offline/sync.ts) dispatches by `kind` with an `assertNever` exhaustiveness guard — a missing case is a compile error _and_ a runtime throw, which the comment notes already caught a dropped write once.
 
 ---
 
@@ -112,11 +114,11 @@ Migration name: `20260903xxxxxx_quantifiable_habits`. Both `Habit` columns are n
 
 ```ts
 {
-    habitId: string;
-    year: number;
-    month: number;
-    day: number;
-    amount: number;
+  habitId: string;
+  year: number;
+  month: number;
+  day: number;
+  amount: number;
 }
 ```
 
@@ -159,7 +161,7 @@ export function progressLabel(h): string; // "6 / 8 cups"
 └──────────────────────────────────┘
 ```
 
-Tap `+` adds `step`. Long-press opens numeric entry (reuse the `goalDraft` digit-filtering pattern already in [add.tsx:157](../apps/mobile/src/app/add.tsx#L157)). Crossing the target fires the existing `Sparkles` reward — the payoff moment must be the _target_, not the first tap.
+Tap `+` adds `step`. Long-press opens numeric entry (reuse the `goalDraft` digit-filtering pattern already in [add.tsx:157](../../apps/mobile/src/app/add.tsx#L157)). Crossing the target fires the existing `Sparkles` reward — the payoff moment must be the _target_, not the first tap.
 
 **`add.tsx`** — a "Track a number" block: toggle on → target stepper + unit text input + step stepper. Keep it visually separate from the monthly `goal` block (D6). Polish: when the block is switched on and `verb` matches `/^(\d+)\s*(.+)$/`, prefill `target`/`unit` from it — a user whose habit already says "8 cups" gets it converted in one tap.
 
@@ -188,7 +190,7 @@ Three edits that are each easy to forget:
 Parity, no new concepts:
 
 - Mirror `completion.ts` and the `deriveStats.ts:28` swap.
-- `app/dashboard/types.ts` — the flattened `HabitLog` gains `amount: number`; `completed` stays as the derived boolean so [HabitRow.tsx:40](../apps/web/components/habits/HabitRow.tsx#L40) keeps working, now fed by the predicate.
+- `app/dashboard/types.ts` — the flattened `HabitLog` gains `amount: number`; `completed` stays as the derived boolean so [HabitRow.tsx:40](../../apps/web/components/habits/HabitRow.tsx#L40) keeps working, now fed by the predicate.
 - `HabitModal` — the same target/unit/step block as mobile.
 - `HabitGrid` — a partial day renders as a partial-fill cell rather than empty; this is where D5's "visual credit only" actually shows up on web.
 - `lib/api.ts` — add `setLogAmount`.
@@ -243,14 +245,14 @@ Parity, no new concepts:
 ### Phase 7 — Ship 🟡
 
 - [x] Bump `apps/mobile` to `1.7.0` — `app.json` (`expo.version`, the number `UpdateGate` compares), `package.json`, and `package-lock.json`, which the previous release had to fix in a follow-up commit
-- [x] Tick the row in [features-or-bugDoc.md](features-or-bugDoc.md), with a dated entry in **Done**
+- [x] Tick the row in [features-or-bugDoc.md](../features-or-bugDoc.md), with a dated entry in **Done**
 - [x] Re-run the suites on the shipping commit: api 32, mobile 90, web 26, all passing; `web`/`@repo/ui` `check-types` and `tsc --noEmit` for mobile and api clean (the two `test/app.e2e-spec.ts` module-resolution errors predate this branch and are untouched by it)
 - [ ] **Build and publish the APK** — `eas build -p android --profile preview`, then attach it to a `v1.7.0` GitHub release
 - [ ] **Publish the `AppRelease` row** — Admin → Releases → Android: **Latest version** `1.7.0`, **Download URL** the release link, notes optional. **Leave `minimum` alone** — per D4 the new endpoint is a sibling, `PUT /habits/logs` is untouched, and every shipped client keeps working, so there is nothing here that justifies locking anyone out.
 
 > The last two boxes are not code and cannot be done from the repo: one needs an EAS build, the other a
 > logged-in admin against the live dashboard. Everything the branch can carry is carried.
-> See [releasing-the-mobile-app.md](releasing-the-mobile-app.md) for the full procedure.
+> See [releasing-the-mobile-app.md](../releasing-the-mobile-app.md) for the full procedure.
 
 ---
 

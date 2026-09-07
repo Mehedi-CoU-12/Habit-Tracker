@@ -1301,12 +1301,22 @@ Things to know before you touch deployment:
 
 ## 18. Other docs in this folder
 
-| Doc                                                          | What's in it                                                                                                                                                      |
-| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [admin-access-control-plan.md](admin-access-control-plan.md) | The original design plan for roles, the approval gate and the admin dashboard — the reasoning behind [§7](#7--authorization--the-guard-stack-as-a-decision-tree). |
-| [mobile-audit-and-roadmap.md](mobile-audit-and-roadmap.md)   | A feature audit of the mobile app with a prioritised improvement roadmap.                                                                                         |
-| [features-or-bugDoc.md](features-or-bugDoc.md)               | The living feature / bug to-do list.                                                                                                                              |
-| [releasing-the-mobile-app.md](releasing-the-mobile-app.md)   | How a new APK reaches people who already have the app installed.                                                                                                  |
+**Current — describes work still to do:**
+
+| Doc                                                              | What's in it                                                            |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| [features-or-bugDoc.md](features-or-bugDoc.md)                   | The living feature / bug to-do list. **Start here.**                    |
+| [mobile-next-features-plan.md](mobile-next-features-plan.md)     | The current mobile plan: the gap analysis and the six features designed. |
+| [releasing-the-mobile-app.md](releasing-the-mobile-app.md)       | How a new APK reaches people who already have the app installed.        |
+
+**[archive/](archive/) — shipped designs, kept for their rationale:**
+
+| Doc                                                                        | What's in it                                                                                                                                                      |
+| ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [admin-access-control-plan.md](archive/admin-access-control-plan.md)       | The design plan for roles, the approval gate and the admin dashboard — the reasoning behind [§7](#7--authorization--the-guard-stack-as-a-decision-tree). Shipped 2026-07. |
+| [quantifiable-habits-plan.md](archive/quantifiable-habits-plan.md)         | Counts and durations: `Habit.target`/`unit`/`step`, `HabitLog.amount`. Shipped 2026-09.                                                                           |
+| [next-four-features-plan.md](archive/next-four-features-plan.md)           | Account deletion, the Android widget, streak insurance, focus auto-log. Shipped 2026-09.                                                                          |
+| [mobile-audit-and-roadmap.md](archive/mobile-audit-and-roadmap.md)         | The June 2026 mobile audit. Superseded — ten of its twelve items are done.                                                                                        |
 
 ---
 

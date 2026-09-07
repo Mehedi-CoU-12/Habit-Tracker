@@ -1,5 +1,7 @@
 # HabitFlow — The Next Four: Deletion, Widget, Streak Insurance, Auto-log
 
+> 📦 **ARCHIVED · SHIPPED 2026-09.** All four landed: account deletion, the Android home-screen widget, streak insurance (`HabitSkip`) and focus auto-log (`Habit.fillFromFocus`). Kept for the design rationale (decisions + rejected alternatives), not as a to-do list. **Current mobile work lives in [mobile-next-features-plan.md](../mobile-next-features-plan.md); the live tracker is [features-or-bugDoc.md](../features-or-bugDoc.md).**
+
 > **Generated:** 2026-09-03 · **Scope:** `apps/api`, `apps/mobile` (primary), `apps/web` (parity where it earns it) · **Status:** implemented in the working tree. API, mobile, and web type/tests pass; the Android widget still needs its customary custom-dev-client/device smoke test.
 > **How to use this doc:** §1 is the recon the designs rest on. §2–§5 are the four features, each with its own decisions, phases and verification. §6 is the sequencing argument and §7 is what these four deliberately leave out.
 
@@ -11,25 +13,25 @@
 
 Facts the four designs are built on. Every one of these was read, not assumed.
 
-**Auth and sessions.** `User.tokenVersion` is a real revocation mechanism, not decoration: [jwt.strategy.ts:50](../apps/api/src/auth/jwt.strategy.ts#L50) rejects any access token whose embedded `tokenVersion` differs from the row, and [auth.service.ts:230](../apps/api/src/auth/auth.service.ts#L230) bumps it to sign out of all sessions. Refresh tokens are checked the same way at [auth.service.ts:208](../apps/api/src/auth/auth.service.ts#L208). A deleted user's tokens therefore die on the next request without any extra work — the row is gone, so the lookup fails.
+**Auth and sessions.** `User.tokenVersion` is a real revocation mechanism, not decoration: [jwt.strategy.ts:50](../../apps/api/src/auth/jwt.strategy.ts#L50) rejects any access token whose embedded `tokenVersion` differs from the row, and [auth.service.ts:230](../../apps/api/src/auth/auth.service.ts#L230) bumps it to sign out of all sessions. Refresh tokens are checked the same way at [auth.service.ts:208](../../apps/api/src/auth/auth.service.ts#L208). A deleted user's tokens therefore die on the next request without any extra work — the row is gone, so the lookup fails.
 
-**Local teardown already exists and is thorough.** [AuthProvider.tsx:109](../apps/mobile/src/api/AuthProvider.tsx#L109) `clearLocalSession` removes the access and refresh tokens, calls `resetSync()`, `clearOutbox()`, `queryClient.clear()` and `persister.removeClient()`. Account deletion should reuse it rather than reinvent it.
+**Local teardown already exists and is thorough.** [AuthProvider.tsx:109](../../apps/mobile/src/api/AuthProvider.tsx#L109) `clearLocalSession` removes the access and refresh tokens, calls `resetSync()`, `clearOutbox()`, `queryClient.clear()` and `persister.removeClient()`. Account deletion should reuse it rather than reinvent it.
 
-**But it does not touch notifications.** There is no `cancelAllScheduledNotificationsAsync` anywhere in the sign-out path — `reminders.ts` only cancels individual identifiers during a resync ([reminders.ts:229](../apps/mobile/src/notifications/reminders.ts#L229)). Reminders are **local** `scheduleNotificationAsync` calls, so they are already sitting in the OS scheduler. **A deleted account keeps getting "Did you drink water today?" until the app is reinstalled.** This is the single easiest thing to miss in Feature 1.
+**But it does not touch notifications.** There is no `cancelAllScheduledNotificationsAsync` anywhere in the sign-out path — `reminders.ts` only cancels individual identifiers during a resync ([reminders.ts:229](../../apps/mobile/src/notifications/reminders.ts#L229)). Reminders are **local** `scheduleNotificationAsync` calls, so they are already sitting in the OS scheduler. **A deleted account keeps getting "Did you drink water today?" until the app is reinstalled.** This is the single easiest thing to miss in Feature 1.
 
-**User endpoints are thin.** [users.controller.ts](../apps/api/src/users/users.controller.ts) exposes exactly `GET /users/me`, `PATCH /users/me`, `POST /users/me/avatar`. There is no delete of any kind.
+**User endpoints are thin.** [users.controller.ts](../../apps/api/src/users/users.controller.ts) exposes exactly `GET /users/me`, `PATCH /users/me`, `POST /users/me/avatar`. There is no delete of any kind.
 
-**Cascades are mostly configured.** In [schema.prisma](../apps/api/prisma/schema.prisma): `Habit`, `Payment`, `FocusSession` and `DayNote` all declare `onDelete: Cascade` from `User`. `HabitLog` cascades from `Habit`. So a hard `user.delete()` already removes the entire graph — **including the `Payment` rows an admin recorded**, which is a business decision, not a technical one (D1.3).
+**Cascades are mostly configured.** In [schema.prisma](../../apps/api/prisma/schema.prisma): `Habit`, `Payment`, `FocusSession` and `DayNote` all declare `onDelete: Cascade` from `User`. `HabitLog` cascades from `Habit`. So a hard `user.delete()` already removes the entire graph — **including the `Payment` rows an admin recorded**, which is a business decision, not a technical one (D1.3).
 
-**`FocusSession.recordSession` is already idempotent by client id.** [focus.service.ts:44](../apps/api/src/focus/focus.service.ts#L44) — if `dto.id` already exists it returns the existing row and does nothing else. This is the fact that makes Feature 4 tractable, and it is why auto-log belongs on the server (D4.1).
+**`FocusSession.recordSession` is already idempotent by client id.** [focus.service.ts:44](../../apps/api/src/focus/focus.service.ts#L44) — if `dto.id` already exists it returns the existing row and does nothing else. This is the fact that makes Feature 4 tractable, and it is why auto-log belongs on the server (D4.1).
 
-**Streaks are computed in two different places with two different scopes.** [deriveStats.ts:66](../apps/mobile/src/lib/deriveStats.ts#L66) walks back from today but only to `dd >= 1` — it is **month-scoped**, so it cannot see a streak crossing a month boundary. The detail screen instead shows [heatmap.ts:418](../apps/mobile/src/lib/heatmap.ts#L418) `habitHistoryStats`, which walks a multi-month `depth` map. **Feature 3 must change both or they will disagree on screen**, and the second one is the one users actually read on the habit page.
+**Streaks are computed in two different places with two different scopes.** [deriveStats.ts:66](../../apps/mobile/src/lib/deriveStats.ts#L66) walks back from today but only to `dd >= 1` — it is **month-scoped**, so it cannot see a streak crossing a month boundary. The detail screen instead shows [heatmap.ts:418](../../apps/mobile/src/lib/heatmap.ts#L418) `habitHistoryStats`, which walks a multi-month `depth` map. **Feature 3 must change both or they will disagree on screen**, and the second one is the one users actually read on the habit page.
 
-**Rest days already do what a "skip" does.** [deriveStats.ts:67-75](../apps/mobile/src/lib/deriveStats.ts#L67-L75): `if (!dueOn(dd)) continue;` — a non-due day neither extends nor breaks. Mechanically, insurance is "make this due day behave like a rest day, retroactively, at most N times". That is a much smaller change than it sounds, and it is why this feature is decision-bound rather than code-bound.
+**Rest days already do what a "skip" does.** [deriveStats.ts:67-75](../../apps/mobile/src/lib/deriveStats.ts#L67-L75): `if (!dueOn(dd)) continue;` — a non-due day neither extends nor breaks. Mechanically, insurance is "make this due day behave like a rest day, retroactively, at most N times". That is a much smaller change than it sounds, and it is why this feature is decision-bound rather than code-bound.
 
-**Heatmap level 1 is taken.** [heatmap.ts:365](../apps/mobile/src/lib/heatmap.ts#L365) — `level: d > 0 ? depthToLevel(d) : part ? 1 : 0`. Quantifiable habits claimed level 1 for partial days, so a skipped day needs its own visual treatment rather than a spare level.
+**Heatmap level 1 is taken.** [heatmap.ts:365](../../apps/mobile/src/lib/heatmap.ts#L365) — `level: d > 0 ? depthToLevel(d) : part ? 1 : 0`. Quantifiable habits claimed level 1 for partial days, so a skipped day needs its own visual treatment rather than a spare level.
 
-**The outbox has seven op kinds.** [outbox.ts:57-77](../apps/mobile/src/offline/outbox.ts#L57-L77): `habit.create/update/delete`, `log.set`, `log.amount`, `note.set`, `focus.record`. `sync.ts` dispatches with an `assertNever` guard, so a missing case is a compile error.
+**The outbox has seven op kinds.** [outbox.ts:57-77](../../apps/mobile/src/offline/outbox.ts#L57-L77): `habit.create/update/delete`, `log.set`, `log.amount`, `note.set`, `focus.record`. `sync.ts` dispatches with an `assertNever` guard, so a missing case is a compile error.
 
 **`deriveStats.ts` and `completion.ts` are still duplicated** between `apps/mobile/src/lib/` and `apps/web/src/lib/`. The `@repo/core` extraction ("D8" in [quantifiable-habits-plan.md](quantifiable-habits-plan.md)) is agreed but not done. Feature 3 lands squarely in the duplicated file — see §6.
 
@@ -66,7 +68,7 @@ Only if D1.3 is accepted: `Payment.userId String?` + `onDelete: SetNull`, plus `
 
 ### Mobile
 
-- A destructive row at the bottom of the **Your account** section in [settings.tsx](<../apps/mobile/src/app/(tabs)/settings.tsx>), visually separated from **Sign out**.
+- A destructive row at the bottom of the **Your account** section in [settings.tsx](<../../apps/mobile/src/app/(tabs)/settings.tsx>), visually separated from **Sign out**.
 - Reuse the `HabitSheet` confirmation pattern — you already have a two-step destructive sheet for habit deletion; matching it costs nothing and users have seen it.
 - The teardown order matters: **cancel notifications → call the API → `clearLocalSession()`**. Cancelling first means an offline failure leaves the user signed in but un-nagged, which is recoverable; the reverse leaves ghost reminders.
 
@@ -272,7 +274,7 @@ Full parity — this changes the streak number, and web shows it. This is the fe
 
 ### Decisions
 
-**D4.1 — Auto-log server-side, inside `recordSession`.** [focus.service.ts:44](../apps/api/src/focus/focus.service.ts#L44) already returns early when `dto.id` exists. Putting the `HabitLog` increment after that guard means a replayed session increments **exactly once**, for free, with no new idempotency machinery. _Rejected:_ the client calling `setLogAmount` after a session. It has to read the current amount, add, and write back — a lost-update race between two devices, and a double-count on any replay. This decision is the whole feature.
+**D4.1 — Auto-log server-side, inside `recordSession`.** [focus.service.ts:44](../../apps/api/src/focus/focus.service.ts#L44) already returns early when `dto.id` exists. Putting the `HabitLog` increment after that guard means a replayed session increments **exactly once**, for free, with no new idempotency machinery. _Rejected:_ the client calling `setLogAmount` after a session. It has to read the current amount, add, and write back — a lost-update race between two devices, and a double-count on any replay. This decision is the whole feature.
 
 **D4.2 — Opt-in per habit, via an explicit flag.** Add `Habit.fillFromFocus Boolean @default(false)`. _Rejected:_ string-matching `unit` against `"min"`/`"mins"`/`"minutes"`. `unit` is free text (max 16 chars) and user-entered; inferring intent from it means a habit called "20 minutes of guitar" silently starts filling itself, and a typo silently stops it. An explicit checkbox in the add/edit form is one line of UI and never guesses wrong.
 
@@ -295,7 +297,7 @@ Full parity — this changes the streak number, and web shows it. This is the fe
 
 ### Mobile
 
-- The existing "completing a session waters the habit" behaviour in [focus.tsx](../apps/mobile/src/app/focus.tsx) becomes conditional: for a `fillFromFocus` habit the server does the work, so the client should **stop** calling toggle and let the refetch land. Leaving both in is a double-write.
+- The existing "completing a session waters the habit" behaviour in [focus.tsx](../../apps/mobile/src/app/focus.tsx) becomes conditional: for a `fillFromFocus` habit the server does the work, so the client should **stop** calling toggle and let the refetch land. Leaving both in is a double-write.
 - `add.tsx` — one checkbox inside the existing "Track a number" block, visible only when a target is set.
 - The `focus.record` outbox op needs no change, which is the point of D4.1.
 
