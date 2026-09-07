@@ -1202,7 +1202,7 @@ EXPO_PUBLIC_API_URL=http://192.168.1.5:4000
 | `JWT_SECRET`                                     | api    | Tokens can't be signed. Required.                                                                                                                                                                     |
 | `PORT`                                           | api    | Falls back to **4000**. See the warning above.                                                                                                                                                        |
 | `REDIS_URL`                                      | api    | Caching silently disabled; everything still works.                                                                                                                                                    |
-| `FRONTEND_URL` / `CORS_ORIGINS`                  | api    | The browser blocks the web app on CORS. Comma-separated allow-list.                                                                                                                                   |
+| `FRONTEND_URL` / `CORS_ORIGINS`                  | api    | The browser blocks the web app on CORS. Comma-separated allow-list; an entry may use `*` to match one hostname label (`https://habit-tracker-web-*.vercel.app` covers every Vercel preview URL).      |
 | `APP_CLIENT_KEY`                                 | api    | ClientGuard logs one warning and lets everything through. **Must be byte-identical** to the web's `NEXT_PUBLIC_APP_CLIENT_KEY` and the mobile's `EXPO_PUBLIC_APP_CLIENT_KEY`, or every request 403s.  |
 | `GOOGLE_CLIENT_ID` / `_SECRET` / `_CALLBACK_URL` | api    | Google sign-in is skipped entirely — `AuthModule` only constructs `GoogleStrategy` when a client id exists, because the library throws at construction with an empty one. Email/password still works. |
 | `MOBILE_GOOGLE_REDIRECT`                         | api    | Defaults to `habitflow://google-auth`. Must match `scheme` in [app.json](../apps/mobile/app.json).                                                                                                    |
@@ -1288,7 +1288,7 @@ Things to know before you touch deployment:
 | Change rate limits                | `ThrottlerModule.forRoot` in [app.module.ts](../apps/api/src/app.module.ts), or a per-route `@Throttle`                                                                                                                                      |
 | Re-enable manual account approval | comment out the `status: 'ACTIVE'` lines in `signup()` and `upsertGoogleUser()` in [auth.service.ts](../apps/api/src/auth/auth.service.ts)                                                                                                   |
 | Add a cached read                 | `cache.getOrSet` or `getOrSetVersioned`, plus a key + TTL in [cache-keys.ts](../apps/api/src/redis/cache-keys.ts)                                                                                                                            |
-| Allow a new frontend origin       | `CORS_ORIGINS` (and the dev pattern in [allowed-origins.ts](../apps/api/src/common/allowed-origins.ts))                                                                                                                                      |
+| Allow a new frontend origin       | `CORS_ORIGINS` — exact, or `*` for one hostname label (and the dev pattern in [allowed-origins.ts](../apps/api/src/common/allowed-origins.ts))                                                                                               |
 | Add a web page                    | a folder under [apps/web/app/](../apps/web/app/) with a `page.tsx`                                                                                                                                                                           |
 | Add a mobile screen               | a file under [apps/mobile/src/app/](../apps/mobile/src/app/) (expo-router)                                                                                                                                                                   |
 | Add a new offline-capable write   | a new op kind in [outbox.ts](../apps/mobile/src/offline/outbox.ts) **and** a case in `dispatch()` in [sync.ts](../apps/mobile/src/offline/sync.ts) — the `assertNever` guard exists because forgetting the second half silently loses writes |
@@ -1303,20 +1303,20 @@ Things to know before you touch deployment:
 
 **Current — describes work still to do:**
 
-| Doc                                                              | What's in it                                                            |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| [features-or-bugDoc.md](features-or-bugDoc.md)                   | The living feature / bug to-do list. **Start here.**                    |
-| [mobile-next-features-plan.md](mobile-next-features-plan.md)     | The current mobile plan: the gap analysis and the six features designed. |
-| [releasing-the-mobile-app.md](releasing-the-mobile-app.md)       | How a new APK reaches people who already have the app installed.        |
+| Doc                                                          | What's in it                                                             |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| [features-or-bugDoc.md](features-or-bugDoc.md)               | The living feature / bug to-do list. **Start here.**                     |
+| [mobile-next-features-plan.md](mobile-next-features-plan.md) | The current mobile plan: the gap analysis and the six features designed. |
+| [releasing-the-mobile-app.md](releasing-the-mobile-app.md)   | How a new APK reaches people who already have the app installed.         |
 
 **[archive/](archive/) — shipped designs, kept for their rationale:**
 
-| Doc                                                                        | What's in it                                                                                                                                                      |
-| ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [admin-access-control-plan.md](archive/admin-access-control-plan.md)       | The design plan for roles, the approval gate and the admin dashboard — the reasoning behind [§7](#7--authorization--the-guard-stack-as-a-decision-tree). Shipped 2026-07. |
-| [quantifiable-habits-plan.md](archive/quantifiable-habits-plan.md)         | Counts and durations: `Habit.target`/`unit`/`step`, `HabitLog.amount`. Shipped 2026-09.                                                                           |
-| [next-four-features-plan.md](archive/next-four-features-plan.md)           | Account deletion, the Android widget, streak insurance, focus auto-log. Shipped 2026-09.                                                                          |
-| [mobile-audit-and-roadmap.md](archive/mobile-audit-and-roadmap.md)         | The June 2026 mobile audit. Superseded — ten of its twelve items are done.                                                                                        |
+| Doc                                                                  | What's in it                                                                                                                                                              |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [admin-access-control-plan.md](archive/admin-access-control-plan.md) | The design plan for roles, the approval gate and the admin dashboard — the reasoning behind [§7](#7--authorization--the-guard-stack-as-a-decision-tree). Shipped 2026-07. |
+| [quantifiable-habits-plan.md](archive/quantifiable-habits-plan.md)   | Counts and durations: `Habit.target`/`unit`/`step`, `HabitLog.amount`. Shipped 2026-09.                                                                                   |
+| [next-four-features-plan.md](archive/next-four-features-plan.md)     | Account deletion, the Android widget, streak insurance, focus auto-log. Shipped 2026-09.                                                                                  |
+| [mobile-audit-and-roadmap.md](archive/mobile-audit-and-roadmap.md)   | The June 2026 mobile audit. Superseded — ten of its twelve items are done.                                                                                                |
 
 ---
 
