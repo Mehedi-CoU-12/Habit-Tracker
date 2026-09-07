@@ -33,6 +33,10 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     return this.client.dayNote;
   }
 
+  get passwordResetToken() {
+    return this.client.passwordResetToken;
+  }
+
   get payment() {
     return this.client.payment;
   }
