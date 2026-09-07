@@ -1,15 +1,15 @@
 # HabitFlow — User Roles, Approval Gate & Admin Dashboard: Design Plan
 
-> **Generated:** 2026-07-03 · **Scope:** `apps/api` (enforcement core), `apps/web` (admin dashboard + gate), `apps/mobile` (gate) · **Status:** proposal — no code changed yet.
+> 📦 **ARCHIVED · SHIPPED 2026-07.** Roles, the approval gate and the admin dashboard are all in the tree — see `apps/api/src/admin/`, `apps/api/src/common/`, and `apps/web/app/admin/`. Kept for the design rationale (decisions + rejected alternatives), not as a to-do list. **Current mobile work lives in [mobile-next-features-plan.md](../mobile-next-features-plan.md); the live tracker is [features-or-bugDoc.md](../features-or-bugDoc.md).**
+
+> **Generated:** 2026-07-03 · **Scope:** `apps/api` (enforcement core), `apps/web` (admin dashboard + gate), `apps/mobile` (gate) · **Status:** ✅ shipped (2026-07) — this line read “proposal — no code changed yet” until the doc was archived.
 > **How to use this doc:** Sections 1–7 are the design with decisions and rationale. Section 8 is the execution plan in implementation order — tick the `- [ ]` boxes as you complete them. Section 9 is the verification matrix to run before calling it done.
 
 > **Headline:** Everything the product needs already exists _except_ access control: today, **anyone who signs up (email or Google) gets a working 7-day token instantly**, tokens are never re-checked against the database, and only 2 of 4 controllers have any guard at all. The plan adds two fields (`role`, `status`) and flips the API from "opt-in guards" to "locked by default", then builds the admin surface on top. The API is the only real enforcement point — both clients keep tokens in local storage with purely client-side redirects, so client checks are UX, not security.
 
-
 ---
 
 ## 1. Requirements → features
-
 
 | Your requirement                                                            | Feature in this plan                                                                                                                        |
 | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |

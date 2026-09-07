@@ -11,9 +11,9 @@
 
 Read, not assumed. Everything in §2 onwards rests on these.
 
-**The old roadmap is mostly done.** [mobile-audit-and-roadmap.md](mobile-audit-and-roadmap.md) listed twelve high-priority gaps; ten are shipped. Account deletion ([DeleteAccountSheet.tsx](../apps/mobile/src/components/DeleteAccountSheet.tsx), `DELETE /users/me` at [users.controller.ts:41](../apps/api/src/users/users.controller.ts#L41)), local reminders ([notifications/](../apps/mobile/src/notifications/)), real multi-month heatmaps ([heatmap.ts](../apps/mobile/src/lib/heatmap.ts)), cross-month streaks, a working Stats period switcher, calendar backfill with per-day notes, offline persistence, Google sign-in, silent token refresh ([client.ts:110](../apps/mobile/src/api/client.ts#L110)), rate limiting, and FK indexes ([schema.prisma:123](../apps/api/prisma/schema.prisma#L123)) are all in the tree. The roadmap's "fake features" section no longer describes this app.
+**The old roadmap is mostly done.** [mobile-audit-and-roadmap.md](archive/mobile-audit-and-roadmap.md) listed twelve high-priority gaps; ten are shipped. Account deletion ([DeleteAccountSheet.tsx](../apps/mobile/src/components/DeleteAccountSheet.tsx), `DELETE /users/me` at [users.controller.ts:41](../apps/api/src/users/users.controller.ts#L41)), local reminders ([notifications/](../apps/mobile/src/notifications/)), real multi-month heatmaps ([heatmap.ts](../apps/mobile/src/lib/heatmap.ts)), cross-month streaks, a working Stats period switcher, calendar backfill with per-day notes, offline persistence, Google sign-in, silent token refresh ([client.ts:110](../apps/mobile/src/api/client.ts#L110)), rate limiting, and FK indexes ([schema.prisma:123](../apps/api/prisma/schema.prisma#L123)) are all in the tree. The roadmap's "fake features" section no longer describes this app.
 
-**The four features after that also landed.** Per [next-four-features-plan.md](next-four-features-plan.md): account deletion, the Android home-screen widget, streak insurance (`HabitSkip`) and focus-timer auto-log (`Habit.fillFromFocus`) are implemented.
+**The four features after that also landed.** Per [next-four-features-plan.md](archive/next-four-features-plan.md): account deletion, the Android home-screen widget, streak insurance (`HabitSkip`) and focus-timer auto-log (`Habit.fillFromFocus`) are implemented.
 
 **Sixteen thousand lines of mobile, four test files.** [completion.test.ts](../apps/mobile/src/lib/completion.test.ts), [deriveStats.test.ts](../apps/mobile/src/lib/deriveStats.test.ts), [heatmap.test.ts](../apps/mobile/src/lib/heatmap.test.ts), [schedule.test.ts](../apps/mobile/src/lib/schedule.test.ts) — the pure maths is covered. The outbox, the sync worker and the reminder reconcile pass have no tests, and they are the three places where a bug loses user data silently rather than loudly.
 
@@ -45,22 +45,22 @@ Read, not assumed. Everything in §2 onwards rests on these.
 
 Tier A is "a user is stuck or the product lies to them". Tier B is "the loop works but doesn't reward". Tier C is reach and platform. Tier D is tracked elsewhere.
 
-| #   | Gap                                                | Tier | Area               | Effort | Why it matters                                                                                                                             |
-| --- | -------------------------------------------------- | ---- | ------------------ | ------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1   | **Password reset**                                 | A    | api · web · mobile | M      | A forgotten password is a permanently lost account. No workaround exists.                                                                  |
-| 2   | **Onboarding discards the habits it asked for**    | A    | mobile             | S      | Every new user's first screen is "Your garden is empty". ~40 lines of wiring.                                                              |
-| 3   | **No profile / password editing on mobile**        | A    | mobile             | S      | Endpoint + web reference already exist; mobile just never called it.                                                                       |
-| 4   | **No haptics, no growth animation, no milestones** | B    | mobile             | S–M    | "Watch it grow" is the product thesis and the plant is a static image.                                                                     |
-| 5   | **No data export**                                 | B    | mobile · api       | M      | Deletion shipped without portability. Trust, and the GDPR twin of erasure.                                                                 |
-| 6   | **Mobile outside CI · no crash reporting**         | B    | ci · mobile        | S      | 16k lines with no enforced checks and zero production error visibility.                                                                    |
-| 7   | Widget cannot complete a habit                     | C    | mobile (Kotlin)    | M      | The widget's whole point is one tap without opening the app.                                                                               |
-| 8   | iOS not buildable                                  | C    | mobile             | M–L    | Half the addressable market; widget would need a WidgetKit rewrite.                                                                        |
-| 9   | No push / re-engagement                            | C    | api · mobile       | L      | Local reminders can't reach a lapsed user. Needs a scheduler + tokens.                                                                     |
-| 10  | No habit reorder                                   | C    | api · mobile · web | S–M    | Cheapest remaining "this feels unfinished" complaint. One migration.                                                                       |
-| 11  | Accessibility + tap targets                        | C    | mobile             | M      | Icon-only controls are invisible to TalkBack/VoiceOver; 38 px toggle.                                                                      |
-| 12  | No share card                                      | C    | mobile             | S      | The only organic growth loop a solo habit app gets.                                                                                        |
-| 13  | To-do list · stopwatch                             | D    | web · mobile       | M      | Already tracked in [features-or-bugDoc.md](features-or-bugDoc.md) — not re-planned here.                                                   |
-| 14  | `@repo/core` extraction                            | D    | monorepo           | M      | Agreed in [quantifiable-habits-plan.md](quantifiable-habits-plan.md) (D8), still open; `completion.ts`/`deriveStats.ts` remain duplicated. |
+| #   | Gap                                                | Tier | Area               | Effort | Why it matters                                                                                                                                     |
+| --- | -------------------------------------------------- | ---- | ------------------ | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Password reset**                                 | A    | api · web · mobile | M      | A forgotten password is a permanently lost account. No workaround exists.                                                                          |
+| 2   | **Onboarding discards the habits it asked for**    | A    | mobile             | S      | Every new user's first screen is "Your garden is empty". ~40 lines of wiring.                                                                      |
+| 3   | **No profile / password editing on mobile**        | A    | mobile             | S      | Endpoint + web reference already exist; mobile just never called it.                                                                               |
+| 4   | **No haptics, no growth animation, no milestones** | B    | mobile             | S–M    | "Watch it grow" is the product thesis and the plant is a static image.                                                                             |
+| 5   | **No data export**                                 | B    | mobile · api       | M      | Deletion shipped without portability. Trust, and the GDPR twin of erasure.                                                                         |
+| 6   | **Mobile outside CI · no crash reporting**         | B    | ci · mobile        | S      | 16k lines with no enforced checks and zero production error visibility.                                                                            |
+| 7   | Widget cannot complete a habit                     | C    | mobile (Kotlin)    | M      | The widget's whole point is one tap without opening the app.                                                                                       |
+| 8   | iOS not buildable                                  | C    | mobile             | M–L    | Half the addressable market; widget would need a WidgetKit rewrite.                                                                                |
+| 9   | No push / re-engagement                            | C    | api · mobile       | L      | Local reminders can't reach a lapsed user. Needs a scheduler + tokens.                                                                             |
+| 10  | No habit reorder                                   | C    | api · mobile · web | S–M    | Cheapest remaining "this feels unfinished" complaint. One migration.                                                                               |
+| 11  | Accessibility + tap targets                        | C    | mobile             | M      | Icon-only controls are invisible to TalkBack/VoiceOver; 38 px toggle.                                                                              |
+| 12  | No share card                                      | C    | mobile             | S      | The only organic growth loop a solo habit app gets.                                                                                                |
+| 13  | To-do list · stopwatch                             | D    | web · mobile       | M      | Already tracked in [features-or-bugDoc.md](features-or-bugDoc.md) — not re-planned here.                                                           |
+| 14  | `@repo/core` extraction                            | D    | monorepo           | M      | Agreed in [quantifiable-habits-plan.md](archive/quantifiable-habits-plan.md) (D8), still open; `completion.ts`/`deriveStats.ts` remain duplicated. |
 
 **§3–§8 design gaps 1–6. §9 covers 7–12 to the decision point.**
 
@@ -339,7 +339,7 @@ None. Milestones are derived; the celebration ledger is local.
 
 **D6.3 — Test the outbox and the reminder reconcile.** They are the two subsystems whose bugs are silent: an outbox op that never drains loses a day the user recorded, and a reminder reconcile that mis-diffs either nags or goes quiet. The pure maths has four test files; these have none. _Rejected:_ chasing component-render coverage first. The maths is already tested and the UI is the part a person notices is broken.
 
-**D6.4 — Also add Sentry to `api` and `web`.** Same DSN project, three environments. Cheap while the decision is already being made. Keeps [mobile-audit-and-roadmap.md](mobile-audit-and-roadmap.md)'s Sprint-4 item from staying open forever.
+**D6.4 — Also add Sentry to `api` and `web`.** Same DSN project, three environments. Cheap while the decision is already being made. Keeps [mobile-audit-and-roadmap.md](archive/mobile-audit-and-roadmap.md)'s Sprint-4 item from staying open forever.
 
 ### Phases
 
@@ -391,7 +391,7 @@ Already tracked in [features-or-bugDoc.md](features-or-bugDoc.md) with the open 
 
 ### 9.8 `@repo/core`
 
-[completion.ts](../apps/mobile/src/lib/completion.ts) and [deriveStats.ts](../apps/mobile/src/lib/deriveStats.ts) are still duplicated between mobile and web, and [next-four-features-plan.md](next-four-features-plan.md) records that they have already drifted once. Agreed as D8 in [quantifiable-habits-plan.md](quantifiable-habits-plan.md) and still open. The obstacle is the same one CI has: mobile is outside the pnpm workspace, so it cannot consume a workspace package without a publish step or a relative-path install. **Decision to make first:** whether to solve that, or to accept duplication and enforce it with a shared test vector file both apps run. The second option is unglamorous and would have caught the drift.
+[completion.ts](../apps/mobile/src/lib/completion.ts) and [deriveStats.ts](../apps/mobile/src/lib/deriveStats.ts) are still duplicated between mobile and web, and [next-four-features-plan.md](archive/next-four-features-plan.md) records that they have already drifted once. Agreed as D8 in [quantifiable-habits-plan.md](archive/quantifiable-habits-plan.md) and still open. The obstacle is the same one CI has: mobile is outside the pnpm workspace, so it cannot consume a workspace package without a publish step or a relative-path install. **Decision to make first:** whether to solve that, or to accept duplication and enforce it with a shared test vector file both apps run. The second option is unglamorous and would have caught the drift.
 
 ---
 
