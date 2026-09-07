@@ -68,7 +68,7 @@ Tier A is "a user is stuck or the product lies to them". Tier B is "the loop wor
 
 ## 3. Feature 1 — Password reset ✅ shipped
 
-> Built as designed below. The one open item is D1.6's production half: `RESEND_API_KEY` / `MAIL_FROM` are read by `MailService` but not yet set in Render, so production currently logs the link instead of sending it.
+> Built as designed below, with one amendment to D1.6: `MailService` carries a **Gmail/SMTP transport alongside the HTTP one**, and SMTP is the chosen path — Resend's shared sender only delivers to its own account address, and no domain is verified yet, so an HTTP-only build would have left every user but the owner unable to reset. Transport order is Resend → SMTP → console. The one open item is setting `SMTP_MAIL` / `SMTP_PASSWORD` in Render; until then production logs the link instead of sending it.
 
 **Why:** it is the only gap in this document where the user has no path forward at all. Everything else is friction; this is a locked door. It also unblocks a "Forgot password?" link that every login screen is expected to have — its absence reads as unfinished.
 
