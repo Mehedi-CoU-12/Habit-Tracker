@@ -1,6 +1,6 @@
 # HabitFlow Mobile — What To Build Next
 
-> **Generated:** 2026-09-04 · **Scope:** `apps/mobile` (primary), `apps/api` + `apps/web` where parity earns it · **Status:** proposal — nothing here is implemented.
+> **Generated:** 2026-09-04 · **Scope:** `apps/mobile` (primary), `apps/api` + `apps/web` where parity earns it · **Status:** proposal — §3 (Feature 1, password reset) is implemented; §4–§9 are not.
 > **How to use this doc:** §1 is what the app actually does today, so the gaps below are honest rather than remembered. §2 is the full ranked gap list. §3–§8 are the six features worth building now, each with its own decisions, phases and verification. §9 is the next tier, designed only as far as the decision that blocks it. §10 sequences the work and §11 says what this deliberately leaves out.
 
 > **Headline:** the hard parts are done. Offline sync, quantities, streak insurance, local reminders, an Android widget, account deletion and a focus timer are all real. What is missing now is **not more machinery — it is the first ninety seconds, the reward moment, and the two things a user cannot do at all: recover a forgotten password, and get their data out.** Five of the six features below are pure client wiring against endpoints that already exist. One of them (password reset) is the only item that needs new infrastructure, and it is the only item where a real user is currently _stuck with no way forward_.
@@ -66,7 +66,9 @@ Tier A is "a user is stuck or the product lies to them". Tier B is "the loop wor
 
 ---
 
-## 3. Feature 1 — Password reset
+## 3. Feature 1 — Password reset ✅ shipped
+
+> Built as designed below. The one open item is D1.6's production half: `RESEND_API_KEY` / `MAIL_FROM` are read by `MailService` but not yet set in Render, so production currently logs the link instead of sending it.
 
 **Why:** it is the only gap in this document where the user has no path forward at all. Everything else is friction; this is a locked door. It also unblocks a "Forgot password?" link that every login screen is expected to have — its absence reads as unfinished.
 
