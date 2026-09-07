@@ -51,6 +51,14 @@ services:
             sync: false
           - key: GOOGLE_CALLBACK_URL
             sync: false
+          # Password-reset mail (Resend). Unset = the API logs the reset link
+          # instead of sending it, which is fine in dev and a locked door in
+          # production. MAIL_FROM must be an address on a domain verified with
+          # the provider.
+          - key: RESEND_API_KEY
+            sync: false
+          - key: MAIL_FROM
+            sync: false
           - key: CLOUDINARY_API_KEY
             sync: false
           - key: CLOUDINARY_API_SECRET
