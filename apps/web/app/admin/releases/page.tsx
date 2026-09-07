@@ -136,6 +136,12 @@ function PlatformCard({
         if (validate()) save.mutate();
     };
 
+    // Nothing to publish until the form differs from what's already live.
+    const saved = toForm(release);
+    const dirty = (Object.keys(form) as (keyof Form)[]).some(
+        (k) => form[k].trim() !== saved[k].trim(),
+    );
+
     return (
         <form
             onSubmit={onSubmit}
@@ -145,7 +151,8 @@ function PlatformCard({
                 <h2 className="font-display text-xl text-ink">{label}</h2>
                 {release ? (
                     <span className="text-xs text-muted">
-                        published {dayjs(release.updatedAt).format("D MMM, HH:mm")}
+                        published{" "}
+                        {dayjs(release.updatedAt).format("D MMM, HH:mm")}
                     </span>
                 ) : (
                     <span className="text-xs font-semibold text-muted">
@@ -217,7 +224,7 @@ function PlatformCard({
 
             <button
                 type="submit"
-                disabled={save.isPending}
+                disabled={save.isPending || !dirty}
                 className="mt-5 rounded-full bg-accent px-5 py-2.5 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-60"
             >
                 {save.isPending ? "Publishing…" : "Publish"}
