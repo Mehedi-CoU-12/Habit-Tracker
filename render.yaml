@@ -56,12 +56,17 @@ services:
             sync: false
           - key: GOOGLE_CALLBACK_URL
             sync: false
-          # Password-reset mail. Set EITHER Resend (RESEND_API_KEY, plus
-          # MAIL_FROM on a domain verified with them) OR SMTP
-          # (SMTP_MAIL + SMTP_PASSWORD, an App Password for Gmail) — Resend
-          # wins when both are present. With neither, the API logs the reset
-          # link instead of sending it, which is fine in dev and a locked
-          # door in production.
+          # Password-reset mail. On this free plan SMTP is NOT an option:
+          # Render blocks outbound ports 25/465/587 on free instances, so
+          # nodemailer just times out and the reset mail is silently dropped.
+          # Use Resend — it is one HTTPS call, which is not blocked:
+          #   1. Verify a domain at https://resend.com/domains
+          #   2. RESEND_API_KEY = the API key
+          #   3. MAIL_FROM      = e.g. "HabitFlow <no-reply@yourdomain.com>"
+          # MAIL_FROM must be on the verified domain; without it mail sends
+          # as the shared onboarding@resend.dev, which Resend 403s for every
+          # recipient except your own account address.
+          # GET /health reports the live transport and whether it can deliver.
           - key: RESEND_API_KEY
             sync: false
           - key: MAIL_FROM

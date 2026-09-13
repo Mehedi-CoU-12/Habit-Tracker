@@ -10,10 +10,18 @@ import {
 } from './templates.js';
 
 const RESEND_ENDPOINT = 'https://api.resend.com/emails';
-const DEFAULT_FROM = 'HabitFlow <onboarding@resend.dev>';
+const SHARED_RESEND_SENDER = 'onboarding@resend.dev';
+const DEFAULT_FROM = `HabitFlow <${SHARED_RESEND_SENDER}>`;
 const DEFAULT_SMTP_SERVICE = 'gmail';
 
 export type Transport = 'resend' | 'smtp' | 'console';
+
+export type MailStatus = {
+  transport: Transport;
+  /** False when this config cannot reach an address that isn't our own. */
+  deliverable: boolean;
+  reason?: string;
+};
 
 /**
  * Which transport a given configuration selects. Pure and exported so the
@@ -31,23 +39,32 @@ export function pickTransport(env: {
 }
 
 /**
- * One seam for every outbound mail: `send(to, template, vars)`.
- *
- * Three transports, in the order they are preferred:
- *
- *   - `resend`  — RESEND_API_KEY set. One HTTP call, no SMTP ports to
- *     negotiate with Render, but its shared onboarding@resend.dev sender only
- *     delivers to the Resend account's own address until a domain is verified.
- *   - `smtp`    — SMTP_MAIL + SMTP_PASSWORD set. Reaches any recipient without
- *     owning a domain, which is why it is the default path here; the costs are
- *     the provider's daily cap and mail that reads as personal.
- *   - `console` — neither configured. The mail is logged, so a fresh clone can
- *     walk the whole password-reset flow by copying the link out of the log.
- *
- * Sending never throws. Its one caller answers 200 whether or not the address
- * exists, and a provider outage must not turn that into an
- * account-enumeration oracle.
+ * Why a transport cannot reach a stranger's inbox, or null if it can. Pure so
+ * the three ways this has silently swallowed a password reset stay testable.
  */
+export function undeliverableReason(env: {
+  transport: Transport;
+  from: string;
+  onRender: boolean;
+}): string | null {
+  switch (env.transport) {
+    case 'resend':
+      // Resend answers 403 for every recipient but the account's own address
+      // while the shared sender is in use.
+      return env.from.includes(SHARED_RESEND_SENDER)
+        ? `sending as ${SHARED_RESEND_SENDER}; Resend rejects every recipient except your own account address. Verify a domain at resend.com/domains and set MAIL_FROM to an address on it.`
+        : null;
+    case 'smtp':
+      // Render free instances have blocked outbound 25/465/587 since Sep 2025,
+      // so every send times out and is swallowed.
+      return env.onRender
+        ? 'SMTP is configured, but Render blocks outbound ports 25/465/587 on free instances — every send times out. Set RESEND_API_KEY (HTTPS, not blocked) or move to a paid instance.'
+        : null;
+    default:
+      return 'no transport configured (RESEND_API_KEY, or SMTP_MAIL + SMTP_PASSWORD) — mail is only logged.';
+  }
+}
+
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
@@ -56,7 +73,25 @@ export class MailService {
   constructor(private readonly config: ConfigService) {
     // Logged at boot: "nothing arrived" is otherwise indistinguishable from
     // "the key was never set on this deploy".
-    this.logger.log(`transport: ${this.transport()}`);
+    const { transport, deliverable, reason } = this.status;
+    this.logger.log(`transport: ${transport}`);
+    if (deliverable) return;
+    const message = `mail cannot reach real recipients: ${reason}`;
+    if (this.deployed()) this.logger.error(message);
+    else this.logger.warn(message);
+  }
+
+  /** Surfaced on /health — the only way to check a deploy without log access. */
+  get status(): MailStatus {
+    const transport = this.transport();
+    const reason = undeliverableReason({
+      transport,
+      from: this.from(),
+      onRender: this.onRender(),
+    });
+    return reason
+      ? { transport, deliverable: false, reason }
+      : { transport, deliverable: true };
   }
 
   async send<K extends MailTemplate>(
@@ -85,6 +120,24 @@ export class MailService {
     });
   }
 
+  private from(): string {
+    return this.config.get<string>('MAIL_FROM')?.trim() || DEFAULT_FROM;
+  }
+
+  /** Render sets both of these on every instance. */
+  private onRender(): boolean {
+    return Boolean(
+      this.config.get<string>('RENDER')?.trim() ||
+      this.config.get<string>('RENDER_EXTERNAL_URL')?.trim(),
+    );
+  }
+
+  private deployed(): boolean {
+    return (
+      this.onRender() || this.config.get<string>('NODE_ENV') === 'production'
+    );
+  }
+
   private async sendViaResend(
     to: string,
     template: string,
@@ -98,7 +151,7 @@ export class MailService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: this.config.get<string>('MAIL_FROM')?.trim() || DEFAULT_FROM,
+          from: this.from(),
           to,
           subject: rendered.subject,
           html: rendered.html,
@@ -107,7 +160,12 @@ export class MailService {
       });
       if (!res.ok) {
         const body = await res.text().catch(() => '');
-        this.failed(template, to, `${res.status} ${body.slice(0, 200)}`);
+        // 403 here is nearly always the unverified-domain case.
+        const hint =
+          res.status === 403
+            ? ' — verify a domain at resend.com/domains and set MAIL_FROM to an address on it'
+            : '';
+        this.failed(template, to, `${res.status} ${body.slice(0, 200)}${hint}`);
         return;
       }
       this.logger.log(`sent ${template} to ${to} via resend`);
@@ -124,9 +182,6 @@ export class MailService {
     const user = this.config.get<string>('SMTP_MAIL')?.trim() ?? '';
     try {
       await this.smtpTransporter(user).sendMail({
-        // Not MAIL_FROM: consumer providers only let you send as the account
-        // you authenticated with, and a mismatched From is rewritten at best
-        // and rejected at worst. The display name is still ours.
         from: `HabitFlow <${user}>`,
         to,
         subject: rendered.subject,
@@ -150,6 +205,9 @@ export class MailService {
           user,
           pass: this.config.get<string>('SMTP_PASSWORD')?.trim(),
         },
+        // A blocked port would otherwise hold the socket for ~2 minutes.
+        connectionTimeout: 15_000,
+        greetingTimeout: 15_000,
       });
     }
     return this.smtp;

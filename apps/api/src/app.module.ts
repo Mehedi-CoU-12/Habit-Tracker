@@ -8,6 +8,7 @@ import { ActivityInterceptor } from './common/activity.interceptor.js';
 import { ActivityService } from './common/activity.service.js';
 import { ClientGuard } from './common/client.guard.js';
 import { KeepAliveService } from './common/keep-alive.service.js';
+import { MailModule } from './mail/mail.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { RedisModule } from './redis/redis.module.js';
 import { AuthModule } from './auth/auth.module.js';
@@ -25,6 +26,7 @@ import { ReleasesModule } from './releases/releases.module.js';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 120 }]),
+    MailModule,
     PrismaModule,
     RedisModule,
     AuthModule,

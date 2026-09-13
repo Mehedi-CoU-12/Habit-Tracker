@@ -2,6 +2,7 @@ import { Controller, Get } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import { AppService } from './app.service.js';
 import { RedisService } from './redis/redis.service.js';
+import { MailService } from './mail/mail.service.js';
 import { SkipClientGuard } from './common/skip-client-guard.decorator.js';
 import { Public } from './auth/public.decorator.js';
 
@@ -12,6 +13,7 @@ export class AppController {
   constructor(
     private readonly appService: AppService,
     private readonly redisService: RedisService,
+    private readonly mailService: MailService,
   ) {}
 
   @Get()
@@ -27,6 +29,7 @@ export class AppController {
       uptime: Math.round(process.uptime()),
       timestamp: new Date().toISOString(),
       redis: this.redisService.status,
+      mail: this.mailService.status,
     };
   }
 }
