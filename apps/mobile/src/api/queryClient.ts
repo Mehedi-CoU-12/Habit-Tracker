@@ -22,13 +22,6 @@ const WEEK = 1000 * 60 * 60 * 24 * 7;
 export const queryClient = new QueryClient({
     defaultOptions: {
         queries: { staleTime: 60 * 1000, gcTime: WEEK },
-        // Writes are offline-first: every mutationFn here only touches the
-        // query cache and the outbox, and the runSync it kicks off already
-        // no-ops while offline. The library default ("online") never calls
-        // mutationFn at all when disconnected — it parks the mutation as
-        // paused — so checking off a habit offline did nothing: no optimistic
-        // update, and nothing queued to sync later either. Anything that
-        // genuinely needs the network opts back out (see useUploadAvatar).
         mutations: { networkMode: "always" },
     },
 });
@@ -44,7 +37,9 @@ export const persistOptions = {
     maxAge: WEEK,
     buster: "v1",
     dehydrateOptions: {
-        shouldDehydrateQuery: (q: { state: { status: string } }) =>
-            q.state.status === "success",
+        shouldDehydrateQuery: (q: {
+            queryKey: readonly unknown[];
+            state: { status: string };
+        }) => q.state.status === "success" && q.queryKey[0] !== "admin",
     },
 };

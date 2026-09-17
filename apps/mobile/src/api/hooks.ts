@@ -307,7 +307,14 @@ export function useSetSkip(year: number, month: number) {
                 }),
             );
 
-            await enqueue({ kind: "skip.set", habitId, year, month, day, used });
+            await enqueue({
+                kind: "skip.set",
+                habitId,
+                year,
+                month,
+                day,
+                used,
+            });
             void runSync();
             // A forgiven day changes what is still pending today, and the
             // reminder summary counts pending habits.
@@ -481,6 +488,126 @@ export function useDeleteHabit(_year: number, _month: number) {
             void runSync();
             // Deleted habit → drop its pending reminders.
             void syncReminders();
+        },
+    });
+}
+
+// ── Admin ───────────────────────────────────────────────────────────────────
+// Every key sits under ["admin"], so one invalidate after a write refreshes
+// the overview counts, the list and the open detail together.
+
+export function useAdminStats() {
+    return useQuery({
+        queryKey: ["admin", "stats"],
+        queryFn: api.fetchAdminStats,
+        retry: false,
+    });
+}
+
+export function useAdminUsers(filter: api.AdminUsersFilter) {
+    return useQuery({
+        queryKey: ["admin", "users", filter],
+        queryFn: () => api.fetchAdminUsers(filter),
+        retry: false,
+        // Keep the previous page on screen while the next one loads, so
+        // paging and typing in the search box don't flash an empty list.
+        placeholderData: (prev: api.AdminUsersPage | undefined) => prev,
+    });
+}
+
+export function useAdminUser(id: string) {
+    return useQuery({
+        queryKey: ["admin", "user", id],
+        queryFn: () => api.fetchAdminUser(id),
+        retry: false,
+        enabled: !!id,
+    });
+}
+
+export function useAdminUserHabits(id: string, year: number, month: number) {
+    return useQuery({
+        queryKey: ["admin", "user", id, "habits", year, month],
+        queryFn: () => api.fetchAdminUserHabits(id, year, month),
+        retry: false,
+        enabled: !!id,
+    });
+}
+
+/** Invalidate the whole admin subtree — see the note above. */
+function useAdminInvalidate() {
+    const qc = useQueryClient();
+    return () => qc.invalidateQueries({ queryKey: ["admin"] });
+}
+
+export function useUpdateUserStatus() {
+    const invalidate = useAdminInvalidate();
+    return useMutation({
+        mutationFn: ({
+            id,
+            status,
+            note,
+        }: {
+            id: string;
+            status: UserProfile["status"];
+            note?: string;
+        }) => api.updateAdminUserStatus(id, status, note),
+        // These three reach the network or they don't happen at all — unlike
+        // habit writes, there is no outbox behind them.
+        networkMode: "online",
+        onSuccess: invalidate,
+    });
+}
+
+export function useRecordPayment() {
+    const invalidate = useAdminInvalidate();
+    return useMutation({
+        mutationFn: ({
+            id,
+            amount,
+            note,
+        }: {
+            id: string;
+            amount: number;
+            note?: string;
+        }) => api.recordAdminPayment(id, amount, note),
+        networkMode: "online",
+        onSuccess: invalidate,
+    });
+}
+
+export function useDeleteUser() {
+    const invalidate = useAdminInvalidate();
+    return useMutation({
+        mutationFn: (id: string) => api.deleteAdminUser(id),
+        networkMode: "online",
+        onSuccess: invalidate,
+    });
+}
+
+export function useAdminReleases() {
+    return useQuery({
+        queryKey: ["admin", "releases"],
+        queryFn: api.fetchAdminReleases,
+        retry: false,
+    });
+}
+
+export function useUpsertRelease() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: ({
+            platform,
+            input,
+        }: {
+            platform: api.AppPlatform;
+            input: api.UpsertReleaseInput;
+        }) => api.upsertAdminRelease(platform, input),
+        networkMode: "online",
+        onSuccess: async () => {
+            await qc.invalidateQueries({ queryKey: ["admin", "releases"] });
+            // This app reads the same rows to decide whether *it* is out of
+            // date, so the publish must refresh that too.
+            await qc.invalidateQueries({ queryKey: ["appRelease"] });
         },
     });
 }
