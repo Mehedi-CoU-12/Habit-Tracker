@@ -657,7 +657,7 @@ export default function SettingsScreen() {
                                 stroke={th.muted}
                             />
                         }
-                        onPress={() => router.push("/onboarding")}
+                        onPress={() => router.push("/welcome")}
                     />
                     <Row
                         icon="archive"

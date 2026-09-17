@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -31,6 +31,7 @@ import OfflineBar from "../components/OfflineBar";
 import SyncPill from "../components/SyncPill";
 import UpdateGate from "../components/UpdateGate";
 import { useOfflineBarVisible } from "../offline/useSyncView";
+import { storage, KEYS } from "../lib/storage";
 
 function AuthGate() {
     const th = useTheme();
@@ -42,6 +43,15 @@ function AuthGate() {
 
     const { data: me, isLoading } = useMe(ready && !!token);
 
+    // Has the pitch in /welcome been seen? null until the read lands, so the
+    // gate below waits rather than guessing and redirecting twice.
+    const [onboarded, setOnboarded] = useState<boolean | null>(null);
+    useEffect(() => {
+        void storage
+            .get(KEYS.onboarded)
+            .then((v) => setOnboarded(v === "1"));
+    }, []);
+
     useEffect(() => {
         if (!ready) return;
         const top = segments[0];
@@ -49,12 +59,18 @@ function AuthGate() {
         // Both are deep-link landings that must work signed in or out: the
         // reset link revokes this device's session as it is consumed.
         if (top === "google-auth" || top === "reset-password") return;
+        // The pitch works both ways: signed out on first launch, and replayed
+        // from Settings by someone already signed in.
+        if (top === "welcome") return;
         const inAuth =
             top === "login" || top === "signup" || top === "forgot-password";
         const onPending = top === "pending";
 
         if (!token) {
-            if (!inAuth) router.replace("/login");
+            if (onboarded === null) return;
+            // First launch on this device goes to the pitch, not a login form
+            // for an account they have no reason to want yet.
+            if (!inAuth) router.replace(onboarded ? "/login" : "/welcome");
             return;
         }
         if (inAuth) {
@@ -67,7 +83,7 @@ function AuthGate() {
         } else if (me.status === "ACTIVE" && onPending) {
             router.replace("/");
         }
-    }, [ready, token, me, segments, router]);
+    }, [ready, token, me, onboarded, segments, router]);
 
     if (ready && token && (isRestoring || (!me && isLoading))) {
         return (
