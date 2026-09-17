@@ -1,5 +1,6 @@
 // components/habits/HabitRow.tsx
 import { HabitWithStats, HabitLog } from "../../app/dashboard/types";
+import { isExpectedOnDate } from "../../src/lib/schedule";
 import BloomIcon from "../bloom/BloomIcon";
 
 function isFutureDay(year: number, month: number, day: number): boolean {
@@ -50,6 +51,10 @@ export default function HabitRow({
         if (!log) return 0;
         return Math.min(1, log.amount / Math.max(1, habit.target ?? 1));
     }
+
+    /** Is the habit due on this day of the shown month? */
+    const isDueOn = (day: number) =>
+        isExpectedOnDate(habit.daysOfWeek, new Date(year, month - 1, day));
 
     const skipped = new Set(habit.skippedDays);
     const todayMidnight = new Date();
@@ -115,9 +120,12 @@ export default function HabitRow({
                 const future = isFutureDay(year, month, day);
                 const part = checked ? 0 : progress(day);
                 const isSkipped = skipped.has(day);
+                /** A day the habit isn't scheduled for — not a miss. */
+                const rest = !isDueOn(day);
                 // Only a day that is over and was actually missed can be
-                // forgiven: a finished day has nothing to buy.
-                const canSkip = !future && isPastDay(day) && !checked;
+                // forgiven: a finished day has nothing to buy, and a rest day
+                // never counted against the streak in the first place.
+                const canSkip = !future && !rest && isPastDay(day) && !checked;
 
                 return (
                     <td key={day} className="w-6 py-2 text-center">
@@ -138,9 +146,11 @@ export default function HabitRow({
                                     ? "Cannot log future days"
                                     : isSkipped
                                       ? "Skipped — streak kept (Alt+click to undo)"
-                                      : canSkip
-                                        ? "Alt+click to use a skip"
-                                        : undefined
+                                      : rest
+                                        ? "Rest day — not scheduled, so it can't break the streak"
+                                        : canSkip
+                                          ? "Alt+click to use a skip"
+                                          : undefined
                             }
                             className={`relative mx-auto flex h-5 w-5 items-center justify-center overflow-hidden rounded-md border transition-colors ${
                                 future
@@ -149,14 +159,23 @@ export default function HabitRow({
                                         : "cursor-not-allowed border-line bg-surface2"
                                     : checked
                                       ? "cursor-pointer border-green bg-green hover:brightness-95"
-                                      : "cursor-pointer border-line hover:border-accent"
+                                      : rest
+                                        ? "cursor-pointer border-transparent hover:border-line"
+                                        : "cursor-pointer border-line hover:border-accent"
                             }`}
                             aria-label={`Day ${day}${
                                 part > 0
                                     ? ` (${Math.round(part * 100)}% of target)`
                                     : ""
-                            }${future ? " (future, locked)" : ""}`}
+                            }${future ? " (future, locked)" : ""}${
+                                rest ? " (rest day)" : ""
+                            }`}
                         >
+                            {/* A rest day is drawn as a dot, not an empty box:
+                                nothing was expected, so nothing is missing. */}
+                            {rest && !checked && (
+                                <span className="pointer-events-none h-1 w-1 rounded-full bg-muted/40" />
+                            )}
                             {/* A part-filled day fills from the bottom, so
                                 progress is visible without reading as done. */}
                             {part > 0 && (

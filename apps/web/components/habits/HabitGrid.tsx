@@ -59,6 +59,12 @@ export default function HabitGrid({
                         <span className="inline-block h-3 w-3 rounded-md bg-green" />
                         Done
                     </span>
+                    <span className="flex items-center gap-1.5">
+                        <span className="inline-grid h-3 w-3 place-items-center">
+                            <span className="h-1 w-1 rounded-full bg-muted/40" />
+                        </span>
+                        Rest day
+                    </span>
                     {/* The only place the Alt+click gesture is discoverable,
                         so it says what it costs as well as what it does. */}
                     <span className="flex items-center gap-1.5">
