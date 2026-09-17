@@ -1,6 +1,10 @@
 // components/habits/HabitRow.tsx
 import { HabitWithStats, HabitLog } from "../../app/dashboard/types";
-import { isExpectedOnDate } from "../../src/lib/schedule";
+import {
+    isDaily,
+    isExpectedOnDate,
+    scheduleLabel,
+} from "../../src/lib/schedule";
 import BloomIcon from "../bloom/BloomIcon";
 
 function isFutureDay(year: number, month: number, day: number): boolean {
@@ -77,15 +81,26 @@ export default function HabitRow({
                             className="text-ink2"
                         />
                     </span>
-                    <span
-                        className="truncate font-medium text-ink"
-                        title={
-                            habit?.name?.length > 16 ? habit.name : undefined
-                        }
-                    >
-                        {habit?.name?.length > 16
-                            ? habit?.name?.slice(0, 16) + "…"
-                            : habit?.name}
+                    <span className="min-w-0">
+                        <span
+                            className="block truncate font-medium text-ink"
+                            title={
+                                habit?.name?.length > 16
+                                    ? habit.name
+                                    : undefined
+                            }
+                        >
+                            {habit?.name?.length > 16
+                                ? habit?.name?.slice(0, 16) + "…"
+                                : habit?.name}
+                        </span>
+                        {/* Only worth the line when it isn't every day —
+                            otherwise it says nothing the grid doesn't. */}
+                        {!isDaily(habit.daysOfWeek) && (
+                            <span className="block truncate text-[10px] text-muted">
+                                {scheduleLabel(habit.daysOfWeek)}
+                            </span>
+                        )}
                     </span>
 
                     <div className="ml-auto flex shrink-0 items-center gap-0.5 opacity-60 transition-opacity group-hover:opacity-100">
