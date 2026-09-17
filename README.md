@@ -39,7 +39,7 @@ pnpm --filter api exec prisma migrate dev
 pnpm dev
 ```
 
-The API runs on port `3333` and the web app on [http://localhost:3000](http://localhost:3000).
+The API runs on port `4000` and the web app on [http://localhost:5000](http://localhost:5000).
 
 ### Running the mobile app
 
