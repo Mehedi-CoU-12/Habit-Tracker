@@ -149,6 +149,12 @@ export default function HabitRow({
                 const isSkipped = skipped.has(day);
                 /** A day the habit isn't scheduled for — not a miss. */
                 const rest = !isDueOn(day);
+                const logged = checked || part > 0;
+                // An off day isn't actionable: nothing is expected of it, so
+                // there is nothing to tick. One that already carries a log
+                // stays live so it can be cleared — changing a habit's
+                // schedule strands earlier logs on days that are now off.
+                const locked = future || (rest && !logged);
                 // Only a day that is over and was actually missed can be
                 // forgiven: a finished day has nothing to buy, and a rest day
                 // never counted against the streak in the first place.
@@ -158,7 +164,7 @@ export default function HabitRow({
                     <td key={day} className="w-6 py-2 text-center">
                         <button
                             onClick={(e) => {
-                                if (future) return;
+                                if (locked) return;
                                 // Alt/Option + click forgives the day instead
                                 // of completing it — see the card's legend.
                                 if (e.altKey && (canSkip || isSkipped)) {
@@ -167,14 +173,16 @@ export default function HabitRow({
                                 }
                                 onToggle(habit.id, day);
                             }}
-                            disabled={future}
+                            disabled={locked}
                             title={
                                 future
                                     ? "Cannot log future days"
                                     : isSkipped
                                       ? "Skipped — streak kept (Alt+click to undo)"
                                       : rest
-                                        ? "Rest day — not scheduled, so it can't break the streak"
+                                        ? logged
+                                            ? "Rest day — logged anyway; click to clear"
+                                            : "Rest day — not scheduled"
                                         : canSkip
                                           ? "Alt+click to use a skip"
                                           : undefined
@@ -184,23 +192,25 @@ export default function HabitRow({
                                     ? checked
                                         ? "cursor-not-allowed border-green/60 bg-green/60 opacity-60"
                                         : "cursor-not-allowed border-line bg-surface2"
-                                    : checked
-                                      ? "cursor-pointer border-green bg-green hover:brightness-95"
-                                      : rest
-                                        ? "cursor-pointer border-transparent hover:border-line"
-                                        : "cursor-pointer border-line hover:border-accent"
+                                    : rest && !logged
+                                      ? "cursor-default border-transparent"
+                                      : checked
+                                        ? "cursor-pointer border-green bg-green hover:brightness-95"
+                                        : rest
+                                          ? "cursor-pointer border-transparent hover:border-line"
+                                          : "cursor-pointer border-line hover:border-accent"
                             }`}
                             aria-label={`Day ${day}${
                                 part > 0
                                     ? ` (${Math.round(part * 100)}% of target)`
                                     : ""
                             }${future ? " (future, locked)" : ""}${
-                                rest ? " (rest day)" : ""
+                                rest ? " (rest day, not scheduled)" : ""
                             }`}
                         >
                             {/* A rest day is drawn as a dot, not an empty box:
                                 nothing was expected, so nothing is missing. */}
-                            {rest && !checked && (
+                            {rest && !logged && (
                                 <span className="pointer-events-none h-1 w-1 rounded-full bg-muted/40" />
                             )}
                             {/* A part-filled day fills from the bottom, so
