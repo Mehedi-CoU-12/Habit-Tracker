@@ -3,6 +3,7 @@ import { ActivityIndicator, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "../theme/ThemeProvider";
 import { useAuth } from "../api/AuthProvider";
+import { landingFor } from "../lib/authLanding";
 import { Pill } from "../components/primitives";
 
 export default function GoogleAuthScreen() {
@@ -26,7 +27,7 @@ export default function GoogleAuthScreen() {
         (async () => {
             try {
                 const res = await completeGoogleSignIn(c);
-                router.replace(res.user.status === "ACTIVE" ? "/" : "/pending");
+                router.replace(landingFor(res));
             } catch (e) {
                 setError(
                     e instanceof Error ? e.message : "Google sign-in failed",

@@ -20,7 +20,7 @@ import * as api from "./endpoints";
 
 const GOOGLE_REDIRECT = "habitflow://google-auth";
 
-const googleExchanges = new Map<string, Promise<api.AuthResult>>();
+const googleExchanges = new Map<string, Promise<api.GoogleExchangeResult>>();
 
 type AuthState = {
     ready: boolean;
@@ -31,8 +31,8 @@ type AuthState = {
         email: string,
         password: string,
     ) => Promise<api.AuthResult>;
-    signInWithGoogle: () => Promise<api.AuthResult | null>;
-    completeGoogleSignIn: (code: string) => Promise<api.AuthResult>;
+    signInWithGoogle: () => Promise<api.GoogleExchangeResult | null>;
+    completeGoogleSignIn: (code: string) => Promise<api.GoogleExchangeResult>;
     signOut: () => Promise<void>;
     deleteAccount: (input: {
         password?: string;

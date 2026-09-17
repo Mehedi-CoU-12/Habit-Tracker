@@ -227,7 +227,7 @@ export class AuthService {
   }
 
   async googleLogin(googleUser: GoogleUser) {
-    const user = await this.upsertGoogleUser(googleUser);
+    const { user } = await this.upsertGoogleUser(googleUser);
     return this.issueTokens(user);
   }
 
@@ -238,16 +238,16 @@ export class AuthService {
    * that the app exchanges for tokens over HTTPS (see exchangeGoogleCode).
    */
   async googleLoginCode(googleUser: GoogleUser) {
-    const user = await this.upsertGoogleUser(googleUser);
+    const { user, isNew } = await this.upsertGoogleUser(googleUser);
     return this.jwt.sign(
-      { sub: user.id, type: 'google_code' },
+      { sub: user.id, type: 'google_code', isNew },
       { expiresIn: GOOGLE_CODE_TTL },
     );
   }
 
   /** Trade a deep-link code for the same payload login/signup return. */
   async exchangeGoogleCode(code: string) {
-    let payload: { sub: string; type?: string };
+    let payload: { sub: string; type?: string; isNew?: boolean };
     try {
       payload = this.jwt.verify(code);
     } catch {
@@ -271,13 +271,18 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('Account no longer exists');
     }
-    return { ...this.issueTokens(user), user: this.publicUser(user) };
+    return {
+      ...this.issueTokens(user),
+      user: this.publicUser(user),
+      isNew: payload.isNew === true,
+    };
   }
 
   private async upsertGoogleUser(googleUser: GoogleUser) {
     let user = await this.prisma.user.findUnique({
       where: { email: googleUser.email },
     });
+    const isNew = !user;
 
     if (user) {
       // Link googleId if not already linked
@@ -292,8 +297,6 @@ export class AuthService {
       }
     } else {
       user = await this.prisma.user.create({
-        // Same as signup: first-time Google sign-in is auto-approved.
-        // Comment out `status` to restore the manual approval gate.
         data: {
           name: googleUser.name,
           email: googleUser.email,
@@ -306,7 +309,7 @@ export class AuthService {
       await this.cache.bumpVersion(cacheKeys.adminUsersVersion);
     }
 
-    return user;
+    return { user, isNew };
   }
 
   /**

@@ -435,6 +435,27 @@ export default function SettingsScreen() {
                     </View>
                 </View>
 
+                {/* Admins get the dashboard here rather than in the tab bar —
+                    a conditional tab would shift navigation for one account. */}
+                {me?.role === "ADMIN" && (
+                    <Section title="ADMIN">
+                        <Row
+                            first
+                            icon="chart"
+                            label="Dashboard"
+                            hint="Members, approvals, payments, releases"
+                            right={
+                                <Icon
+                                    name="chevronRight"
+                                    size={16}
+                                    stroke={th.muted}
+                                />
+                            }
+                            onPress={() => router.push("/admin")}
+                        />
+                    </Section>
+                )}
+
                 <Section title="APPEARANCE">
                     <Row
                         first
@@ -636,7 +657,7 @@ export default function SettingsScreen() {
                                 stroke={th.muted}
                             />
                         }
-                        onPress={() => router.push("/onboarding")}
+                        onPress={() => router.push("/welcome")}
                     />
                     <Row
                         icon="archive"

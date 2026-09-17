@@ -61,11 +61,17 @@ export function logout(refreshToken: string) {
 }
 
 /**
+ * The exchange also reports whether it just created the account. Password
+ * login and signup don't — the app already knows which of those it called.
+ */
+export type GoogleExchangeResult = AuthResult & { isNew: boolean };
+
+/**
  * Trade the one-time code from the Google sign-in deep link for tokens +
  * user (see AuthProvider.signInWithGoogle for the full flow).
  */
 export function googleExchange(code: string) {
-    return apiPost<AuthResult>("/auth/google/exchange", { code });
+    return apiPost<GoogleExchangeResult>("/auth/google/exchange", { code });
 }
 
 export function fetchMe() {
@@ -296,4 +302,147 @@ export function setDayNote(
         day,
         text,
     });
+}
+
+// ── Admin (every route below requires role ADMIN — enforced by the API) ────
+export type AppClientPlatform = "android" | "ios" | "web";
+
+export type AdminStats = {
+    totalUsers: number;
+    usersByStatus: Record<AccountStatus, number>;
+    totalHabits: number;
+    logsToday: number;
+    activeUsersToday: number;
+    signupsLast7Days: { date: string; count: number }[];
+};
+
+export type AdminUserRow = {
+    id: string;
+    name: string;
+    email: string;
+    avatarUrl: string | null;
+    role: UserRole;
+    status: AccountStatus;
+    createdAt: string;
+    habitCount: number;
+    /** Last authenticated request, not last habit logged. */
+    lastActiveAt: string | null;
+    lastAppVersion: string | null;
+    lastAppPlatform: AppClientPlatform | null;
+    totalPaid: number;
+};
+
+export type AdminPayment = {
+    id: string;
+    userId: string;
+    amount: number;
+    currency: string;
+    method: string;
+    note: string | null;
+    recordedById: string;
+    createdAt: string;
+};
+
+export type AdminUserDetail = AdminUserRow & {
+    statusChangedAt: string | null;
+    statusChangedBy: string | null;
+    statusNote: string | null;
+    payments: AdminPayment[];
+};
+
+export type AdminUsersFilter = {
+    status?: AccountStatus;
+    search?: string;
+    page?: number;
+    pageSize?: number;
+};
+
+export type AdminUsersPage = {
+    items: AdminUserRow[];
+    total: number;
+    page: number;
+    pageSize: number;
+};
+
+export function fetchAdminStats() {
+    return apiGet<AdminStats>("/admin/stats");
+}
+
+export function fetchAdminUsers(filter: AdminUsersFilter) {
+    const params = new URLSearchParams();
+    if (filter.status) params.set("status", filter.status);
+    if (filter.search) params.set("search", filter.search);
+    if (filter.page) params.set("page", String(filter.page));
+    if (filter.pageSize) params.set("pageSize", String(filter.pageSize));
+    const qs = params.toString();
+    return apiGet<AdminUsersPage>(`/admin/users${qs ? `?${qs}` : ""}`);
+}
+
+export function fetchAdminUser(id: string) {
+    return apiGet<AdminUserDetail>(`/admin/users/${id}`);
+}
+
+/** Same payload as GET /habits, so deriveHabitStats reads it unchanged. */
+export function fetchAdminUserHabits(id: string, year: number, month: number) {
+    return apiGet<ApiHabit[]>(
+        `/admin/users/${id}/habits?year=${year}&month=${month}`,
+    );
+}
+
+export function updateAdminUserStatus(
+    id: string,
+    status: AccountStatus,
+    note?: string,
+) {
+    return apiPatch<AdminUserRow>(`/admin/users/${id}/status`, {
+        status,
+        ...(note ? { note } : {}),
+    });
+}
+
+export function recordAdminPayment(id: string, amount: number, note?: string) {
+    return apiPost<AdminPayment>(`/admin/users/${id}/payments`, {
+        amount,
+        ...(note ? { note } : {}),
+    });
+}
+
+export function deleteAdminUser(id: string) {
+    return apiDelete<{ id: string; deleted: boolean }>(`/admin/users/${id}`);
+}
+
+// ── Admin: app releases ───────────────────────────────────────────────────
+export type AppPlatform = "ANDROID" | "IOS";
+
+export type AdminRelease = {
+    id: string;
+    platform: AppPlatform;
+    latest: string;
+    minimum: string;
+    url: string;
+    notes: string | null;
+    updatedBy: string | null;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type UpsertReleaseInput = {
+    latest: string;
+    minimum: string;
+    url: string;
+    notes?: string;
+};
+
+export function fetchAdminReleases() {
+    return apiGet<AdminRelease[]>("/admin/releases");
+}
+
+export function upsertAdminRelease(
+    platform: AppPlatform,
+    input: UpsertReleaseInput,
+) {
+    return apiPut<AdminRelease>(
+        `/admin/releases/${platform.toLowerCase()}`,
+        input,
+    );
 }
