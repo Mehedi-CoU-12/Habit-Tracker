@@ -194,6 +194,13 @@ const PATHS: Record<string, ReactElement> = {
         </>
     ),
     play2: <path d="M7 5 v14 l12 -7 z" fill="currentColor" stroke="none" />,
+    archive: (
+        <>
+            <rect x="3" y="4" width="18" height="4" rx="1" />
+            <path d="M5 8 v11 a1 1 0 0 0 1 1 h12 a1 1 0 0 0 1 -1 V8" />
+            <line x1="9.5" y1="12.5" x2="14.5" y2="12.5" />
+        </>
+    ),
 };
 
 export const BLOOM_ICON_NAMES = Object.keys(PATHS);
