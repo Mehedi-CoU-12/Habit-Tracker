@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CreateHabitInput } from "../../src/lib/api";
+import { normalizeDays, scheduleLabel } from "../../src/lib/schedule";
 import { HabitWithStats } from "../../app/dashboard/types";
 import Plant from "../bloom/Plant";
 import BloomIcon from "../bloom/BloomIcon";
@@ -29,6 +30,9 @@ const TOD_CHOICES: { v: string; label: string; icon: string }[] = [
     { v: "evening", label: "Evening", icon: "moonStars" },
     { v: "anytime", label: "Anytime", icon: "sparkle" },
 ];
+
+/** Weekday initials, indexed by `Date.getDay()` — 0 = Sunday. */
+const DOW = ["S", "M", "T", "W", "T", "F", "S"];
 
 /**
  * Modal form for planting a new habit or editing an existing one. Passing a
@@ -58,6 +62,10 @@ export default function HabitModal({
     const [fillFromFocus, setFillFromFocus] = useState(
         habit?.fillFromFocus ?? false,
     );
+    // Empty is the stored spelling of "every day", which is where habits start.
+    const [daysOfWeek, setDaysOfWeek] = useState<number[]>(
+        normalizeDays(habit?.daysOfWeek),
+    );
     const [error, setError] = useState("");
 
     function handleSubmit(e: React.FormEvent) {
@@ -80,6 +88,7 @@ export default function HabitModal({
             unit: target === null ? null : unit.trim() || null,
             step: target === null ? 1 : step,
             fillFromFocus: target === null ? false : fillFromFocus,
+            daysOfWeek: normalizeDays(daysOfWeek),
         });
     }
 
@@ -162,6 +171,63 @@ export default function HabitModal({
                                     </span>
                                 </button>
                             ))}
+                        </div>
+                    </div>
+
+                    {/* Repeats — the schedule the streak math already
+                        honours: a day the habit isn't due can't break it. */}
+                    <div>
+                        <div className="mb-2 flex items-center justify-between">
+                            <span className="text-[11px] font-bold uppercase tracking-widest text-muted">
+                                Repeats
+                            </span>
+                            <span className="text-xs font-bold text-ink2">
+                                {scheduleLabel(daysOfWeek)}
+                            </span>
+                        </div>
+                        <div className="grid grid-cols-7 gap-1.5">
+                            {DOW.map((label, dow) => {
+                                // No days selected means daily, so every chip
+                                // reads as on — that is what the habit does.
+                                const on =
+                                    daysOfWeek.length === 0 ||
+                                    daysOfWeek.includes(dow);
+                                return (
+                                    <button
+                                        key={dow}
+                                        type="button"
+                                        aria-pressed={on}
+                                        onClick={() =>
+                                            setDaysOfWeek((prev) => {
+                                                // The first tap out of "daily"
+                                                // starts from every day, so
+                                                // switching one day off leaves
+                                                // the other six on rather than
+                                                // wiping the whole week.
+                                                const base = prev.length
+                                                    ? prev
+                                                    : [0, 1, 2, 3, 4, 5, 6];
+                                                const next = base.includes(dow)
+                                                    ? base.filter(
+                                                          (d) => d !== dow,
+                                                      )
+                                                    : [...base, dow];
+                                                // Every day off isn't a habit —
+                                                // normalizeDays folds it back
+                                                // to daily.
+                                                return normalizeDays(next);
+                                            })
+                                        }
+                                        className={`cursor-pointer rounded-xl border py-2.5 text-xs font-bold transition ${
+                                            on
+                                                ? "border-accent bg-accent-soft text-accent-deep"
+                                                : "border-line bg-surface text-muted hover:border-accent"
+                                        }`}
+                                    >
+                                        {label}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 

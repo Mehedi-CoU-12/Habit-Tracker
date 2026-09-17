@@ -265,6 +265,8 @@ export type CreateHabitInput = {
     step?: number;
     /** Auto-log a bound focus session's minutes against this habit. */
     fillFromFocus?: boolean;
+    /** Weekdays it is due on, 0 = Sunday. Empty (or absent) means every day. */
+    daysOfWeek?: number[];
 };
 
 export async function createHabit(input: CreateHabitInput): Promise<ApiHabit> {
@@ -276,7 +278,10 @@ export async function createHabit(input: CreateHabitInput): Promise<ApiHabit> {
     return handleResponse<ApiHabit>(res);
 }
 
-export type UpdateHabitInput = Partial<CreateHabitInput>;
+export type UpdateHabitInput = Partial<CreateHabitInput> & {
+    /** Archive (true) or restore (false). The server stamps `archivedAt`. */
+    archived?: boolean;
+};
 
 export async function updateHabit(
     id: string,

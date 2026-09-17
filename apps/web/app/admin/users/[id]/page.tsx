@@ -319,6 +319,7 @@ export default function AdminUserDetailPage() {
                 onSkip={readOnly}
                 onEdit={readOnly}
                 onDelete={readOnly}
+                onArchive={readOnly}
             />
 
             {/* ── Payments ── */}

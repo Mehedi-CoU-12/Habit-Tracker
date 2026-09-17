@@ -32,6 +32,7 @@ export default function HabitGrid({
     onSkip,
     onDelete,
     onEdit,
+    onArchive,
 }: {
     habits: HabitWithStats[];
     logs: HabitLog[];
@@ -43,6 +44,7 @@ export default function HabitGrid({
     onSkip: (habitId: string, day: number, used: boolean) => void;
     onDelete: (habit: HabitWithStats) => void;
     onEdit: (habit: HabitWithStats) => void;
+    onArchive: (habit: HabitWithStats) => void;
 }) {
     const DAYS = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
@@ -58,6 +60,12 @@ export default function HabitGrid({
                     <span className="flex items-center gap-1.5">
                         <span className="inline-block h-3 w-3 rounded-md bg-green" />
                         Done
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                        <span className="inline-grid h-3 w-3 place-items-center">
+                            <span className="h-1 w-1 rounded-full bg-muted/40" />
+                        </span>
+                        Rest day
                     </span>
                     {/* The only place the Alt+click gesture is discoverable,
                         so it says what it costs as well as what it does. */}
@@ -129,6 +137,7 @@ export default function HabitGrid({
                                 onSkip={onSkip}
                                 onDelete={onDelete}
                                 onEdit={onEdit}
+                                onArchive={onArchive}
                                 isEven={idx % 2 === 0}
                             />
                         ))}

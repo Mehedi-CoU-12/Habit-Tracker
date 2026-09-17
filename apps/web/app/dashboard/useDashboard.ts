@@ -45,6 +45,7 @@ export function useDashboard() {
         null,
     );
     const [showTemplatesModal, setShowTemplatesModal] = useState(false);
+    const [showArchivedModal, setShowArchivedModal] = useState(false);
 
     const queryKey = ["habits", selectedYear, selectedMonth];
 
@@ -81,6 +82,15 @@ export function useDashboard() {
     const habits = liveHabits.map((h) =>
         deriveHabitStats(h, selectedYear, selectedMonth, daysInMonth),
     );
+
+    // Retired habits, newest first. They come down in the same payload, so the
+    // archive needs no query of its own — only somewhere to be shown.
+    const archivedHabits = (rawHabits as ApiHabit[])
+        .filter((h) => h.archivedAt)
+        .sort((a, b) => (b.archivedAt ?? "").localeCompare(a.archivedAt ?? ""))
+        .map((h) =>
+            deriveHabitStats(h, selectedYear, selectedMonth, daysInMonth),
+        );
 
     const logs: HabitLog[] = liveHabits.flatMap((h) =>
         h.logs.map((l) => ({
@@ -229,6 +239,19 @@ export function useDashboard() {
         },
     });
 
+    /**
+     * Retire a habit or bring it back. Archiving is the reversible half of
+     * removing one: every log survives, so past months keep their history.
+     */
+    const archiveMutation = useMutation({
+        mutationFn: ({ id, archived }: { id: string; archived: boolean }) =>
+            updateHabit(id, { archived }),
+        onSuccess: (_data, { archived }) => {
+            queryClient.invalidateQueries({ queryKey });
+            toast.success(archived ? "Habit archived" : "Habit restored 🌱");
+        },
+    });
+
     const deleteMutation = useMutation({
         mutationFn: (habitId: string) => deleteHabit(habitId),
         onSuccess: () => {
@@ -260,6 +283,7 @@ export function useDashboard() {
 
         // derived data
         habits,
+        archivedHabits,
         logs,
         daysInMonth,
         monthLabel,
@@ -279,6 +303,8 @@ export function useDashboard() {
         setDeletingHabit,
         showTemplatesModal,
         setShowTemplatesModal,
+        showArchivedModal,
+        setShowArchivedModal,
 
         // mutations
         toggleMutation,
@@ -286,6 +312,7 @@ export function useDashboard() {
         createMutation,
         updateMutation,
         templateMutation,
+        archiveMutation,
         deleteMutation,
 
         // actions

@@ -29,6 +29,8 @@ type DashboardProps = {
     me?: Me;
     onAddHabit: () => void;
     onShowTemplates: () => void;
+    onShowArchived: () => void;
+    archivedCount?: number;
     onSignOut: () => void;
 };
 
@@ -169,6 +171,24 @@ export default function Navbar(props: NavbarProps) {
                                             <IconUserSmall />
                                             Profile &amp; settings
                                         </Link>
+                                        <button
+                                            onClick={() => {
+                                                setShowUserMenu(false);
+                                                props.onShowArchived();
+                                            }}
+                                            className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-xs text-ink2 transition hover:bg-surface2"
+                                        >
+                                            <BloomIcon
+                                                name="archive"
+                                                size={14}
+                                            />
+                                            Archived habits
+                                            {!!props.archivedCount && (
+                                                <span className="ml-auto rounded-full bg-surface2 px-1.5 py-0.5 text-[10px] font-bold text-muted">
+                                                    {props.archivedCount}
+                                                </span>
+                                            )}
+                                        </button>
                                         {props.me?.role === "ADMIN" && (
                                             <Link
                                                 href="/admin"

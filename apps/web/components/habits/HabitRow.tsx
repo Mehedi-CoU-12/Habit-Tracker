@@ -1,5 +1,10 @@
 // components/habits/HabitRow.tsx
 import { HabitWithStats, HabitLog } from "../../app/dashboard/types";
+import {
+    isDaily,
+    isExpectedOnDate,
+    scheduleLabel,
+} from "../../src/lib/schedule";
 import BloomIcon from "../bloom/BloomIcon";
 
 function isFutureDay(year: number, month: number, day: number): boolean {
@@ -22,6 +27,7 @@ export default function HabitRow({
     onSkip,
     onDelete,
     onEdit,
+    onArchive,
     isEven,
 }: {
     habit: HabitWithStats;
@@ -34,6 +40,7 @@ export default function HabitRow({
     onSkip: (habitId: string, day: number, used: boolean) => void;
     onDelete: (habit: HabitWithStats) => void;
     onEdit: (habit: HabitWithStats) => void;
+    onArchive: (habit: HabitWithStats) => void;
     isEven: boolean;
 }) {
     const DAYS = Array.from({ length: daysInMonth }, (_, i) => i + 1);
@@ -50,6 +57,10 @@ export default function HabitRow({
         if (!log) return 0;
         return Math.min(1, log.amount / Math.max(1, habit.target ?? 1));
     }
+
+    /** Is the habit due on this day of the shown month? */
+    const isDueOn = (day: number) =>
+        isExpectedOnDate(habit.daysOfWeek, new Date(year, month - 1, day));
 
     const skipped = new Set(habit.skippedDays);
     const todayMidnight = new Date();
@@ -72,15 +83,26 @@ export default function HabitRow({
                             className="text-ink2"
                         />
                     </span>
-                    <span
-                        className="truncate font-medium text-ink"
-                        title={
-                            habit?.name?.length > 16 ? habit.name : undefined
-                        }
-                    >
-                        {habit?.name?.length > 16
-                            ? habit?.name?.slice(0, 16) + "…"
-                            : habit?.name}
+                    <span className="min-w-0">
+                        <span
+                            className="block truncate font-medium text-ink"
+                            title={
+                                habit?.name?.length > 16
+                                    ? habit.name
+                                    : undefined
+                            }
+                        >
+                            {habit?.name?.length > 16
+                                ? habit?.name?.slice(0, 16) + "…"
+                                : habit?.name}
+                        </span>
+                        {/* Only worth the line when it isn't every day —
+                            otherwise it says nothing the grid doesn't. */}
+                        {!isDaily(habit.daysOfWeek) && (
+                            <span className="block truncate text-[10px] text-muted">
+                                {scheduleLabel(habit.daysOfWeek)}
+                            </span>
+                        )}
                     </span>
 
                     <div className="ml-auto flex shrink-0 items-center gap-0.5 opacity-60 transition-opacity group-hover:opacity-100">
@@ -91,6 +113,16 @@ export default function HabitRow({
                             title="Edit habit"
                         >
                             <BloomIcon name="pen" size={14} />
+                        </button>
+                        {/* Archive leads delete here too: it is the
+                            reversible way to retire a habit. */}
+                        <button
+                            onClick={() => onArchive(habit)}
+                            className="cursor-pointer rounded-md p-1 text-muted transition-colors hover:bg-surface2 hover:text-accent"
+                            aria-label={`Archive ${habit.name}`}
+                            title="Archive habit — keeps its history"
+                        >
+                            <BloomIcon name="archive" size={14} />
                         </button>
                         <button
                             onClick={() => onDelete(habit)}
@@ -115,15 +147,24 @@ export default function HabitRow({
                 const future = isFutureDay(year, month, day);
                 const part = checked ? 0 : progress(day);
                 const isSkipped = skipped.has(day);
+                /** A day the habit isn't scheduled for — not a miss. */
+                const rest = !isDueOn(day);
+                const logged = checked || part > 0;
+                // An off day isn't actionable: nothing is expected of it, so
+                // there is nothing to tick. One that already carries a log
+                // stays live so it can be cleared — changing a habit's
+                // schedule strands earlier logs on days that are now off.
+                const locked = future || (rest && !logged);
                 // Only a day that is over and was actually missed can be
-                // forgiven: a finished day has nothing to buy.
-                const canSkip = !future && isPastDay(day) && !checked;
+                // forgiven: a finished day has nothing to buy, and a rest day
+                // never counted against the streak in the first place.
+                const canSkip = !future && !rest && isPastDay(day) && !checked;
 
                 return (
                     <td key={day} className="w-6 py-2 text-center">
                         <button
                             onClick={(e) => {
-                                if (future) return;
+                                if (locked) return;
                                 // Alt/Option + click forgives the day instead
                                 // of completing it — see the card's legend.
                                 if (e.altKey && (canSkip || isSkipped)) {
@@ -132,31 +173,46 @@ export default function HabitRow({
                                 }
                                 onToggle(habit.id, day);
                             }}
-                            disabled={future}
+                            disabled={locked}
                             title={
                                 future
                                     ? "Cannot log future days"
                                     : isSkipped
                                       ? "Skipped — streak kept (Alt+click to undo)"
-                                      : canSkip
-                                        ? "Alt+click to use a skip"
-                                        : undefined
+                                      : rest
+                                        ? logged
+                                            ? "Rest day — logged anyway; click to clear"
+                                            : "Rest day — not scheduled"
+                                        : canSkip
+                                          ? "Alt+click to use a skip"
+                                          : undefined
                             }
                             className={`relative mx-auto flex h-5 w-5 items-center justify-center overflow-hidden rounded-md border transition-colors ${
                                 future
                                     ? checked
                                         ? "cursor-not-allowed border-green/60 bg-green/60 opacity-60"
                                         : "cursor-not-allowed border-line bg-surface2"
-                                    : checked
-                                      ? "cursor-pointer border-green bg-green hover:brightness-95"
-                                      : "cursor-pointer border-line hover:border-accent"
+                                    : rest && !logged
+                                      ? "cursor-default border-transparent"
+                                      : checked
+                                        ? "cursor-pointer border-green bg-green hover:brightness-95"
+                                        : rest
+                                          ? "cursor-pointer border-transparent hover:border-line"
+                                          : "cursor-pointer border-line hover:border-accent"
                             }`}
                             aria-label={`Day ${day}${
                                 part > 0
                                     ? ` (${Math.round(part * 100)}% of target)`
                                     : ""
-                            }${future ? " (future, locked)" : ""}`}
+                            }${future ? " (future, locked)" : ""}${
+                                rest ? " (rest day, not scheduled)" : ""
+                            }`}
                         >
+                            {/* A rest day is drawn as a dot, not an empty box:
+                                nothing was expected, so nothing is missing. */}
+                            {rest && !logged && (
+                                <span className="pointer-events-none h-1 w-1 rounded-full bg-muted/40" />
+                            )}
                             {/* A part-filled day fills from the bottom, so
                                 progress is visible without reading as done. */}
                             {part > 0 && (
