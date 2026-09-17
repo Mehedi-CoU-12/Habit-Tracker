@@ -5,6 +5,7 @@ import MonthSelector from "../../components/MonthSelector";
 import Navbar from "../../components/layout/Navbar";
 import HabitModal from "../../components/habits/HabitModal";
 import TemplatesModal from "../../components/habits/TemplatesModal";
+import ArchivedModal from "../../components/habits/ArchivedModal";
 import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import DashboardContent from "../../components/dashboard/DashboardContent";
 import { useDashboard } from "./useDashboard";
@@ -19,6 +20,8 @@ export default function DashboardPage() {
                 me={dash.me}
                 onAddHabit={() => dash.setShowAddModal(true)}
                 onShowTemplates={() => dash.setShowTemplatesModal(true)}
+                onShowArchived={() => dash.setShowArchivedModal(true)}
+                archivedCount={dash.archivedHabits.length}
                 onSignOut={dash.handleSignOut}
             />
 
@@ -56,6 +59,25 @@ export default function DashboardPage() {
                         dash.templateMutation.mutate(templateId)
                     }
                     loading={dash.templateMutation.isPending}
+                />
+            )}
+
+            {dash.showArchivedModal && (
+                <ArchivedModal
+                    habits={dash.archivedHabits}
+                    restoringId={
+                        dash.archiveMutation.isPending
+                            ? dash.archiveMutation.variables?.id
+                            : null
+                    }
+                    onRestore={(habit) =>
+                        dash.archiveMutation.mutate({
+                            id: habit.id,
+                            archived: false,
+                        })
+                    }
+                    onDelete={(habit) => dash.setDeletingHabit(habit)}
+                    onClose={() => dash.setShowArchivedModal(false)}
                 />
             )}
 
@@ -142,6 +164,12 @@ export default function DashboardPage() {
                         }}
                         onEdit={(habit) => dash.setEditingHabit(habit)}
                         onDelete={(habit) => dash.setDeletingHabit(habit)}
+                        onArchive={(habit) =>
+                            dash.archiveMutation.mutate({
+                                id: habit.id,
+                                archived: true,
+                            })
+                        }
                     />
                 )}
             </div>

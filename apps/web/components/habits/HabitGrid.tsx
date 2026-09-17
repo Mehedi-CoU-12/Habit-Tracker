@@ -32,6 +32,7 @@ export default function HabitGrid({
     onSkip,
     onDelete,
     onEdit,
+    onArchive,
 }: {
     habits: HabitWithStats[];
     logs: HabitLog[];
@@ -43,6 +44,7 @@ export default function HabitGrid({
     onSkip: (habitId: string, day: number, used: boolean) => void;
     onDelete: (habit: HabitWithStats) => void;
     onEdit: (habit: HabitWithStats) => void;
+    onArchive: (habit: HabitWithStats) => void;
 }) {
     const DAYS = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
@@ -135,6 +137,7 @@ export default function HabitGrid({
                                 onSkip={onSkip}
                                 onDelete={onDelete}
                                 onEdit={onEdit}
+                                onArchive={onArchive}
                                 isEven={idx % 2 === 0}
                             />
                         ))}

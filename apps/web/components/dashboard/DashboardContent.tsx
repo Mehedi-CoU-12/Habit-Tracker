@@ -35,6 +35,7 @@ export default function DashboardContent({
     onToggleToday,
     onEdit,
     onDelete,
+    onArchive,
 }: {
     habits: HabitWithStats[];
     logs: HabitLog[];
@@ -51,6 +52,7 @@ export default function DashboardContent({
     onToggleToday: (habitId: string) => void;
     onEdit: (habit: HabitWithStats) => void;
     onDelete: (habit: HabitWithStats) => void;
+    onArchive: (habit: HabitWithStats) => void;
 }) {
     const { layout } = useBloom();
 
@@ -97,6 +99,7 @@ export default function DashboardContent({
                 onSkip={onSkip}
                 onDelete={onDelete}
                 onEdit={onEdit}
+                onArchive={onArchive}
             />
         </div>
     );

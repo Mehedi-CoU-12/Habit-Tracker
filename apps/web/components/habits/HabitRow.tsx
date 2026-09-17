@@ -27,6 +27,7 @@ export default function HabitRow({
     onSkip,
     onDelete,
     onEdit,
+    onArchive,
     isEven,
 }: {
     habit: HabitWithStats;
@@ -39,6 +40,7 @@ export default function HabitRow({
     onSkip: (habitId: string, day: number, used: boolean) => void;
     onDelete: (habit: HabitWithStats) => void;
     onEdit: (habit: HabitWithStats) => void;
+    onArchive: (habit: HabitWithStats) => void;
     isEven: boolean;
 }) {
     const DAYS = Array.from({ length: daysInMonth }, (_, i) => i + 1);
@@ -111,6 +113,16 @@ export default function HabitRow({
                             title="Edit habit"
                         >
                             <BloomIcon name="pen" size={14} />
+                        </button>
+                        {/* Archive leads delete here too: it is the
+                            reversible way to retire a habit. */}
+                        <button
+                            onClick={() => onArchive(habit)}
+                            className="cursor-pointer rounded-md p-1 text-muted transition-colors hover:bg-surface2 hover:text-accent"
+                            aria-label={`Archive ${habit.name}`}
+                            title="Archive habit — keeps its history"
+                        >
+                            <BloomIcon name="archive" size={14} />
                         </button>
                         <button
                             onClick={() => onDelete(habit)}
