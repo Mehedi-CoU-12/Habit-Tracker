@@ -92,3 +92,17 @@ export function scheduleLabel(daysOfWeek: number[] | undefined | null): string {
     if (days.length === 1) return `${FULL[days[0]!]}s`;
     return days.map((d) => SHORT[d]).join(", ");
 }
+
+/** When a habit that isn't due today comes back: "tomorrow" or a weekday name. */
+export function nextDueLabel(
+    daysOfWeek: number[] | undefined | null,
+    from: Date,
+): string {
+    const days = normalizeDays(daysOfWeek);
+    if (days.length === 0) return "tomorrow";
+    for (let i = 1; i <= 7; i++) {
+        const wd = (from.getDay() + i) % 7;
+        if (days.includes(wd)) return i === 1 ? "tomorrow" : FULL[wd]!;
+    }
+    return "tomorrow";
+}

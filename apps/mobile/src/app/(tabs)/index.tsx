@@ -25,6 +25,7 @@ import { HabitRow, RoutineHeader } from "../../components/HabitRow";
 import Plant from "../../components/Plant";
 import Icon from "../../components/Icon";
 import HabitSheet from "../../components/HabitSheet";
+import NotToday from "../../components/NotToday";
 
 const ROUTINES: { tod: Tod; icon: string; label: string }[] = [
     { tod: "morning", icon: "sun", label: "Morning" },
@@ -61,6 +62,11 @@ export default function TodayScreen() {
     const active = useMemo(() => all.filter((h) => !h.archivedAt), [all]);
     const habits = useMemo(
         () => active.filter((h) => h.scheduledToday),
+        [active],
+    );
+    /** Exists, not archived, just not due today — shown in its own section. */
+    const resting = useMemo(
+        () => active.filter((h) => !h.scheduledToday),
         [active],
     );
     /** Habits exist, but none of them are due today. */
@@ -379,6 +385,8 @@ export default function TodayScreen() {
                         );
                     })}
                 </View>
+
+                <NotToday habits={resting} now={now} onOpen={open} />
             </ScrollView>
 
             <HabitSheet

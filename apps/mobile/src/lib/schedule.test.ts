@@ -6,6 +6,7 @@ import {
     isDaily,
     isExpectedOn,
     isExpectedOnDate,
+    nextDueLabel,
     normalizeDays,
     previousExpected,
     scheduleLabel,
@@ -166,5 +167,23 @@ describe("scheduleLabel", () => {
         assert.equal(scheduleLabel([0, 6]), "Weekends");
         assert.equal(scheduleLabel([1]), "Mondays");
         assert.equal(scheduleLabel(MWF), "Mon, Wed, Fri");
+    });
+});
+
+describe("nextDueLabel", () => {
+    // Thursday, Sep 17 2026.
+    const thu = new Date(2026, 8, 17);
+
+    test("the very next day reads as tomorrow", () => {
+        // MWF from a Thursday is due again on Friday.
+        assert.equal(nextDueLabel(MWF, thu), "tomorrow");
+        assert.equal(nextDueLabel([], thu), "tomorrow");
+    });
+
+    test("otherwise it names the weekday it comes back on", () => {
+        assert.equal(nextDueLabel([1], thu), "Monday");
+        assert.equal(nextDueLabel([0, 6], thu), "Saturday");
+        // Due only on Thursdays: today doesn't count, so a full week out.
+        assert.equal(nextDueLabel([4], thu), "Thursday");
     });
 });
