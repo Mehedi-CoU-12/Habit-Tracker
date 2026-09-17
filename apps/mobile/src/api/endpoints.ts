@@ -61,11 +61,17 @@ export function logout(refreshToken: string) {
 }
 
 /**
+ * The exchange also reports whether it just created the account. Password
+ * login and signup don't — the app already knows which of those it called.
+ */
+export type GoogleExchangeResult = AuthResult & { isNew: boolean };
+
+/**
  * Trade the one-time code from the Google sign-in deep link for tokens +
  * user (see AuthProvider.signInWithGoogle for the full flow).
  */
 export function googleExchange(code: string) {
-    return apiPost<AuthResult>("/auth/google/exchange", { code });
+    return apiPost<GoogleExchangeResult>("/auth/google/exchange", { code });
 }
 
 export function fetchMe() {

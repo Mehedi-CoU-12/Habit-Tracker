@@ -245,3 +245,182 @@ describe('resetPassword', () => {
     expect(userUpdates).toHaveLength(0);
   });
 });
+
+// ── Google sign-in ────────────────────────────────────────────────────────
+type GoogleRow = {
+  id: string;
+  name: string;
+  email: string;
+  googleId: string | null;
+  avatarUrl: string | null;
+  role?: 'USER' | 'ADMIN';
+  status?: 'PENDING' | 'ACTIVE' | 'SUSPENDED';
+  tokenVersion?: number;
+};
+
+const googleProfile = {
+  googleId: 'g-123',
+  name: 'Grace',
+  email: 'grace@example.com',
+  avatarUrl: null,
+};
+
+/**
+ * Harness for the Google paths: records what was created and what each JWT
+ * was signed with, so a test can assert on the `isNew` claim carried by the
+ * one-time code.
+ */
+function makeGoogleService(opts: {
+  existing?: GoogleRow | null;
+  /** What jwt.verify() hands back — the code being exchanged. */
+  verified?: Record<string, unknown>;
+  cached?: unknown;
+}) {
+  const createdUsers: { data: Record<string, unknown> }[] = [];
+  const signed: Record<string, unknown>[] = [];
+  const bumped: string[] = [];
+
+  const stored: GoogleRow = opts.existing ?? {
+    id: 'u-new',
+    name: googleProfile.name,
+    email: googleProfile.email,
+    googleId: googleProfile.googleId,
+    avatarUrl: null,
+  };
+
+  const prisma = {
+    user: {
+      findUnique: ({ where }: { where: { email?: string; id?: string } }) => {
+        // By email = the upsert lookup; by id = the exchange re-read, which
+        // always finds the row.
+        if (where.id) return Promise.resolve(withDefaults(stored));
+        return Promise.resolve(
+          opts.existing ? withDefaults(opts.existing) : null,
+        );
+      },
+      create: (args: { data: Record<string, unknown> }) => {
+        createdUsers.push(args);
+        return Promise.resolve(withDefaults(stored));
+      },
+      update: () => Promise.resolve(withDefaults(stored)),
+    },
+  } as unknown as PrismaService;
+
+  const jwt = {
+    sign: (payload: Record<string, unknown>) => {
+      signed.push(payload);
+      return `signed-${signed.length}`;
+    },
+    verify: () => opts.verified ?? {},
+  } as unknown as JwtService;
+
+  const cache = {
+    get: () => Promise.resolve(opts.cached ?? null),
+    set: () => Promise.resolve(),
+    del: () => Promise.resolve(),
+    bumpVersion: (key: string) => {
+      bumped.push(key);
+      return Promise.resolve();
+    },
+  } as unknown as CacheService;
+
+  return {
+    service: new AuthService(
+      prisma,
+      jwt,
+      cache,
+      {} as MailService,
+      {} as ConfigService,
+    ),
+    createdUsers,
+    signed,
+    bumped,
+  };
+}
+
+function withDefaults(row: GoogleRow) {
+  return {
+    role: 'USER' as const,
+    status: 'ACTIVE' as const,
+    tokenVersion: 0,
+    ...row,
+  };
+}
+
+describe('googleLoginCode', () => {
+  it('creates the account and marks the code new on a first sign-in', async () => {
+    const { service, createdUsers, signed } = makeGoogleService({
+      existing: null,
+    });
+
+    await service.googleLoginCode(googleProfile);
+
+    expect(createdUsers).toHaveLength(1);
+    expect(createdUsers[0].data).toMatchObject({
+      email: googleProfile.email,
+      googleId: googleProfile.googleId,
+      status: 'ACTIVE',
+    });
+    expect(signed).toHaveLength(1);
+    expect(signed[0]).toMatchObject({ type: 'google_code', isNew: true });
+  });
+
+  it('marks the code not-new for a returning account', async () => {
+    const { service, createdUsers, signed } = makeGoogleService({
+      existing: {
+        id: 'u1',
+        name: 'Grace',
+        email: googleProfile.email,
+        googleId: googleProfile.googleId,
+        avatarUrl: null,
+      },
+    });
+
+    await service.googleLoginCode(googleProfile);
+
+    expect(createdUsers).toHaveLength(0);
+    expect(signed[0]).toMatchObject({ type: 'google_code', isNew: false });
+  });
+
+  it('marks the code not-new when an email account links Google', async () => {
+    // Signing in with Google against an address that already signed up with a
+    // password links the two — it is not a new account, so no starter habits.
+    const { service, createdUsers, signed } = makeGoogleService({
+      existing: {
+        id: 'u1',
+        name: 'Grace',
+        email: googleProfile.email,
+        googleId: null,
+        avatarUrl: null,
+      },
+    });
+
+    await service.googleLoginCode(googleProfile);
+
+    expect(createdUsers).toHaveLength(0);
+    expect(signed[0]).toMatchObject({ isNew: false });
+  });
+});
+
+describe('exchangeGoogleCode', () => {
+  it('passes the new-account flag through to the client', async () => {
+    const { service } = makeGoogleService({
+      verified: { sub: 'u-new', type: 'google_code', isNew: true },
+    });
+
+    await expect(service.exchangeGoogleCode('code')).resolves.toMatchObject({
+      isNew: true,
+    });
+  });
+
+  it('reports not-new when the code carries no flag', async () => {
+    // A code signed by an older build has no isNew claim; absent means no.
+    const { service } = makeGoogleService({
+      verified: { sub: 'u-new', type: 'google_code' },
+    });
+
+    await expect(service.exchangeGoogleCode('code')).resolves.toMatchObject({
+      isNew: false,
+    });
+  });
+});

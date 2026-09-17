@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../theme/ThemeProvider";
 import { useAuth } from "../api/AuthProvider";
+import { landingFor } from "../lib/authLanding";
 import { useKeyboardVisible } from "../lib/useKeyboardVisible";
 import Plant from "../components/Plant";
 import Icon from "../components/Icon";
@@ -71,7 +72,7 @@ export default function SignupScreen() {
             const res = await signInWithGoogle();
             if (!res) return;
 
-            router.replace(res.user.status === "ACTIVE" ? "/" : "/pending");
+            router.replace(landingFor(res));
         } catch (e) {
             setError(e instanceof Error ? e.message : "Google sign-in failed");
         } finally {
