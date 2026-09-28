@@ -64,13 +64,7 @@ async function dispatch(op: Op): Promise<void> {
             );
             return;
         case "skip.set":
-            await api.setSkip(
-                op.habitId,
-                op.year,
-                op.month,
-                op.day,
-                op.used,
-            );
+            await api.setSkip(op.habitId, op.year, op.month, op.day, op.used);
             return;
         case "note.set": {
             const { year, month, day, text } = op.payload;
@@ -128,6 +122,9 @@ let wasOffline = false;
 // would fire a full multi-month refetch per write and could clobber a newer
 // optimistic toggle mid-flight (visible flicker).
 let pendingReconcile = false;
+// Ops left over from a previous session raced the mount-time fetch, so the
+// first drain that finds any owes a reconcile.
+let coldStart = true;
 
 /**
  * Drain the outbox FIFO. Single-flight; only runs while online. A synced op is
@@ -163,6 +160,10 @@ async function drainOnce(): Promise<void> {
         return;
     }
     await loadOutbox();
+    if (coldStart) {
+        coldStart = false;
+        if (getOps().length > 0) pendingReconcile = true;
+    }
     if (getOps().length === 0) {
         setStatus("idle");
         // A previous drain may have owed a reconcile (permanent drop / offline

@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
 import { onlineManager, QueryClient } from "@tanstack/react-query";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
+import { pendingCount } from "../offline/outbox";
 
 onlineManager.setEventListener((setOnline) =>
     NetInfo.addEventListener((state) => {
@@ -19,9 +20,18 @@ void NetInfo.fetch().then((state) => {
 
 const WEEK = 1000 * 60 * 60 * 24 * 7;
 
+/** Skip background refetches while writes are queued; the post-drain reconcile refreshes instead. */
+const unlessPending = (q: { queryKey: readonly unknown[] }) =>
+    q.queryKey[0] === "admin" || pendingCount() === 0;
+
 export const queryClient = new QueryClient({
     defaultOptions: {
-        queries: { staleTime: 60 * 1000, gcTime: WEEK },
+        queries: {
+            staleTime: 60 * 1000,
+            gcTime: WEEK,
+            refetchOnReconnect: unlessPending,
+            refetchOnMount: unlessPending,
+        },
         mutations: { networkMode: "always" },
     },
 });
