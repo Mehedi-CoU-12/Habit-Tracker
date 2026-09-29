@@ -15,7 +15,6 @@ import { useTheme } from "../../theme/ThemeProvider";
 import {
     useAdminStats,
     useAdminUsers,
-    useDeleteUser,
     useRecordPayment,
     useUpdateUserStatus,
 } from "../../api/hooks";
@@ -27,6 +26,7 @@ import Icon from "../../components/Icon";
 import AdminHeader from "../../components/admin/AdminHeader";
 import StatusChip from "../../components/admin/StatusChip";
 import PaymentSheet from "../../components/admin/PaymentSheet";
+import { useMemberActions } from "../../components/admin/MemberActionSheet";
 
 const PAGE_SIZE = 20;
 
@@ -134,7 +134,7 @@ export default function AdminUsersScreen() {
 
     const setStatusMutation = useUpdateUserStatus();
     const payment = useRecordPayment();
-    const del = useDeleteUser();
+    const actions = useMemberActions();
 
     const users = data?.items ?? [];
     const total = data?.total ?? 0;
@@ -176,43 +176,8 @@ export default function AdminUsersScreen() {
         }
     }
 
-    const confirmStatus = (user: AdminUserRow, next: AccountStatus) => {
-        const suspend = next === "SUSPENDED";
-        Alert.alert(
-            suspend ? `Suspend ${user.name}?` : `Reactivate ${user.name}?`,
-            suspend
-                ? "They keep their data but lose access on their very next request. You can reactivate them at any time."
-                : "Their access is restored on their very next request.",
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: suspend ? "Suspend" : "Reactivate",
-                    style: suspend ? "destructive" : "default",
-                    onPress: () =>
-                        setStatusMutation
-                            .mutateAsync({ id: user.id, status: next })
-                            .catch(fail),
-                },
-            ],
-        );
-    };
-
-    const confirmDelete = (user: AdminUserRow) =>
-        Alert.alert(
-            `Delete ${user.name}?`,
-            "Their account, habits, check-ins and payment records are permanently removed. This can't be undone.",
-            [
-                { text: "Keep it", style: "cancel" },
-                {
-                    text: "Delete",
-                    style: "destructive",
-                    onPress: () => del.mutateAsync(user.id).catch(fail),
-                },
-            ],
-        );
-
     const busy =
-        setStatusMutation.isPending || del.isPending || payment.isPending;
+        setStatusMutation.isPending || actions.busy || payment.isPending;
 
     return (
         <View style={{ flex: 1, backgroundColor: th.bg }}>
@@ -465,9 +430,8 @@ export default function AdminUsersScreen() {
                                                 onPress={() =>
                                                     user.status === "PENDING"
                                                         ? setApproving(user)
-                                                        : confirmStatus(
+                                                        : actions.reactivate(
                                                               user,
-                                                              "ACTIVE",
                                                           )
                                                 }
                                             />
@@ -477,16 +441,13 @@ export default function AdminUsersScreen() {
                                                 label="Suspend"
                                                 danger
                                                 onPress={() =>
-                                                    confirmStatus(
-                                                        user,
-                                                        "SUSPENDED",
-                                                    )
+                                                    actions.suspend(user)
                                                 }
                                             />
                                         )}
                                         <Action
                                             label="Delete"
-                                            onPress={() => confirmDelete(user)}
+                                            onPress={() => actions.remove(user)}
                                         />
                                     </View>
                                 )}
@@ -533,6 +494,7 @@ export default function AdminUsersScreen() {
                 onClose={() => setApproving(null)}
                 onSubmit={(input) => approving && approve(approving, input)}
             />
+            {actions.sheet}
         </View>
     );
 }

@@ -1,7 +1,7 @@
 {
     "name": "mobile",
     "main": "expo-router/entry",
-    "version": "2.2.0",
+    "version": "2.2.1",
     "dependencies": {
         "@expo-google-fonts/caprasimo": "^0.4.0",
         "@expo-google-fonts/jetbrains-mono": "^0.4.1",
@@ -53,7 +53,10 @@
         "ios": "expo run:ios",
         "web": "expo start --web",
         "lint": "expo lint",
-        "test": "node --import tsx --test \"src/**/*.test.ts\""
+        "test": "node --import tsx --test \"src/**/*.test.ts\"",
+        "bump": "npm version patch --no-git-tag-version",
+        "bump:minor": "npm version minor --no-git-tag-version",
+        "build:android": "node scripts/check-version.mjs && eas build -p android --profile preview"
     },
     "private": true
 }

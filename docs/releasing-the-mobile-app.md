@@ -9,51 +9,54 @@ button that opens the link below.
 
 ## The pieces
 
-| Where                                | What it does                                                       |
-| ------------------------------------ | ------------------------------------------------------------------ |
-| `apps/api` → `AppRelease` table      | One row per platform: `latest`, `minimum`, `url`, `notes`          |
-| `GET /app/version?platform=android`  | Public. What installed apps poll                                    |
-| `apps/web` → **Admin → Releases**    | Where you publish. No redeploy needed                              |
-| `apps/mobile` → `UpdateGate`         | Compares `expo.version` against the row and shows the prompt        |
+| Where                               | What it does                                                  |
+| ----------------------------------- | ------------------------------------------------------------- |
+| `apps/api` → `AppRelease` table     | One row per platform: `latest`, `minimum`, `url`, `notes`     |
+| `GET /app/version?platform=android` | Public. What installed apps poll                              |
+| `apps/web` → **Admin → Releases**   | Where you publish. No redeploy needed                         |
+| `apps/mobile` → `UpdateGate`        | Compares the app version against the row and shows the prompt |
 
 ## Shipping a release
 
-1. **Bump the version** in `apps/mobile/app.json` → `expo.version` (e.g.
-   `1.0.0` → `1.1.0`). This is the number the update check compares.
+1. **Bump the version.** It lives only in `apps/mobile/package.json`;
+   `app.config.js` feeds it to Expo.
 
-   > `eas.json`'s `autoIncrement` only bumps Android's `versionCode`, not
-   > `expo.version`. That one is yours to raise, and if you forget, every
-   > installed app keeps reporting the old version and never sees the update.
+    ```sh
+    cd apps/mobile
+    npm run bump        # 1.0.0 → 1.0.1   (npm run bump:minor → 1.1.0)
+    ```
 
 2. **Build it.**
 
     ```sh
-    cd apps/mobile
-    eas build -p android --profile preview
+    npm run build:android
     ```
+
+    This refuses to start if the version isn't above the one already published
+    in Admin → Releases, so a forgotten bump fails here instead of shipping an
+    APK that keeps asking users to update. If you published before building,
+    run `ALLOW_PUBLISHED_VERSION=1 npm run build:android`.
 
 3. **Publish the APK to GitHub Releases.** Tag it `v1.1.0`, attach the `.apk`.
    Either link shape works as the download URL:
-
     - Pinned to one build —
       `https://github.com/Mehedi-CoU-12/Habit-Tracker/releases/download/v1.1.0/habitflow.apk`
     - Always-newest —
       `https://github.com/Mehedi-CoU-12/Habit-Tracker/releases/latest`
 
-   The second is worth preferring: it never goes stale, so from then on a
-   release only means changing the version number in step 4.
+    The second is worth preferring: it never goes stale, so from then on a
+    release only means changing the version number in step 4.
 
 4. **Publish in the dashboard.** Admin → Releases → Android:
-
     - **Latest version** → `1.1.0`. Everyone below it gets a dismissible
       "A new version is ready" prompt, once per release.
     - **Minimum supported** → leave alone unless an old client would actually
-      break against the current API. Raising it *locks those users out* until
+      break against the current API. Raising it _locks those users out_ until
       they update — it's for breaking API changes, not for nagging.
     - **Download URL** → the link from step 3.
     - **Release notes** → optional; shown inside the prompt.
 
-   Saving busts the cache, so apps see it on their next launch or foreground.
+    Saving busts the cache, so apps see it on their next launch or foreground.
 
 ## Things that will bite you
 

@@ -14,11 +14,9 @@ import { useTheme } from "../../../theme/ThemeProvider";
 import {
     useAdminUser,
     useAdminUserHabits,
-    useDeleteUser,
     useRecordPayment,
     useUpdateUserStatus,
 } from "../../../api/hooks";
-import { AccountStatus } from "../../../lib/types";
 import { deriveHabitStats, daysInMonth } from "../../../lib/deriveStats";
 import { monthShort } from "../../../lib/date";
 import { isDaily, scheduleLabel } from "../../../lib/schedule";
@@ -27,6 +25,7 @@ import Icon from "../../../components/Icon";
 import AdminHeader from "../../../components/admin/AdminHeader";
 import StatusChip from "../../../components/admin/StatusChip";
 import PaymentSheet from "../../../components/admin/PaymentSheet";
+import { useMemberActions } from "../../../components/admin/MemberActionSheet";
 
 function shortDate(iso: string | null): string {
     if (!iso) return "—";
@@ -53,7 +52,7 @@ export default function AdminUserDetailScreen() {
 
     const setStatusMutation = useUpdateUserStatus();
     const payment = useRecordPayment();
-    const del = useDeleteUser();
+    const actions = useMemberActions(() => router.replace("/admin/users"));
 
     const dim = daysInMonth(year, month);
     const habits = useMemo(
@@ -114,45 +113,6 @@ export default function AdminUserDetailScreen() {
             fail(err);
         }
     }
-
-    const confirmStatus = (next: AccountStatus) => {
-        const suspend = next === "SUSPENDED";
-        Alert.alert(
-            suspend ? `Suspend ${user?.name}?` : `Reactivate ${user?.name}?`,
-            suspend
-                ? "They keep their data but lose access on their very next request. You can reactivate them at any time."
-                : "Their access is restored on their very next request.",
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: suspend ? "Suspend" : "Reactivate",
-                    style: suspend ? "destructive" : "default",
-                    onPress: () =>
-                        setStatusMutation
-                            .mutateAsync({ id, status: next })
-                            .catch(fail),
-                },
-            ],
-        );
-    };
-
-    const confirmDelete = () =>
-        Alert.alert(
-            `Delete ${user?.name}?`,
-            "Their account, habits, check-ins and payment records are permanently removed. This can't be undone.",
-            [
-                { text: "Keep it", style: "cancel" },
-                {
-                    text: "Delete",
-                    style: "destructive",
-                    onPress: () =>
-                        del
-                            .mutateAsync(id)
-                            .then(() => router.replace("/admin/users"))
-                            .catch(fail),
-                },
-            ],
-        );
 
     if (isLoading || !user) {
         return (
@@ -332,7 +292,7 @@ export default function AdminUserDetailScreen() {
                                         onPress={() =>
                                             user.status === "PENDING"
                                                 ? setSheet("approve")
-                                                : confirmStatus("ACTIVE")
+                                                : actions.reactivate(user)
                                         }
                                     />
                                 )}
@@ -340,9 +300,7 @@ export default function AdminUserDetailScreen() {
                                     <Action
                                         label="Suspend"
                                         danger
-                                        onPress={() =>
-                                            confirmStatus("SUSPENDED")
-                                        }
+                                        onPress={() => actions.suspend(user)}
                                     />
                                 )}
                                 <Action
@@ -351,7 +309,7 @@ export default function AdminUserDetailScreen() {
                                 />
                                 <Action
                                     label="Delete"
-                                    onPress={confirmDelete}
+                                    onPress={() => actions.remove(user)}
                                 />
                             </View>
                         )}
@@ -668,6 +626,7 @@ export default function AdminUserDetailScreen() {
                 onClose={() => setSheet(null)}
                 onSubmit={recordPayment}
             />
+            {actions.sheet}
         </View>
     );
 }
