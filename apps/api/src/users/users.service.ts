@@ -29,6 +29,7 @@ const PROFILE_SELECT = {
   role: true,
   status: true,
   createdAt: true,
+  weeklyReviewEmail: true,
   password: true,
 } as const;
 
@@ -90,9 +91,12 @@ export class UsersService {
     const data: {
       name?: string;
       password?: string;
+      weeklyReviewEmail?: boolean;
       tokenVersion?: { increment: number };
     } = {};
     if (dto.name) data.name = dto.name;
+    if (dto.weeklyReviewEmail !== undefined)
+      data.weeklyReviewEmail = dto.weeklyReviewEmail;
     if (dto.newPassword) {
       data.password = await bcrypt.hash(dto.newPassword, 10);
       // Changing the password revokes every existing session (this device

@@ -13,6 +13,18 @@ import { ToggleLogDto } from './dto/toggle-log.dto.js';
 import { SetLogDto } from './dto/set-log.dto.js';
 import { SetLogAmountDto } from './dto/set-log-amount.dto.js';
 import { SetSkipDto } from './dto/set-skip.dto.js';
+import {
+  buildWeeklyReview,
+  computeProgress,
+  dayIndexOf,
+  HabitHistory,
+  HabitProgress,
+  indexOfIso,
+  isoOfIndex,
+  localDayIndex,
+  WeeklyReview,
+  ymdOfIndex,
+} from './progress.js';
 
 type TemplateHabit = {
   name: string;
@@ -208,27 +220,176 @@ export class HabitsService {
     private readonly cache: CacheService,
   ) {}
 
-  // Cached per (user, month) under the user's habits version — any habit or
-  // log mutation bumps the version (see invalidateHabits), which invalidates
-  // every cached month at once. Serves the user's own GET /habits and the
-  // admin's GET /admin/users/:id/habits alike.
-  getHabitsWithLogs(userId: string, year: number, month: number) {
+  // Cached per (user, month, today) under the user's habits version — any
+  // habit or log mutation bumps the version (see invalidateHabits), which
+  // invalidates every cached month at once. Serves the user's own GET /habits
+  // and the admin's GET /admin/users/:id/habits alike.
+  async getHabitsWithLogs(
+    userId: string,
+    year: number,
+    month: number,
+    todayIso?: string,
+  ) {
+    const today = await this.resolveToday(userId, todayIso);
     return this.cache.getOrSetVersioned(
       cacheKeys.habitsVersion(userId),
-      cacheKeys.habitsMonth(year, month),
+      `${cacheKeys.habitsMonth(year, month)}@${today}`,
       TTL.habits,
-      () =>
-        this.prisma.habit.findMany({
-          where: { userId },
-          include: {
-            logs: { where: { year, month } },
-            // The clients cannot compute a forgiven streak without these, and
-            // they are month-scoped exactly like the logs.
-            skips: { where: { year, month } },
-          },
-          orderBy: { createdAt: 'asc' },
-        }),
+      async () => {
+        const [habits, progress] = await Promise.all([
+          this.prisma.habit.findMany({
+            where: { userId },
+            include: {
+              logs: { where: { year, month } },
+              // The clients cannot compute a forgiven streak without these,
+              // and they are month-scoped exactly like the logs.
+              skips: { where: { year, month } },
+            },
+            orderBy: { createdAt: 'asc' },
+          }),
+          this.progressFor(userId, today),
+        ]);
+        const first = dayIndexOf(year, month, 1);
+        const last = dayIndexOf(year, month + 1, 0);
+        return habits.map((h) => {
+          const p = progress[h.id];
+          return {
+            ...h,
+            progress: p
+              ? {
+                  asOf: isoOfIndex(today),
+                  streak: p.streak,
+                  longest: p.longest,
+                  freezes: p.freezes,
+                  frozen: p.frozen
+                    .filter((d) => d >= first && d <= last)
+                    .map((d) => ymdOfIndex(d).day),
+                }
+              : null,
+          };
+        });
+      },
     );
+  }
+
+  /** The Monday–Sunday review ending on the latest Sunday, see progress.ts. */
+  async getWeeklyReview(
+    userId: string,
+    todayIso?: string,
+  ): Promise<WeeklyReview> {
+    const today = await this.resolveToday(userId, todayIso);
+    return this.weeklyReviewOn(userId, today);
+  }
+
+  weeklyReviewOn(userId: string, today: number): Promise<WeeklyReview> {
+    return this.cache.getOrSetVersioned(
+      cacheKeys.habitsVersion(userId),
+      `review@${today}`,
+      TTL.habits,
+      async () => buildWeeklyReview(await this.loadHistories(userId), today),
+    );
+  }
+
+  /** The client's today when within ±1 day of UTC, else today in the user's zone. */
+  private async resolveToday(userId: string, iso?: string): Promise<number> {
+    const now = Date.now();
+    const client = indexOfIso(iso);
+    const utc = Math.floor(now / 86_400_000);
+    if (client !== null && Math.abs(client - utc) <= 1) return client;
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { timezone: true },
+    });
+    return localDayIndex(new Date(now), user?.timezone);
+  }
+
+  private progressFor(
+    userId: string,
+    today: number,
+  ): Promise<Record<string, HabitProgress>> {
+    return this.cache.getOrSetVersioned(
+      cacheKeys.habitsVersion(userId),
+      `progress@${today}`,
+      TTL.habits,
+      async () => {
+        const out: Record<string, HabitProgress> = {};
+        for (const h of await this.loadHistories(userId))
+          out[h.id] = computeProgress(h, today);
+        return out;
+      },
+    );
+  }
+
+  /** Every habit of a user with its full log and skip history. */
+  private async loadHistories(userId: string): Promise<HabitHistory[]> {
+    const [user, habits] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { timezone: true },
+      }),
+      this.prisma.habit.findMany({
+        where: { userId },
+        select: {
+          id: true,
+          name: true,
+          icon: true,
+          target: true,
+          daysOfWeek: true,
+          createdAt: true,
+          archivedAt: true,
+        },
+        orderBy: { createdAt: 'asc' },
+      }),
+    ]);
+    if (habits.length === 0) return [];
+    const habitIds = habits.map((h) => h.id);
+    const [logs, skips] = await Promise.all([
+      this.prisma.habitLog.findMany({
+        where: { habitId: { in: habitIds } },
+        select: {
+          habitId: true,
+          year: true,
+          month: true,
+          day: true,
+          amount: true,
+        },
+      }),
+      this.prisma.habitSkip.findMany({
+        where: { habitId: { in: habitIds } },
+        select: { habitId: true, year: true, month: true, day: true },
+      }),
+    ]);
+
+    const tz = user?.timezone;
+    const byId = new Map<string, HabitHistory>();
+    for (const h of habits) {
+      const days = [...new Set(h.daysOfWeek)].filter(
+        (d) => Number.isInteger(d) && d >= 0 && d <= 6,
+      );
+      byId.set(h.id, {
+        id: h.id,
+        name: h.name,
+        icon: h.icon,
+        daysOfWeek: days.length >= 7 ? [] : days,
+        planted: localDayIndex(h.createdAt, tz),
+        retired: h.archivedAt ? localDayIndex(h.archivedAt, tz) : Infinity,
+        done: new Set(),
+        skipped: new Set(),
+      });
+    }
+    const targets = new Map(habits.map((h) => [h.id, h.target ?? 1]));
+    for (const l of logs) {
+      const h = byId.get(l.habitId);
+      if (!h) continue;
+      const d = dayIndexOf(l.year, l.month, l.day);
+      if (d < h.planted) h.planted = d;
+      if (l.amount >= (targets.get(l.habitId) ?? 1)) h.done.add(d);
+    }
+    for (const s of skips) {
+      const h = byId.get(s.habitId);
+      if (h) h.skipped.add(dayIndexOf(s.year, s.month, s.day));
+    }
+    return [...byId.values()];
   }
 
   /** Drop every cached month of this user's habit data. */

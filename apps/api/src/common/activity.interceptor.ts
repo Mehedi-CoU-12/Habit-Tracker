@@ -24,6 +24,7 @@ export class ActivityInterceptor implements NestInterceptor {
         userId,
         req.header('x-app-version'),
         req.header('x-app-platform'),
+        req.header('x-timezone'),
       );
     }
 
