@@ -5,6 +5,7 @@ type Quantified = { target?: number | null };
 type WithLogs<L extends Log> = Quantified & { logs: L[] };
 type Skip = { day: number };
 type WithSkips = { skips?: Skip[] };
+type WithProgress = { progress?: { frozen: number[] } | null };
 
 
 /** How much a log records. A row with no amount predates quantities: one. */
@@ -82,4 +83,9 @@ export function isDaySkipped(h: WithSkips, day: number): boolean {
 /** Skips this habit has left in the month its `skips` were fetched for. */
 export function skipsLeft(h: WithSkips): number {
     return Math.max(0, SKIPS_PER_MONTH - (h.skips ?? []).length);
+}
+
+/** Days of the month a streak freeze was spent on. */
+export function frozenDaysOf(h: WithProgress): Set<number> {
+    return new Set(h.progress?.frozen ?? []);
 }

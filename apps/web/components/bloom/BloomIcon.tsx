@@ -126,6 +126,15 @@ const PATHS: Record<string, ReactElement> = {
             <line x1="16" y1="3" x2="16" y2="7" />
         </>
     ),
+    snowflake: (
+        <>
+            <line x1="12" y1="3" x2="12" y2="21" />
+            <line x1="4.2" y1="7.5" x2="19.8" y2="16.5" />
+            <line x1="4.2" y1="16.5" x2="19.8" y2="7.5" />
+            <polyline points="9.5 4.5 12 6.5 14.5 4.5" />
+            <polyline points="9.5 19.5 12 17.5 14.5 19.5" />
+        </>
+    ),
     trophy: (
         <>
             <path d="M6 4 h12 v4 a4 4 0 0 1 -4 4 h-4 a4 4 0 0 1 -4 -4 z" />

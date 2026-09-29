@@ -73,6 +73,10 @@ export default function HabitGrid({
                         <span className="inline-block h-3 w-3 rounded-md border border-dashed border-accent" />
                         Skipped · alt+click a missed day
                     </span>
+                    <span className="flex items-center gap-1.5">
+                        <span className="inline-block h-3 w-3 rounded-md border border-sky bg-sky/25" />
+                        Freeze · earned every 7-day streak
+                    </span>
                 </div>
             }
         >

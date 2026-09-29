@@ -6,6 +6,7 @@ import type { Tod } from "../lib/types";
 // ones are one-shot, self-expiring, and deliberately left out of reconcile.
 export const REMINDER_PREFIX = "rem__";
 export const SNOOZE_PREFIX = "remsnooze__";
+export const WEEKLY_ID = "weekly__review";
 export const CATEGORY = "habit-reminder";
 export const CHANNEL = "reminders";
 
@@ -34,12 +35,15 @@ export type ReminderPrefs = {
     quietHours: boolean;
     /** Sparse map of per-habit overrides, keyed by habit id. */
     overrides: Record<string, HabitOverride>;
+    /** Sunday-evening nudge to open the weekly review. */
+    weeklyReview: boolean;
 };
 
 export const DEFAULT_PREFS: ReminderPrefs = {
     enabled: false,
     quietHours: true,
     overrides: {},
+    weeklyReview: true,
 };
 
 /** tod bucket → sensible default reminder time when a habit has no override. */

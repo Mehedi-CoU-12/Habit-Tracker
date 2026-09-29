@@ -1,4 +1,5 @@
 import { ApiHabit } from "../../app/dashboard/types";
+import { isoDay } from "./progress";
 
 export type UserRole = "USER" | "ADMIN";
 export type AccountStatus = "PENDING" | "ACTIVE" | "SUSPENDED";
@@ -12,6 +13,31 @@ export type UserProfile = {
     status: AccountStatus;
     createdAt: string;
     hasPassword?: boolean;
+    /** Sunday review email opt-in. */
+    weeklyReviewEmail?: boolean;
+};
+
+/** GET /habits/review — the Monday–Sunday week ending on the latest Sunday. */
+export type WeeklyReview = {
+    weekStart: string;
+    weekEnd: string;
+    done: number;
+    due: number;
+    rate: number;
+    perfectDays: number;
+    bestWeek: boolean;
+    freezesUsed: number;
+    milestones: { habitId: string; name: string; days: number }[];
+    highlight: string | null;
+    habits: {
+        id: string;
+        name: string;
+        icon: string;
+        done: number;
+        due: number;
+        rate: number;
+        bestWeek: boolean;
+    }[];
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
@@ -49,10 +75,20 @@ export function clearTokens() {
     localStorage.removeItem(REFRESH_KEY);
 }
 
+function timeZone(): string | null {
+    try {
+        return Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+    } catch {
+        return null;
+    }
+}
+
 function clientHeader(): Record<string, string> {
+    const tz = timeZone();
     return {
         ...(APP_CLIENT_KEY ? { "x-app-client": APP_CLIENT_KEY } : {}),
         "x-app-platform": "web",
+        ...(tz ? { "x-timezone": tz } : {}),
     };
 }
 
@@ -211,6 +247,7 @@ export async function updateProfile(data: {
     name?: string;
     currentPassword?: string;
     newPassword?: string;
+    weeklyReviewEmail?: boolean;
 }): Promise<UserProfile> {
     const res = await authedFetch(`/users/me`, {
         method: "PATCH",
@@ -249,8 +286,15 @@ export async function fetchHabits(
     year: number,
     month: number,
 ): Promise<ApiHabit[]> {
-    const res = await authedFetch(`/habits?year=${year}&month=${month}`);
+    const res = await authedFetch(
+        `/habits?year=${year}&month=${month}&today=${isoDay(new Date())}`,
+    );
     return handleResponse<ApiHabit[]>(res);
+}
+
+export async function fetchWeeklyReview(): Promise<WeeklyReview> {
+    const res = await authedFetch(`/habits/review?today=${isoDay(new Date())}`);
+    return handleResponse<WeeklyReview>(res);
 }
 
 export type CreateHabitInput = {

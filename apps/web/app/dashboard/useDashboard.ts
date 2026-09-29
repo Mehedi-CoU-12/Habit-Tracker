@@ -21,6 +21,7 @@ import {
     CreateHabitInput,
 } from "../../src/lib/api";
 import { toast } from "../../src/lib/toast";
+import { useMilestoneCelebration } from "../../src/lib/milestones";
 import { ApiHabit, HabitLog, HabitWithStats } from "./types";
 
 /**
@@ -116,6 +117,10 @@ export function useDashboard() {
         selectedYear === now.getFullYear() &&
         selectedMonth === now.getMonth() + 1;
     const todayDate = now.getDate();
+    const milestone = useMilestoneCelebration(
+        rawHabits as ApiHabit[],
+        isCurrentMonth,
+    );
 
     // --- Mutations ---
 
@@ -293,6 +298,7 @@ export function useDashboard() {
         weeklyData,
         isCurrentMonth,
         todayDate,
+        milestone,
 
         // modal state
         showAddModal,

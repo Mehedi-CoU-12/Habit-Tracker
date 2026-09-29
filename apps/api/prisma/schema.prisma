@@ -39,30 +39,36 @@ model AppRelease {
 }
 
 model User {
-  id              String         @id @default(cuid())
-  name            String
-  email           String         @unique
-  password        String?
-  googleId        String?        @unique
-  avatarUrl       String?
-  role            Role           @default(USER)
+  id                  String               @id @default(cuid())
+  name                String
+  email               String               @unique
+  password            String?
+  googleId            String?              @unique
+  avatarUrl           String?
+  role                Role                 @default(USER)
   // status          AccountStatus @default(PENDING)
-  status          AccountStatus  @default(ACTIVE)
-  statusChangedAt DateTime?
-  statusChangedBy String?
-  statusNote      String?
-  tokenVersion    Int            @default(0)
-  lastActiveAt    DateTime?
-  lastAppVersion  String?
+  status              AccountStatus        @default(ACTIVE)
+  statusChangedAt     DateTime?
+  statusChangedBy     String?
+  statusNote          String?
+  tokenVersion        Int                  @default(0)
+  lastActiveAt        DateTime?
+  lastAppVersion      String?
   /// Which client that version came from: "android", "ios" or "web".
-  lastAppPlatform String?
-  habits          Habit[]
-  payments        Payment[]
-  focusSessions   FocusSession[]
-  dayNotes        DayNote[]
-  passwordResets  PasswordResetToken[]
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  lastAppPlatform     String?
+  /// IANA zone reported by the client (x-timezone), e.g. "Asia/Dhaka".
+  timezone            String?
+  /// Opt-out for the Sunday review email.
+  weeklyReviewEmail   Boolean              @default(true)
+  /// Monday (YYYY-MM-DD) of the last week a review email was sent for.
+  weeklyReviewSentFor String?
+  habits              Habit[]
+  payments            Payment[]
+  focusSessions       FocusSession[]
+  dayNotes            DayNote[]
+  passwordResets      PasswordResetToken[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
   @@index([status])
   @@index([createdAt])
@@ -83,7 +89,6 @@ model PasswordResetToken {
 
   @@index([userId])
 }
-
 
 model Payment {
   id           String   @id @default(cuid())
@@ -127,7 +132,6 @@ model Habit {
   @@index([userId, archivedAt])
 }
 
-
 model DayNote {
   id        String   @id @default(cuid())
   userId    String
@@ -158,7 +162,6 @@ model FocusSession {
 
   @@index([userId, year, month, day])
 }
-
 
 model HabitSkip {
   id        String   @id @default(cuid())

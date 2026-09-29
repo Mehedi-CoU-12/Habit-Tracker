@@ -33,6 +33,8 @@ import Icon from "../../components/Icon";
 import Heatmap from "../../components/Heatmap";
 import HabitSheet from "../../components/HabitSheet";
 import type { HabitWithStats } from "../../lib/types";
+import { MilestoneBadges } from "../../components/Milestones";
+import { MAX_FREEZES, liveProgress, nextMilestone } from "../../lib/progress";
 
 const PERIOD_CAPTION: Record<HeatPeriod, string> = {
     Week: "Last 7 days · tap a day",
@@ -78,10 +80,13 @@ export default function DetailScreen() {
         () => buildHabitHeatmap(history, id ?? "", period, now, apiHabit),
         [history, id, period, now, apiHabit],
     );
-    const overall = useMemo(
-        () => habitHistoryStats(history, id ?? "", now, apiHabit),
-        [history, id, now, apiHabit],
-    );
+    const overall = useMemo(() => {
+        const stats = habitHistoryStats(history, id ?? "", now, apiHabit);
+        const live = apiHabit ? liveProgress(apiHabit, now) : null;
+        return live
+            ? { ...stats, streak: live.streak, live }
+            : { ...stats, live: null };
+    }, [history, id, now, apiHabit]);
 
     const goBack = () =>
         router.canGoBack() ? router.back() : router.replace("/");
@@ -163,11 +168,15 @@ export default function DetailScreen() {
     };
 
     const stage =
-        overall.streak >= 25
-            ? "in full bloom"
-            : overall.streak >= 10
-              ? "growing well"
-              : "sprouting";
+        overall.streak >= 100
+            ? "evergreen"
+            : overall.streak >= 30
+              ? "in full bloom"
+              : overall.streak >= 7
+                ? "first bloom"
+                : "sprouting";
+    const longest = Math.max(h.longest, overall.streak);
+    const next = nextMilestone(overall.streak);
 
     return (
         <View style={{ flex: 1, backgroundColor: th.bg }}>
@@ -496,6 +505,37 @@ export default function DetailScreen() {
                     ))}
                 </View>
 
+                {/* milestones + freezes */}
+                <View style={{ marginHorizontal: th.d.pad, marginTop: 16 }}>
+                    <MilestoneBadges longest={longest} />
+                    <View
+                        style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 6,
+                            marginTop: 10,
+                        }}
+                    >
+                        <Icon
+                            name="snowflake"
+                            size={14}
+                            stroke={th.sky}
+                            strokeWidth={1.8}
+                        />
+                        <Text
+                            style={{ flex: 1, fontSize: 12.5, color: th.ink2 }}
+                        >
+                            {freezeLine(
+                                overall.live?.freezes ?? h.freezes,
+                                overall.live?.toNextFreeze ?? null,
+                            )}
+                            {next
+                                ? ` · ${next - overall.streak} days to ${next}`
+                                : ""}
+                        </Text>
+                    </View>
+                </View>
+
                 {/* heatmap */}
                 <View style={{ marginHorizontal: th.d.pad, marginTop: 22 }}>
                     <View
@@ -592,4 +632,13 @@ export default function DetailScreen() {
             />
         </View>
     );
+}
+
+function freezeLine(freezes: number, toNext: number | null): string {
+    const banked =
+        freezes === 0
+            ? "No streak freezes banked"
+            : `${freezes} streak freeze${freezes === 1 ? "" : "s"} banked`;
+    if (freezes >= MAX_FREEZES || toNext === null) return banked;
+    return `${banked} · next in ${toNext} day${toNext === 1 ? "" : "s"}`;
 }

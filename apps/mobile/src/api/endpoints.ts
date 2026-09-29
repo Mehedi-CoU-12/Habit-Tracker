@@ -13,7 +13,9 @@ import {
     FocusStats,
     UserProfile,
     UserRole,
+    WeeklyReview,
 } from "../lib/types";
+import { isoDay } from "../lib/progress";
 
 // ── Auth ──────────────────────────────────────────────────────────────
 export type AuthResult = {
@@ -78,6 +80,10 @@ export function fetchMe() {
     return apiGet<UserProfile>("/users/me");
 }
 
+export function updateProfile(input: { weeklyReviewEmail?: boolean }) {
+    return apiPatch<UserProfile>("/users/me", input);
+}
+
 /**
  * Erase the account and everything cascading from it. Irreversible.
  *
@@ -114,7 +120,13 @@ export function uploadAvatar(asset: AvatarAsset) {
 
 // ── Habits ────────────────────────────────────────────────────────────
 export function fetchHabits(year: number, month: number) {
-    return apiGet<ApiHabit[]>(`/habits?year=${year}&month=${month}`);
+    return apiGet<ApiHabit[]>(
+        `/habits?year=${year}&month=${month}&today=${isoDay(new Date())}`,
+    );
+}
+
+export function fetchWeeklyReview() {
+    return apiGet<WeeklyReview>(`/habits/review?today=${isoDay(new Date())}`);
 }
 
 export function createHabit(input: {

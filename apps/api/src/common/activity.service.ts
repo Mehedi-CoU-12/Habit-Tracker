@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { isValidTimeZone } from '../habits/progress.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 const TOUCH_INTERVAL_MS = 5 * 60_000;
@@ -14,6 +15,7 @@ type LastSeen = {
   at: number;
   version: string | null;
   platform: string | null;
+  timezone: string | null;
 };
 
 @Injectable()
@@ -28,9 +30,11 @@ export class ActivityService {
     userId: string,
     rawVersion: string | undefined,
     rawPlatform: string | undefined,
+    rawTimezone?: string,
   ): void {
     const version = normalizeVersion(rawVersion);
     const platform = normalizePlatform(rawPlatform);
+    const timezone = normalizeTimezone(rawTimezone);
 
     const previous = this.lastSeen.get(userId);
 
@@ -38,11 +42,12 @@ export class ActivityService {
       previous !== undefined &&
       Date.now() - previous.at < TOUCH_INTERVAL_MS &&
       previous.version === version &&
-      previous.platform === platform;
+      previous.platform === platform &&
+      previous.timezone === timezone;
     if (withinWindow) return;
 
-    this.remember(userId, { at: Date.now(), version, platform });
-    void this.write(userId, platform, version);
+    this.remember(userId, { at: Date.now(), version, platform, timezone });
+    void this.write(userId, platform, version, timezone);
   }
 
   private remember(userId: string, seen: LastSeen) {
@@ -66,6 +71,7 @@ export class ActivityService {
     userId: string,
     platform: string | null,
     version: string | null,
+    timezone: string | null,
   ) {
     try {
       await this.prisma.user.updateMany({
@@ -75,6 +81,7 @@ export class ActivityService {
           ...(platform
             ? { lastAppPlatform: platform, lastAppVersion: version }
             : {}),
+          ...(timezone ? { timezone } : {}),
         },
       });
     } catch (err) {
@@ -105,4 +112,9 @@ function normalizePlatform(raw: string | undefined): string | null {
   const value = raw?.trim().toLowerCase();
   if (!value || !KNOWN_PLATFORMS.has(value)) return null;
   return value;
+}
+
+function normalizeTimezone(raw: string | undefined): string | null {
+  const value = raw?.trim();
+  return isValidTimeZone(value) ? value : null;
 }

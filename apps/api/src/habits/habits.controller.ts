@@ -29,13 +29,24 @@ export class HabitsController {
     @Request() req: { user: { id: string } },
     @Query('year') year?: string,
     @Query('month') month?: string,
+    // The client's local today (YYYY-MM-DD).
+    @Query('today') today?: string,
   ) {
     const now = new Date();
     return this.habitsService.getHabitsWithLogs(
       req.user.id,
       year ? parseInt(year) : now.getFullYear(),
       month ? parseInt(month) : now.getMonth() + 1,
+      today,
     );
+  }
+
+  @Get('review')
+  getWeeklyReview(
+    @Request() req: { user: { id: string } },
+    @Query('today') today?: string,
+  ) {
+    return this.habitsService.getWeeklyReview(req.user.id, today);
   }
 
   @Post()

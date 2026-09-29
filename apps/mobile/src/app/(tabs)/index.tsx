@@ -26,6 +26,7 @@ import Plant from "../../components/Plant";
 import Icon from "../../components/Icon";
 import HabitSheet from "../../components/HabitSheet";
 import NotToday from "../../components/NotToday";
+import { useMilestoneCelebration } from "../../lib/milestones";
 
 const ROUTINES: { tod: Tod; icon: string; label: string }[] = [
     { tod: "morning", icon: "sun", label: "Morning" },
@@ -51,6 +52,7 @@ export default function TodayScreen() {
     const setAmount = useSetLogAmount(year, month);
     const del = useDeleteHabit(year, month);
     const update = useUpdateHabit(year, month);
+    useMilestoneCelebration(raw);
 
     const all: HabitWithStats[] = useMemo(
         () => raw.map((h) => deriveHabitStats(h, year, month, dim, now)),

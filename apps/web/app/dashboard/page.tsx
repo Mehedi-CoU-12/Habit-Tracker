@@ -8,6 +8,7 @@ import TemplatesModal from "../../components/habits/TemplatesModal";
 import ArchivedModal from "../../components/habits/ArchivedModal";
 import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import DashboardContent from "../../components/dashboard/DashboardContent";
+import MilestoneModal from "../../components/habits/MilestoneModal";
 import { useDashboard } from "./useDashboard";
 
 export default function DashboardPage() {
@@ -26,6 +27,13 @@ export default function DashboardPage() {
             />
 
             {/* ── Overlays ── */}
+            {dash.milestone.hit && (
+                <MilestoneModal
+                    name={dash.milestone.hit.name}
+                    days={dash.milestone.hit.days}
+                    onClose={dash.milestone.dismiss}
+                />
+            )}
             {(dash.showAddModal || dash.editingHabit) && (
                 <HabitModal
                     key={dash.editingHabit?.id ?? "new"}

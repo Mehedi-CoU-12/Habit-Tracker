@@ -34,6 +34,23 @@ export function useMe(enabled = true) {
     });
 }
 
+export function useUpdateProfile() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: api.updateProfile,
+        onSuccess: (updated) => qc.setQueryData<UserProfile>(["me"], updated),
+    });
+}
+
+export function useWeeklyReview() {
+    return useQuery({
+        queryKey: ["weeklyReview"],
+        queryFn: api.fetchWeeklyReview,
+        retry: false,
+        staleTime: 5 * 60 * 1000,
+    });
+}
+
 export function useUploadAvatar() {
     const qc = useQueryClient();
     return useMutation({

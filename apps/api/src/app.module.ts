@@ -20,6 +20,7 @@ import { NotesModule } from './notes/notes.module.js';
 import { UsersModule } from './users/users.module.js';
 import { AdminModule } from './admin/admin.module.js';
 import { ReleasesModule } from './releases/releases.module.js';
+import { ReviewModule } from './review/review.module.js';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { ReleasesModule } from './releases/releases.module.js';
     UsersModule,
     AdminModule,
     ReleasesModule,
+    ReviewModule,
   ],
   controllers: [AppController],
   providers: [

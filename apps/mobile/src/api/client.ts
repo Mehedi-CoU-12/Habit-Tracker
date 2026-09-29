@@ -32,12 +32,23 @@ export function registerGateEvents(events: GateEvents) {
 
 const APP_CLIENT_KEY = process.env.EXPO_PUBLIC_APP_CLIENT_KEY ?? "";
 
+/** The device's IANA zone, or null where Intl can't say. */
+function timeZone(): string | null {
+    try {
+        return Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+    } catch {
+        return null;
+    }
+}
+
 function clientHeaders(): Record<string, string> {
     const version = currentAppVersion();
+    const tz = timeZone();
     return {
         ...(APP_CLIENT_KEY ? { "x-app-client": APP_CLIENT_KEY } : {}),
         ...(version ? { "x-app-version": version } : {}),
         "x-app-platform": releasePlatform(),
+        ...(tz ? { "x-timezone": tz } : {}),
     };
 }
 

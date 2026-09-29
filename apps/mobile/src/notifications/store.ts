@@ -60,6 +60,10 @@ export function setQuietHours(quietHours: boolean): Promise<void> {
     return commit({ ...state, quietHours });
 }
 
+export function setWeeklyReview(weeklyReview: boolean): Promise<void> {
+    return commit({ ...state, weeklyReview });
+}
+
 /** Merge an override for one habit (shallow — pass only the fields to change). */
 export function setOverride(
     habitId: string,
