@@ -63,6 +63,7 @@ export default function HabitRow({
         isExpectedOnDate(habit.daysOfWeek, new Date(year, month - 1, day));
 
     const skipped = new Set(habit.skippedDays);
+    const frozen = new Set(habit.frozenDays);
     const todayMidnight = new Date();
     todayMidnight.setHours(0, 0, 0, 0);
     /** A day that is over — today is still open, so it cannot be forgiven. */
@@ -147,6 +148,7 @@ export default function HabitRow({
                 const future = isFutureDay(year, month, day);
                 const part = checked ? 0 : progress(day);
                 const isSkipped = skipped.has(day);
+                const isFrozen = frozen.has(day);
                 /** A day the habit isn't scheduled for — not a miss. */
                 const rest = !isDueOn(day);
                 const logged = checked || part > 0;
@@ -177,15 +179,17 @@ export default function HabitRow({
                             title={
                                 future
                                     ? "Cannot log future days"
-                                    : isSkipped
-                                      ? "Skipped — streak kept (Alt+click to undo)"
-                                      : rest
-                                        ? logged
-                                            ? "Rest day — logged anyway; click to clear"
-                                            : "Rest day — not scheduled"
-                                        : canSkip
-                                          ? "Alt+click to use a skip"
-                                          : undefined
+                                    : isFrozen && !checked
+                                      ? "Streak freeze used — streak kept"
+                                      : isSkipped
+                                        ? "Skipped — streak kept (Alt+click to undo)"
+                                        : rest
+                                          ? logged
+                                              ? "Rest day — logged anyway; click to clear"
+                                              : "Rest day — not scheduled"
+                                          : canSkip
+                                            ? "Alt+click to use a skip"
+                                            : undefined
                             }
                             className={`relative mx-auto flex h-5 w-5 items-center justify-center overflow-hidden rounded-md border transition-colors ${
                                 future
@@ -227,6 +231,15 @@ export default function HabitRow({
                             {isSkipped && !checked && (
                                 <span className="pointer-events-none absolute inset-0 rounded-md border border-dashed border-accent" />
                             )}
+                            {isFrozen && !checked && (
+                                <span className="pointer-events-none absolute inset-0 grid place-items-center rounded-md border border-sky bg-sky/25 text-sky">
+                                    <BloomIcon
+                                        name="snowflake"
+                                        size={11}
+                                        strokeWidth={2}
+                                    />
+                                </span>
+                            )}
                             {checked && (
                                 <BloomIcon
                                     name="check"
@@ -251,6 +264,14 @@ export default function HabitRow({
                     />
                     {habit.streak}
                 </span>
+                {habit.freezes > 0 && (
+                    <span
+                        className="ml-0.5 inline-flex align-middle text-sky"
+                        title={`${habit.freezes} streak freeze${habit.freezes === 1 ? "" : "s"} banked`}
+                    >
+                        <BloomIcon name="snowflake" size={11} strokeWidth={2} />
+                    </span>
+                )}
                 {habit.skipsLeft > 0 && (
                     <span
                         className="ml-0.5 text-[10px] text-muted"

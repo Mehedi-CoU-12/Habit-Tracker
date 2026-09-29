@@ -18,6 +18,12 @@ export type Habit = {
     skippedDays: number[];
     /** Skips still available on this habit this month. */
     skipsLeft: number;
+    /** Days of the shown month a streak freeze covered. */
+    frozenDays: number[];
+    /** Streak freezes banked. */
+    freezes: number;
+    /** Longest streak ever. */
+    longest: number;
     /** How much is logged today, 0 when nothing is. */
     todayAmount: number;
     /** Weekdays it is due on, 0 = Sunday. Empty means every day. */
@@ -73,6 +79,18 @@ export type ApiHabit = {
     logs: ApiHabitLog[];
     /** This month's forgiven days. Absent in caches written before skips. */
     skips?: ApiHabitSkip[];
+    /** Absent from older API builds. */
+    progress?: ApiHabitProgress | null;
+};
+
+/** Whole-history progress, as of the start of `asOf` (today excluded). */
+export type ApiHabitProgress = {
+    asOf: string;
+    streak: number;
+    longest: number;
+    freezes: number;
+    /** Days of the fetched month a streak freeze was spent on. */
+    frozen: number[];
 };
 
 /** One deliberately forgiven day (streak insurance). */

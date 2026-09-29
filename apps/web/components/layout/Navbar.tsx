@@ -84,6 +84,13 @@ export default function Navbar(props: NavbarProps) {
                                 <BloomIcon name="sun" size={14} />
                                 Focus
                             </Link>
+                            <Link
+                                href="/review"
+                                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 py-2 text-xs font-bold text-ink2 transition hover:bg-surface2"
+                            >
+                                <BloomIcon name="calendar" size={14} />
+                                Review
+                            </Link>
                             <button
                                 onClick={props.onShowTemplates}
                                 className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 py-2 text-xs font-bold text-ink2 transition hover:bg-surface2"
