@@ -25,7 +25,7 @@ import { AuthProvider, useAuth } from "../api/AuthProvider";
 import { useMe } from "../api/hooks";
 import { persistOptions, queryClient } from "../api/queryClient";
 import { startSync } from "../offline/sync";
-import { startReminders } from "../notifications";
+import { startReminders, useNotificationRoute } from "../notifications";
 import { startWidgetMirror } from "../widget/mirror";
 import OfflineBar from "../components/OfflineBar";
 import SyncPill from "../components/SyncPill";
@@ -108,6 +108,7 @@ function RootStack() {
     const th = useTheme();
     const insets = useSafeAreaInsets();
     const barVisible = useOfflineBarVisible();
+    useNotificationRoute();
     // Wire the offline sync + reminder + widget-mirror triggers once
     // (reconnect / foreground / startup for sync; foreground / actions /
     // startup for reminders; every habits-cache change for the widget).
@@ -140,6 +141,10 @@ function RootStack() {
                 >
                     <Stack.Screen
                         name="add"
+                        options={{ presentation: "modal" }}
+                    />
+                    <Stack.Screen
+                        name="milestone"
                         options={{ presentation: "modal" }}
                     />
                 </Stack>

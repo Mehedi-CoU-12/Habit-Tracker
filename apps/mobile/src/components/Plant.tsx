@@ -1,9 +1,10 @@
 import Svg, { Circle, Ellipse, G, Path, Rect } from "react-native-svg";
 import { useTheme } from "../theme/ThemeProvider";
+import { plantStage } from "../lib/progress";
 
 /**
  * Plant — the signature Bloom element, ported to react-native-svg.
- * Grows seed → sprout → leafy stem → flower by `streak`; wilts (dim + tilt)
+ * Grows seed → sprout → leafy stem → blooms at 7, 30 and 100 days; wilts (dim + tilt)
  * when not done today. Colors read from the active theme.
  */
 export default function Plant({
@@ -18,16 +19,7 @@ export default function Plant({
     flowerColor?: string;
 }) {
     const th = useTheme();
-    const stage =
-        streak === 0
-            ? 0
-            : streak < 3
-              ? 1
-              : streak < 10
-                ? 2
-                : streak < 25
-                  ? 3
-                  : 4;
+    const stage = plantStage(streak);
     const dim = doneToday ? 1 : 0.5;
     const leaf = th.green;
     const flower = flowerColor ?? th.accent;
@@ -143,6 +135,24 @@ export default function Plant({
                         rotation={20}
                         origin="62, 42"
                     />
+                </G>
+            )}
+            {stage === 3 && (
+                <G opacity={dim}>
+                    <Circle cx={46} cy={35} r={3} fill={flower} />
+                    <Circle cx={50} cy={31} r={3.5} fill={flower} />
+                    <Circle cx={54} cy={35} r={3} fill={flower} />
+                    <Circle cx={50} cy={35} r={2} fill={th.sun} />
+                </G>
+            )}
+            {stage >= 5 && (
+                <G opacity={dim}>
+                    <Circle cx={31} cy={40} r={3} fill={flower} />
+                    <Circle cx={35} cy={37} r={3} fill={flower} />
+                    <Circle cx={33} cy={40} r={1.8} fill={th.sun} />
+                    <Circle cx={69} cy={38} r={3} fill={flower} />
+                    <Circle cx={65} cy={35} r={3} fill={flower} />
+                    <Circle cx={67} cy={38} r={1.8} fill={th.sun} />
                 </G>
             )}
             {stage >= 4 && (

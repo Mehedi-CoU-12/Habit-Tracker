@@ -23,6 +23,16 @@ export type ApiHabitSkip = {
     createdAt: string;
 };
 
+/** GET /habits — whole-history progress, as of the start of `asOf` (today excluded). */
+export type ApiHabitProgress = {
+    asOf: string;
+    streak: number;
+    longest: number;
+    freezes: number;
+    /** Days of the fetched month a streak freeze was spent on. */
+    frozen: number[];
+};
+
 /** Raw shape from GET /habits (matches the NestJS Habit model + icon/tod/verb). */
 export type ApiHabit = {
     id: string;
@@ -49,6 +59,8 @@ export type ApiHabit = {
     logs: ApiHabitLog[];
     /** This month's forgiven days. Absent in caches written before skips. */
     skips?: ApiHabitSkip[];
+    /** Absent from older API builds and caches. */
+    progress?: ApiHabitProgress | null;
 };
 
 /** GET /notes — one free-text reflection per calendar day. */
@@ -81,6 +93,12 @@ export type HabitWithStats = {
     skippedDays: number[];
     /** Skips still available on this habit this month. */
     skipsLeft: number;
+    /** Days of the shown month a streak freeze covered. */
+    frozenDays: number[];
+    /** Streak freezes banked. */
+    freezes: number;
+    /** Longest streak ever. */
+    longest: number;
     /** How much is logged today, 0 when nothing is. */
     todayAmount: number;
     /** Normalized schedule: weekday numbers, or empty for daily. */
@@ -95,6 +113,29 @@ export type HabitWithStats = {
     best: number;
     rate: number;
     doneToday: boolean;
+};
+
+/** GET /habits/review — the Monday–Sunday week ending on the latest Sunday. */
+export type WeeklyReview = {
+    weekStart: string;
+    weekEnd: string;
+    done: number;
+    due: number;
+    rate: number;
+    perfectDays: number;
+    bestWeek: boolean;
+    freezesUsed: number;
+    milestones: { habitId: string; name: string; days: number }[];
+    highlight: string | null;
+    habits: {
+        id: string;
+        name: string;
+        icon: string;
+        done: number;
+        due: number;
+        rate: number;
+        bestWeek: boolean;
+    }[];
 };
 
 export type UserRole = "USER" | "ADMIN";
@@ -114,6 +155,8 @@ export type UserProfile = {
      * confirmation UI has to know which it is.
      */
     hasPassword?: boolean;
+    /** Sunday review email opt-in. */
+    weeklyReviewEmail?: boolean;
 };
 
 export type FocusDayTotals = { sessions: number; minutes: number };

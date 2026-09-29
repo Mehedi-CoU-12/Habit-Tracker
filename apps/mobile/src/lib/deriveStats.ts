@@ -3,9 +3,11 @@ import {
     amountOn,
     completedDaysOf,
     completedLogs,
+    frozenDaysOf,
     skipsLeft,
     skippedDaysOf,
 } from "./completion";
+import { liveProgress } from "./progress";
 import { DayRange, dayIndex, dayIndexOf } from "./date";
 import {
     expectedDaysBetween,
@@ -51,6 +53,7 @@ export function deriveHabitStats(
 ): HabitWithStats {
     const completedDays = completedDaysOf(h);
     const skippedDays = skippedDaysOf(h);
+    const frozenDays = frozenDaysOf(h);
     const completed = completedDays.size;
     const daysOfWeek = normalizeDays(h.daysOfWeek);
 
@@ -80,10 +83,12 @@ export function deriveHabitStats(
     if (dueOn(refDay) && !completedDays.has(refDay)) from = refDay - 1;
     for (let dd = from; dd >= 1; dd--) {
         if (!dueOn(dd)) continue;
-        if (skippedDays.has(dd)) continue;
+        if (skippedDays.has(dd) || frozenDays.has(dd)) continue;
         if (completedDays.has(dd)) streak++;
         else break;
     }
+    const live = isCurrentMonth ? liveProgress(h, today) : null;
+    if (live) streak = live.streak;
 
     // `best` deliberately ignores skips: it is the high-water mark of actual
     // work, and records should be unforgiving even when daily life is not.
@@ -127,6 +132,9 @@ export function deriveHabitStats(
         fillFromFocus: h.fillFromFocus ?? false,
         skippedDays: [...skippedDays].sort((a, b) => a - b),
         skipsLeft: skipsLeft(h),
+        frozenDays: [...frozenDays].sort((a, b) => a - b),
+        freezes: live?.freezes ?? h.progress?.freezes ?? 0,
+        longest: Math.max(live?.longest ?? h.progress?.longest ?? 0, streak),
         todayAmount: isCurrentMonth ? amountOn(h, today.getDate()) : 0,
         daysOfWeek,
         archivedAt: h.archivedAt ?? null,

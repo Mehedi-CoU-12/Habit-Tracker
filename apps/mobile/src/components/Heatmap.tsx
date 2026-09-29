@@ -227,6 +227,22 @@ function Heatmap({
                                 strokeDasharray="2 1.6"
                             />
                         ))}
+                    {grid.days
+                        .filter((d) => d.frozen && !fadedFor(d))
+                        .map((d) => (
+                            <Rect
+                                key={`freeze-${d.index}`}
+                                x={PAD + gutter + d.col * pitch + 0.8}
+                                y={PAD + d.row * pitch + 0.8}
+                                width={cell - 1.6}
+                                height={cell - 1.6}
+                                rx={Math.min(4, cell * 0.28)}
+                                fill={th.sky}
+                                fillOpacity={0.35}
+                                stroke={th.sky}
+                                strokeWidth={1.4}
+                            />
+                        ))}
                     {/* Rings ride above every fill so a neighbour can't clip them. */}
                     {grid.days
                         .filter((d) => d.today || d.index === active?.index)

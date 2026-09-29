@@ -13,7 +13,8 @@ import {
     monthsForHeat,
 } from "../../lib/heatmap";
 import { Tod } from "../../lib/types";
-import { SkyWash, Card, Segmented } from "../../components/primitives";
+import { useRouter } from "expo-router";
+import { SkyWash, Card, Pill, Segmented } from "../../components/primitives";
 import Heatmap from "../../components/Heatmap";
 
 /** Floor on the history fetch so switching periods mostly hits warm cache. */
@@ -40,6 +41,7 @@ const RANK_BLURB: Record<HeatPeriod, string> = {
 export default function StatsScreen() {
     const th = useTheme();
     const insets = useSafeAreaInsets();
+    const router = useRouter();
     const now = useMemo(() => new Date(), []);
     const year = now.getFullYear();
     const month = now.getMonth() + 1;
@@ -133,6 +135,11 @@ export default function StatsScreen() {
                         gap: 16,
                     }}
                 >
+                    <Pill
+                        icon="calendar"
+                        label="Your weekly review"
+                        onPress={() => router.push("/review")}
+                    />
                     {/* hero completion */}
                     <View
                         style={{

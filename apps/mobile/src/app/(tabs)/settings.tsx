@@ -20,11 +20,13 @@ import {
     useAppRelease,
     useMe,
     useHabits,
+    useUpdateProfile,
     useUploadAvatar,
 } from "../../api/hooks";
 import { useOnline } from "../../offline/hooks";
 import {
     requestPermission,
+    setWeeklyReview,
     syncReminders,
     useReminderPrefs,
 } from "../../notifications";
@@ -169,6 +171,28 @@ export default function SettingsScreen() {
             return;
         }
         await setEnabled(true);
+        void syncReminders();
+    }
+
+    const updateProfile = useUpdateProfile();
+    const weeklyEmail = me?.weeklyReviewEmail ?? true;
+
+    async function toggleWeeklyNudge() {
+        if (!reminders.weeklyReview && !(await requestPermission())) {
+            Alert.alert(
+                "Notifications are off",
+                "Turn on notifications for HabitFlow in your device settings to get the weekly review.",
+                [
+                    { text: "Not now", style: "cancel" },
+                    {
+                        text: "Open settings",
+                        onPress: () => Linking.openSettings(),
+                    },
+                ],
+            );
+            return;
+        }
+        await setWeeklyReview(!reminders.weeklyReview);
         void syncReminders();
     }
 
@@ -613,6 +637,40 @@ export default function SettingsScreen() {
                             hint="Set times and the notification message on each habit's edit page"
                         />
                     )}
+                </Section>
+
+                <Section title="WEEKLY REVIEW">
+                    <Row
+                        first
+                        icon="calendar"
+                        label="Sunday notification"
+                        hint="7:00 PM · a look back at your week"
+                        right={
+                            <Toggle
+                                on={reminders.weeklyReview}
+                                onPress={() => void toggleWeeklyNudge()}
+                            />
+                        }
+                    />
+                    <Row
+                        icon="sparkle"
+                        label="Sunday email"
+                        hint={
+                            weeklyEmail
+                                ? `Sent to ${me?.email ?? "your inbox"}`
+                                : "Off"
+                        }
+                        right={
+                            <Toggle
+                                on={weeklyEmail}
+                                onPress={() =>
+                                    updateProfile.mutate({
+                                        weeklyReviewEmail: !weeklyEmail,
+                                    })
+                                }
+                            />
+                        }
+                    />
                 </Section>
 
                 <Section title="FOCUS">

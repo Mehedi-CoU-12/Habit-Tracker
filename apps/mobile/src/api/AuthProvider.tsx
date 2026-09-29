@@ -16,6 +16,7 @@ import { clearOutbox } from "../offline/outbox";
 import { resetSync } from "../offline/sync";
 import { cancelAllReminders } from "../notifications";
 import { clearWidget } from "../widget/mirror";
+import { clearMilestones } from "../lib/milestones";
 import * as api from "./endpoints";
 
 const GOOGLE_REDIRECT = "habitflow://google-auth";
@@ -121,6 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // habits is a privacy bug, not a stale cache.
         await cancelAllReminders();
         await clearWidget();
+        await clearMilestones();
         await storage.remove(KEYS.token);
         await storage.remove(KEYS.refreshToken);
         resetSync();

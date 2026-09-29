@@ -244,6 +244,14 @@ export function HabitRow({
                 >
                     {h.streak}
                 </Text>
+                {h.freezes > 0 && (
+                    <Icon
+                        name="snowflake"
+                        size={12}
+                        stroke={th.sky}
+                        strokeWidth={1.8}
+                    />
+                )}
             </View>
         </Pressable>
     );

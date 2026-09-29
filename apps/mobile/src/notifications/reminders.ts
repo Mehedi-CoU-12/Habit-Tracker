@@ -13,6 +13,7 @@ import {
     PRESET_TIMES,
     REMINDER_PREFIX,
     SNOOZE_PREFIX,
+    WEEKLY_ID,
     effectiveReminder,
     type ReminderPrefs,
     type TimeStr,
@@ -250,7 +251,10 @@ export async function syncReminders(): Promise<void> {
             ),
         );
 
-    if (!prefs.enabled || !(await hasPermission())) {
+    const permitted = await hasPermission();
+    await syncWeeklyReview(prefs.weeklyReview && permitted, scheduled);
+
+    if (!prefs.enabled || !permitted) {
         await cancelAll();
         return;
     }
@@ -293,6 +297,34 @@ export async function syncReminders(): Promise<void> {
             },
         });
     }
+}
+
+/** Keep the Sunday 19:00 weekly-review nudge scheduled exactly when wanted. */
+async function syncWeeklyReview(
+    wanted: boolean,
+    scheduled: Notifications.NotificationRequest[],
+): Promise<void> {
+    const exists = scheduled.some((n) => n.identifier === WEEKLY_ID);
+    if (wanted === exists) return;
+    if (!wanted) {
+        await Notifications.cancelScheduledNotificationAsync(WEEKLY_ID);
+        return;
+    }
+    await Notifications.scheduleNotificationAsync({
+        identifier: WEEKLY_ID,
+        content: {
+            title: "Your week in the garden 🌸",
+            body: "See how your habits grew this week.",
+            data: { route: "/review" },
+            sound: "default",
+        },
+        trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+            weekday: 1,
+            hour: 19,
+            minute: 0,
+        },
+    });
 }
 
 /**

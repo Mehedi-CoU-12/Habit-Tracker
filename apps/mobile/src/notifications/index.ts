@@ -1,5 +1,7 @@
+import { useEffect } from "react";
 import { AppState, Platform } from "react-native";
 import * as Notifications from "expo-notifications";
+import { router } from "expo-router";
 import { enqueue } from "../offline/outbox";
 import { runSync } from "../offline/sync";
 import { setupNotifications } from "./permissions";
@@ -7,7 +9,7 @@ import { loadPrefs } from "./store";
 import { markDoneInCache, scheduleSnooze, syncReminders } from "./reminders";
 
 export { cancelAllReminders, syncReminders } from "./reminders";
-export { useReminderPrefs } from "./store";
+export { setWeeklyReview, useReminderPrefs } from "./store";
 export { requestPermission } from "./permissions";
 
 type ResponseData = { habitIds?: string[]; slot?: string };
@@ -40,6 +42,22 @@ async function handleResponse(
     // A plain tap (DEFAULT action) just opens the app; nothing to do here.
 
     void syncReminders();
+}
+
+/** Open the screen a tapped notification points at (`data.route`), cold start included. */
+export function useNotificationRoute(): void {
+    const last = Notifications.useLastNotificationResponse();
+    useEffect(() => {
+        if (
+            !last ||
+            last.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER
+        )
+            return;
+        const route = (last.notification.request.content.data ?? {}).route;
+        if (typeof route !== "string") return;
+        void Notifications.clearLastNotificationResponseAsync();
+        router.push(route as never);
+    }, [last]);
 }
 
 let started = false;

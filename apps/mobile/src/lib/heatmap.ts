@@ -27,6 +27,7 @@ import { MonthHabits } from "./deriveStats";
 import {
     amountOn,
     completedLogs,
+    frozenDaysOf,
     skippedDaysOf,
     targetOf,
 } from "./completion";
@@ -69,6 +70,8 @@ export type HeatDay = {
     dormant: boolean;
     /** Forgiven by a spent skip — drawn distinctly, never as a completion. */
     skipped?: boolean;
+    /** Covered by a streak freeze. */
+    frozen?: boolean;
     today: boolean;
     day: number;
     month: number;
@@ -179,6 +182,7 @@ type Resolver = (index: number) => {
     dormant: boolean;
     /** Forgiven by a spent skip. */
     skipped?: boolean;
+    frozen?: boolean;
     detail?: string;
 };
 
@@ -243,6 +247,7 @@ function buildGrid(
             dormant: r.dormant || index < rangeStartIdx,
             today: index === todayIdx,
             skipped: r.skipped,
+            frozen: r.frozen,
             day: date.getDate(),
             month: date.getMonth() + 1,
             year: date.getFullYear(),
@@ -275,8 +280,10 @@ type HabitDays = {
     sorted: number[];
     /** Day index → fraction of the target logged, for days short of it. */
     partial: Map<number, number>;
-    /** Day indices forgiven by a spent skip. */
+    /** Day indices forgiven by a spent skip or covered by a freeze. */
     skipped: Set<number>;
+    /** Day indices covered by a streak freeze. */
+    frozen: Set<number>;
     /**
      * The previous day that counts against a run, walking back through both
      * rest days and forgiven days. For a daily habit with nothing forgiven
@@ -302,11 +309,17 @@ function collectHabitDays(
     const done = new Set<number>();
     const partial = new Map<number, number>();
     const skipped = new Set<number>();
+    const frozen = new Set<number>();
     for (const m of history)
         for (const h of m.habits)
             if (h.id === habitId) {
                 for (const day of skippedDaysOf(h))
                     skipped.add(dayIndexOf(m.year, m.month, day));
+                for (const day of frozenDaysOf(h)) {
+                    const index = dayIndexOf(m.year, m.month, day);
+                    frozen.add(index);
+                    skipped.add(index);
+                }
                 for (const l of completedLogs(h))
                     done.add(dayIndexOf(l.year, l.month, l.day));
                 // Days with progress that fell short — shaded, but never
@@ -342,7 +355,16 @@ function collectHabitDays(
         const raw = previousExpected(daysOfWeek, d - 1);
         rawDepth.set(d, (rawDepth.get(raw) ?? 0) + 1);
     }
-    return { done, depth, rawDepth, sorted, partial, skipped, prevCounting };
+    return {
+        done,
+        depth,
+        rawDepth,
+        sorted,
+        partial,
+        skipped,
+        frozen,
+        prevCounting,
+    };
 }
 
 function depthToLevel(depth: number): number {
@@ -379,7 +401,7 @@ export function buildHabitHeatmap(
     habit?: HabitSchedule,
 ): HeatResult {
     const daysOfWeek = normalizeDays(habit?.daysOfWeek);
-    const { done, depth, sorted, partial, skipped } = collectHabitDays(
+    const { done, depth, sorted, partial, skipped, frozen } = collectHabitDays(
         history,
         habitId,
         daysOfWeek,
@@ -405,20 +427,24 @@ export function buildHabitHeatmap(
         // A forgiven day gets its own treatment rather than a level: level 1
         // is already the partial shade, and a skip is not partial progress.
         const isSkipped = skipped.has(index) && d === 0;
+        const isFrozen = isSkipped && frozen.has(index);
         return {
             // Level 1 is the partial shade — lighter than any completed day,
             // so progress shows without reading as a finished one.
             level: d > 0 ? depthToLevel(d) : part ? 1 : 0,
             done: d > 0,
             dormant: off || !known.has(index),
-            skipped: isSkipped,
-            detail: isSkipped
-                ? "skipped · streak kept"
-                : d > 1
-                  ? `done · ${d} day run`
-                  : part
-                    ? `${Math.round(part * 100)}% of target`
-                    : undefined,
+            skipped: isSkipped && !isFrozen,
+            frozen: isFrozen,
+            detail: isFrozen
+                ? "freeze used · streak kept"
+                : isSkipped
+                  ? "skipped · streak kept"
+                  : d > 1
+                    ? `done · ${d} day run`
+                    : part
+                      ? `${Math.round(part * 100)}% of target`
+                      : undefined,
         };
     });
 
