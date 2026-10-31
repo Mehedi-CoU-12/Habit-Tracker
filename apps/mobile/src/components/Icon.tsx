@@ -217,6 +217,13 @@ const PATHS: Record<string, (s: string, fill: string) => ReactNode> = {
         </>
     ),
     play2: (s) => <Path d="M7 5 v14 l12 -7 z" fill={s} stroke="none" />,
+    alertCircle: () => (
+        <>
+            <Circle cx={12} cy={12} r={10} />
+            <Line x1={12} y1={8} x2={12} y2={12} />
+            <Line x1={12} y1={16} x2={12.01} y2={16} />
+        </>
+    ),
 };
 
 export type IconName = keyof typeof PATHS;
