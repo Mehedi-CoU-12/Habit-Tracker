@@ -29,6 +29,7 @@ import { startReminders, useNotificationRoute } from "../notifications";
 import { startWidgetMirror } from "../widget/mirror";
 import OfflineBar from "../components/OfflineBar";
 import SyncPill from "../components/SyncPill";
+import Toaster from "../components/Toaster";
 import UpdateGate from "../components/UpdateGate";
 import { useOfflineBarVisible } from "../offline/useSyncView";
 import { storage, KEYS } from "../lib/storage";
@@ -152,6 +153,7 @@ function RootStack() {
             {/* Outside the navigator: an update prompt has to reach the user on
                 whatever screen they land on, including the auth screens. */}
             <UpdateGate />
+            <Toaster />
         </View>
     );
 }
