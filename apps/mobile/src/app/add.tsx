@@ -33,6 +33,10 @@ import {
 import Plant from "../components/Plant";
 import Icon from "../components/Icon";
 import { Pill, Toggle } from "../components/primitives";
+import { toast } from "../lib/toast";
+
+const MAX_NAME_LENGTH = 100;
+const MAX_VERB_LENGTH = 50;
 
 const ICONS = [
     "leaf",
@@ -149,6 +153,14 @@ export default function AddScreen() {
 
     const [name, setName] = useState("");
     const [verb, setVerb] = useState("");
+    const handleVerbChange = (text: string) => {
+        if (text.length > MAX_VERB_LENGTH && verb.length <= MAX_VERB_LENGTH) {
+            toast.error(
+                `Short note cannot exceed ${MAX_VERB_LENGTH} characters`,
+            );
+        }
+        setVerb(text);
+    };
     const [icon, setIcon] = useState("sprout");
     const [tod, setTod] = useState<Tod>("morning");
     const [goal, setGoal] = useState(20);
@@ -290,12 +302,28 @@ export default function AddScreen() {
     };
 
     const save = () => {
+        const trimmedName = name.trim();
+        const trimmedVerb = verb.trim();
+
+        if (trimmedName.length > MAX_NAME_LENGTH) {
+            toast.error(
+                `Habit name cannot exceed ${MAX_NAME_LENGTH} characters`,
+            );
+            return;
+        }
+        if (trimmedVerb.length > MAX_VERB_LENGTH) {
+            toast.error(
+                `Short note cannot exceed ${MAX_VERB_LENGTH} characters`,
+            );
+            return;
+        }
+
         const input = {
-            name: name.trim() || "New habit",
+            name: trimmedName || "New habit",
             goal,
             icon,
             tod,
-            verb: verb.trim() || undefined,
+            verb: trimmedVerb || undefined,
             // null is meaningful here: it clears a target the habit used to have.
             target,
             unit: target === null ? null : unit.trim() || null,
@@ -318,9 +346,30 @@ export default function AddScreen() {
             close();
         };
         if (isEdit && id) {
-            update.mutate({ id, input }, { onSuccess: () => void finish(id) });
+            update.mutate(
+                { id, input },
+                {
+                    onSuccess: () => void finish(id),
+                    onError: (err) => {
+                        toast.error(
+                            err instanceof Error
+                                ? err.message
+                                : "Failed to update habit",
+                        );
+                    },
+                },
+            );
         } else {
-            create.mutate(input, { onSuccess: (h) => void finish(h.id) });
+            create.mutate(input, {
+                onSuccess: (h) => void finish(h.id),
+                onError: (err) => {
+                    toast.error(
+                        err instanceof Error
+                            ? err.message
+                            : "Failed to create habit",
+                    );
+                },
+            });
         }
     };
 
@@ -420,7 +469,7 @@ export default function AddScreen() {
                     />
                     <TextInput
                         value={verb}
-                        onChangeText={setVerb}
+                        onChangeText={handleVerbChange}
                         placeholder="short note · e.g. 20 min"
                         placeholderTextColor={th.muted}
                         style={{
@@ -434,10 +483,35 @@ export default function AddScreen() {
                     <View
                         style={{
                             height: 1,
-                            backgroundColor: th.line,
+                            backgroundColor:
+                                verb.length > MAX_VERB_LENGTH
+                                    ? th.danger
+                                    : th.line,
                             marginTop: 2,
                         }}
                     />
+                    {verb.length > 0 && (
+                        <View
+                            style={{
+                                flexDirection: "row",
+                                justifyContent: "flex-end",
+                                marginTop: 4,
+                            }}
+                        >
+                            <Text
+                                style={{
+                                    fontSize: 11,
+                                    fontFamily: th.sansBold,
+                                    color:
+                                        verb.length > MAX_VERB_LENGTH
+                                            ? th.danger
+                                            : th.muted,
+                                }}
+                            >
+                                {verb.length}/{MAX_VERB_LENGTH}
+                            </Text>
+                        </View>
+                    )}
                 </View>
 
                 {/* seed icons */}
