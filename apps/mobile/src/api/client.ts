@@ -136,7 +136,12 @@ async function handle<T>(res: Response): Promise<T> {
         let code: string | undefined;
         try {
             const body = await res.json();
-            message = (body as { message?: string }).message ?? message;
+            const raw = (body as { message?: string | string[] }).message;
+            if (Array.isArray(raw)) {
+                message = raw.join(". ");
+            } else if (typeof raw === "string") {
+                message = raw;
+            }
             code = (body as { code?: string }).code;
         } catch {
             /* non-json error body */

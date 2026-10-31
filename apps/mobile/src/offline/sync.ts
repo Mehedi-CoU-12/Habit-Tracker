@@ -3,6 +3,7 @@ import { onlineManager } from "@tanstack/react-query";
 import { ApiError } from "../api/client";
 import * as api from "../api/endpoints";
 import { queryClient } from "../api/queryClient";
+import { toast } from "../lib/toast";
 import {
     getOps,
     loadOutbox,
@@ -194,6 +195,11 @@ async function drainOnce(): Promise<void> {
             if (isPermanent(err)) {
                 await removeOp(op.key);
                 pendingReconcile = true;
+                const msg =
+                    err instanceof ApiError && err.message
+                        ? err.message
+                        : "Habit could not be saved: validation failed";
+                toast.error(msg);
                 continue;
             }
             setStatus("error");
