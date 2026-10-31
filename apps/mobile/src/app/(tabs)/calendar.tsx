@@ -446,7 +446,7 @@ export default function CalendarScreen() {
                                         flexDirection: "row",
                                         alignItems: "center",
                                         gap: 14,
-                                        paddingVertical: 13,
+                                        paddingVertical: 11,
                                         paddingHorizontal: 16,
                                         borderTopWidth: i === 0 ? 0 : 1.5,
                                         borderTopColor: th.bg,
@@ -493,26 +493,42 @@ export default function CalendarScreen() {
                                             />
                                         )}
                                     </View>
-                                    <Text
+                                    <View
                                         style={{
                                             flex: 1,
-                                            fontSize: 14,
-                                            color: done ? th.ink : th.muted,
-                                            fontFamily: th.sans,
+                                            minWidth: 0,
+                                            justifyContent: "center",
                                         }}
                                     >
-                                        {h.name}
-                                    </Text>
-                                    <Text
-                                        style={{
-                                            fontSize: 11.5,
-                                            color: th.muted,
-                                        }}
-                                    >
-                                        {quantified
-                                            ? `${amountOn(h, sel)} / ${target}${h.unit ? ` ${h.unit}` : ""}`
-                                            : (h.verb ?? "")}
-                                    </Text>
+                                        <Text
+                                            numberOfLines={1}
+                                            style={{
+                                                fontSize: 14,
+                                                color: done ? th.ink : th.muted,
+                                                fontFamily: th.sans,
+                                            }}
+                                        >
+                                            {h.name}
+                                        </Text>
+                                        {Boolean(
+                                            quantified
+                                                ? true
+                                                : h.verb && h.verb.trim(),
+                                        ) && (
+                                            <Text
+                                                numberOfLines={1}
+                                                style={{
+                                                    fontSize: 11.5,
+                                                    color: th.muted,
+                                                    marginTop: 2,
+                                                }}
+                                            >
+                                                {quantified
+                                                    ? `${amountOn(h, sel)} / ${target}${h.unit ? ` ${h.unit}` : ""}`
+                                                    : (h.verb ?? "")}
+                                            </Text>
+                                        )}
+                                    </View>
                                     {canSkip && (
                                         <SkipPill
                                             skipped={skipped}
